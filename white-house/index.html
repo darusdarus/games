@@ -4,7 +4,7 @@
 *{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:'Segoe UI',system-ui,sans-serif;color:#eee;user-select:none}
 canvas{display:block}
 .hidden{display:none!important}
-#hud{position:fixed;inset:0;pointer-events:none}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:4}
 #obj{position:absolute;left:20px;top:16px;max-width:460px;text-shadow:0 1px 3px #000}
 #obj .a{font-size:12px;letter-spacing:3px;color:#d9b46a}#obj .o{font-size:19px;margin-top:3px}#obj .p{font-size:13px;color:#bcd;margin-top:3px}
 #compass{position:absolute;left:50%;top:10px;transform:translateX(-50%);width:420px;height:34px}
@@ -30,13 +30,17 @@ canvas{display:block}
 #feed div{margin-bottom:3px}
 #msg{position:absolute;left:0;right:0;top:24%;text-align:center;opacity:0;text-shadow:0 2px 8px #000;transition:opacity .4s}
 #msg .t{font-size:40px;letter-spacing:6px;font-weight:300}#msg .s{font-size:17px;color:#d9b46a;margin-top:6px;letter-spacing:2px}
+#guide{position:absolute;left:50%;top:78px;transform:translateX(-50%);z-index:6;text-align:center;max-width:620px;text-shadow:0 2px 8px #000}
+#guide .k{font-size:12px;letter-spacing:5px;color:#ffcf6a}#guide .h{font-size:28px;letter-spacing:2px;font-weight:650;color:#fff;text-shadow:0 0 16px rgba(255,190,60,.95),0 2px 6px #000}
+#guide .d{margin-top:4px;font-size:16px;color:#ffe7b0}
+#guidearrow{position:absolute;z-index:6;width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-bottom:26px solid #ffcf6a;filter:drop-shadow(0 0 10px #ffaa22);pointer-events:none}
 #dmg{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(160,0,0,.75));opacity:0}
 #whiteout{position:absolute;inset:0;background:#fff;opacity:0}
-#scope{position:fixed;inset:0;pointer-events:none}
+#scope{position:fixed;inset:0;pointer-events:none;z-index:3}
 #scope .ring{position:absolute;left:50%;top:50%;width:92vh;height:92vh;transform:translate(-50%,-50%);border-radius:50%;box-shadow:0 0 0 200vmax #000,inset 0 0 60px 20px rgba(0,0,0,.85)}
 #scope svg{position:absolute;left:50%;top:50%;width:92vh;height:92vh;transform:translate(-50%,-50%)}
 #scope .rd{position:absolute;left:50%;top:50%;transform:translate(14vh,8vh);font:13px monospace;color:#9f9;text-shadow:0 0 3px #000;line-height:1.5}
-#bcam{position:fixed;inset:0;pointer-events:none}
+#bcam{position:fixed;inset:0;pointer-events:none;z-index:7}
 #bcam:before,#bcam:after{content:'';position:absolute;left:0;right:0;height:11vh;background:#000}#bcam:before{top:0}#bcam:after{bottom:0}
 #bcam .t{position:absolute;left:24px;top:3.5vh;font-size:14px;letter-spacing:4px;color:#ffcf6a;z-index:2}
 #bcam .s{position:absolute;right:24px;bottom:4vh;font-size:12px;letter-spacing:2px;color:#aaa;z-index:2}
@@ -45,7 +49,7 @@ canvas{display:block}
 #markers .mk{position:absolute;transform:translate(-50%,-100%);text-align:center;font-size:11px;letter-spacing:1px;text-shadow:0 1px 2px #000;white-space:nowrap}
 #markers .mk .d{width:10px;height:10px;border:2px solid currentColor;transform:rotate(45deg);margin:0 auto 3px}
 #markers .mk .h{width:34px;height:3px;background:rgba(0,0,0,.6);margin:2px auto 0}#markers .mk .h i{display:block;height:100%;background:currentColor}
-#fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .8s;display:flex;align-items:center;justify-content:center;font-size:22px;letter-spacing:4px;color:#d9b46a}
+#fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .8s;display:flex;align-items:center;justify-content:center;font-size:22px;letter-spacing:4px;color:#d9b46a;z-index:8}
 .screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;background:radial-gradient(ellipse at center,rgba(20,14,10,.55),rgba(0,0,0,.9));text-align:center;z-index:10}
 .screen h1{font-size:64px;margin:0;letter-spacing:10px;font-weight:300;color:#f2ead8;text-shadow:0 0 30px rgba(255,140,40,.35)}
 .screen h2{margin:4px 0 0;font-size:16px;letter-spacing:8px;color:#d9b46a;font-weight:400}
@@ -92,6 +96,8 @@ button.alt{background:linear-gradient(#3c352c,#241e18);color:#f2ead8;letter-spac
  <div id="xh"><i style="left:-1px;top:-14px;width:2px;height:8px"></i><i style="left:-1px;top:6px;width:2px;height:8px"></i><i style="left:-14px;top:-1px;width:8px;height:2px"></i><i style="left:6px;top:-1px;width:8px;height:2px"></i></div>
  <div id="hitm"></div>
  <div id="prompt"></div>
+ <div id="guide" class="hidden"><div class="k">NEXT</div><div class="h"></div><div class="d"></div></div>
+ <div id="guidearrow" style="opacity:0"></div>
  <div id="msg"><div class="t"></div><div class="s"></div></div>
 </div>
 <div id="scope" class="hidden"><div class="ring"></div>
@@ -806,7 +812,7 @@ const OBJ=[
    if(W.wave<waves.length&&T>=waves[W.wave][0]){for(const [t,x,z] of waves[W.wave][1]){const s=spawnZ(t,x,0,z,{state:'chase'});s.tgt=nearestSurv(s.p,999);}W.wave++;feed('Runners closing on the survivors!','#fa7');}},
   done(){const r=survivors.every(s=>s.dead||s.saved);if(r&&W.saved===0){die('The survivors were overrun.');return false;}return r;},onDone(){for(const z of zombies)if(!z.dead&&z.obj===2)z.obj=3;}},
  {act:'ACT I · OVERWATCH',name:'Clear the North Portico',area:'ext',start:ROOF,setup(){for(let i=0;i<4;i++)spawnZ('walker',rand(-12,12),.4,rand(22,34));spawnZ('armored',-3,.6,20);spawnZ('armored',3,.6,19);spawnZ('armored',0,.2,23.5);spawnZ('runner',8,0,40);},done:()=>aliveObj(3)===0},
- {act:'ACT I · OVERWATCH',name:'Rappel down from the roof (E at the rope)',area:'ext',start:ROOF,setup(){feed('Rope anchored at the south parapet','#9cf');},done:()=>W.rappelled},
+ {act:'ACT I · OVERWATCH',name:'Rappel down from the roof (E at the rope)',area:'ext',start:ROOF,setup(){msg('WALK TO THE LIGHT','South edge of the roof · stand in the column · press E',6);feed('Rope anchored at the south parapet','#9cf');},done:()=>W.rappelled},
  {act:'ACT I · ON THE GROUND',name:'Fight across the North Lawn to the entrance',area:'ext',start:{p:V(0,0,104),yaw:0},setup(){P.has.mp5=true;if(P.weapon==='sniper')switchTo('mp5');
    for(let i=0;i<5;i++)spawnZ('walker',rand(-30,30),0,rand(40,92));for(const [x,z] of [[-60,20],[60,22],[-48,60],[52,70]])spawnZ('runner',x,0,z,{state:'chase'});spawnZ('armored',0,0,52);},
   tick(){for(const z of zombies)if(!z.dead&&z.state==='idle'&&anyOp(o=>z.p.distanceTo(o.p)<40))z.state='chase';},done:()=>W.breached},
@@ -978,10 +984,42 @@ function updateScope(){const sc=$('scope');if(!P.scoped||BC.on||W.phase!=='play'
  if(milZoom!==P.zoom){milZoom=P.zoom;const fov=P.zoom?9:18;const upm=.0573*(100/fov)*(200/92);let k=1;while(upm*k<4)k++;let h='';for(let i=1;i*upm*k<95;i++){const d=i*upm*k;h+=`<circle cx="${d}" cy="0" r=".9"/><circle cx="${-d}" cy="0" r=".9"/><circle cx="0" cy="${d}" r=".9"/><circle cx="0" cy="${-d}" r=".9"/>`;}$('mils').innerHTML=h;$('szoom').textContent=(P.zoom?'8x':'4x')+` · dots: ${k} mil`;}
  const f=camFwd(_a);const w=rayWorld(camera.position,f,1500);let rg=w.t;for(const z of zombies){const h=zHit(camera.position,f,rg,z);if(h)rg=h.t;}$('srange').textContent='RANGE '+(rg<1500?Math.round(rg)+' m':'---');
  $('swind').textContent='WIND '+(Math.abs(W.wind.x)<.1?'calm':(W.wind.x>0?'→ ':'← ')+Math.abs(W.wind.x).toFixed(1)+' m/s');}
+const GUIDE={};
+function makeGuide(){const g=new THREE.Group();
+ const beam=new THREE.Mesh(new THREE.CylinderGeometry(.28,1.15,16,14,1,true),new THREE.MeshBasicMaterial({color:0xfff3b0,transparent:true,opacity:.88,depthWrite:false,side:THREE.DoubleSide,fog:false}));
+ const core=new THREE.Mesh(new THREE.SphereGeometry(.7,16,12),new THREE.MeshBasicMaterial({color:0xffffff,fog:false}));
+ const ring=new THREE.Mesh(new THREE.RingGeometry(1.15,1.85,32),new THREE.MeshBasicMaterial({color:0xffe08a,transparent:true,opacity:.95,side:THREE.DoubleSide,depthWrite:false,fog:false}));
+ ring.rotation.x=-Math.PI/2;
+ const light=new THREE.PointLight(0xffcc55,0,36,1.5);
+ g.add(beam,core,ring,light);g.visible=false;scene.add(g);
+ GUIDE.g=g;GUIDE.beam=beam;GUIDE.core=core;GUIDE.ring=ring;GUIDE.light=light;}
+function nearestObjZ(obj){let best=null,bd=1e9;for(const z of zombies){if(z.dead||z.obj!==obj)continue;const d=z.p.distanceToSquared(P.p);if(d<bd){bd=d;best=z;}}return best;}
+function guideTarget(){const o=W.obj;if(o<0||o>5||W.phase!=='play'||BC.on)return null;
+ if(o===4){const near=P.p.distanceTo(ROPE)<3.2;return {p:ROPE,title:'WALK TO THE LIGHT',sub:near?'Press E to rappel down.':'Stand in the bright column on the south edge of the roof and press E.',walk:true,h:12,close:near};}
+ if(o===5){const n=aliveObj(5);if(n){const z=nearestObjZ(5);return {p:z?z.p:FRONT,title:'CROSS TO THE ENTRANCE',sub:'The bright column marks the way. '+n+' hostiles left.',walk:false,h:24};}
+  const near=Math.hypot(P.p.x-FRONT.x,P.p.z-FRONT.z)<4;return {p:FRONT,title:'PRESS E AT THE LIGHT',sub:near?'Press E to breach the North Entrance.':'Stand in the bright column at the doors and press E.',walk:true,h:16,close:near};}
+ if(o===2){const live=survivors.filter(v=>!v.dead&&!v.saved);const s=live.slice().sort((a,b)=>b.seg-a.seg)[0];
+  return {p:s?s.p:V(-36,0,115),title:'COVER THE SURVIVORS',sub:live.length?('Keep the people under the bright column alive. '+live.length+' still running.'):'Watch the bright column.',walk:false,h:20};}
+ const titles=['SHOOT THE WEST LAWN','SHOOT THE EAST LAWN','','CLEAR THE PORTICO'];
+ const spots=[V(42,0,70),V(-40,0,70),null,V(0,.4,24)];
+ const z=nearestObjZ(o);return {p:z?z.p:spots[o],title:titles[o],sub:'Follow the bright column. '+aliveObj(o)+' zombies left.',walk:false,h:o===3?16:30};}
+function updateGuide(){if(!GUIDE.g)makeGuide();const info=guideTarget();const card=$('guide'),arrow=$('guidearrow');
+ if(!info){GUIDE.g.visible=false;card.classList.add('hidden');arrow.style.opacity='0';return;}
+ card.classList.remove('hidden');card.children[1].textContent=info.title;card.children[2].textContent=info.sub;
+ const h=info.h,pulse=.72+.28*Math.sin(W.t*5);GUIDE.g.visible=true;GUIDE.g.position.set(info.p.x,info.p.y,info.p.z);
+ GUIDE.beam.scale.set(info.walk?1.35:1,h/16,info.walk?1.35:1);GUIDE.beam.position.y=h/2;GUIDE.beam.material.opacity=.55+.4*pulse;
+ GUIDE.core.position.y=info.walk?1.4:2.2;GUIDE.core.scale.setScalar(.8+.35*pulse);
+ GUIDE.ring.visible=!!info.walk;GUIDE.ring.position.y=.2;GUIDE.ring.material.opacity=.55+.4*pulse;
+ GUIDE.light.position.y=Math.min(6,h*.35);GUIDE.light.intensity=(info.walk?90:46)*pulse;GUIDE.light.distance=info.walk?32:48;
+ if(info.close){arrow.style.opacity='0';return;}
+ camera.getWorldDirection(_c);const aim=_a.copy(info.p);aim.y+=h*.45;const ahead=_d.subVectors(aim,camera.position).dot(_c)>0;const pr=aim.clone().project(camera);
+ if(ahead&&Math.abs(pr.x)<.7&&Math.abs(pr.y)<.62){arrow.style.opacity='0';return;}
+ let x=pr.x,y=pr.y;if(!ahead){x=-x;y=-y;}const m=Math.max(Math.abs(x),Math.abs(y),1e-4);x=clamp(x/m*.88,-.88,.88);y=clamp(y/m*.88,-.88,.88);
+ arrow.style.opacity='1';arrow.style.left=((x*.5+.5)*innerWidth)+'px';arrow.style.top=((-y*.5+.5)*innerHeight)+'px';arrow.style.transform=`translate(-50%,-50%) rotate(${Math.atan2(x,-y)}rad)`;}
 function updateHud(rdt){hitmT-=rdt;if(hitmT<=0)$('hitm').style.opacity=0;msgT-=rdt;if(msgT<=0)$('msg').style.opacity=0;
  $('dmg').style.opacity=Math.max(0,parseFloat($('dmg').style.opacity||0)-rdt*1.5)+(P.hp<30?.25+.15*Math.sin(W.t*6):0);
  $('hud').classList.toggle('hidden',BC.on||W.phase!=='play');$('xh').style.display=P.ads>.5||P.scoped?'none':'block';const spr=(P.weapon==='mp5'?16:P.weapon==='pistol'?10:22)*(P.sprinting?1.6:1);
- updateScope();markers();
+ updateScope();markers();updateGuide();
  hudT-=rdt;if(hudT>0)return;hudT=.08;
  const O=OBJ[W.obj];$('obj').children[0].textContent=O?O.act:'';$('obj').children[1].textContent=O?O.name:'...';let p='';
  if(W.obj>=0&&W.obj<=3&&W.obj!==2)p=`Zombies remaining: ${aliveObj(W.obj)}`;if(W.obj===2)p=`Survivors safe: ${W.saved} · lost: ${W.lost} · running: ${survivors.filter(s=>!s.dead&&!s.saved).length}`;
