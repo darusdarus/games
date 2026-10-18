@@ -150,7 +150,7 @@ body.touching #pinmsg{font-size:18px;padding:0 16px;box-sizing:border-box}
   <div><b>R-CLICK</b>Shove</div><div><b>R</b>Reload</div><div><b>1 / 2</b>Primary / Pistol</div>
   <div><b>E</b>Use / Pick up / Revive</div><div><b>H</b>Heal (first aid)</div><div><b>F</b>Flashlight</div>
   <div><b>SHIFT</b>Sprint</div><div><b>ESC / P</b>Pause</div><div><b>M</b>Mute</div>
-  <div><b>V</b>Talk (hold)</div>
+  <div><b>V</b>Talk (hold)</div><div><b>G</b>God fly</div>
  </div>
  <div class="touchhelp">Left side moves, right side looks. FIRE shoots, SHOVE pushes, USE grabs and revives. Hold TALK to speak in co-op.</div>
  <button class="big" id="playbtn">CLICK TO PLAY</button>
@@ -890,11 +890,18 @@ function update(dt){S.t+=dt;
  if(AP.on){mx=AP.mv[0];mz=AP.mv[1];}
  else{const f=(keys.KeyW?1:0)-(keys.KeyS?1:0),s=(keys.KeyD?1:0)-(keys.KeyA?1:0);const fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw),rx=Math.cos(player.yaw),rz=-Math.sin(player.yaw);mx=f*fx+s*rx;mz=f*fz+s*rz;const l=Math.hypot(mx,mz);if(l>0){mx/=l;mz/=l;}}
  let spd=(keys.ShiftLeft||keys.ShiftRight||AP.on)?6.3:4.3;if(player.hp<30)spd*=.75;if(S.healT>0||S.revT>0)spd*=.35;if(pinned||pulled||S.riding||player.down)spd=0;
- player.vx=lerp(player.vx,mx*spd,1-Math.exp(-dt*12));player.vz=lerp(player.vz,mz*spd,1-Math.exp(-dt*12));
- if(!pinned&&!player.down)moveEnt(player,player.vx*dt,player.vz*dt,.35);
+ if(S.fly){player.pinnedBy=null;player.pulledBy=null;player.down=false;
+  camera.rotation.set(player.pitch,player.yaw,0);camera.updateMatrixWorld();camera.getWorldDirection(_d);
+  const f=(keys.KeyW?1:0)-(keys.KeyS?1:0),st=(keys.KeyD?1:0)-(keys.KeyA?1:0),up=(keys.Space?1:0)-((keys.ControlLeft||keys.ControlRight)?1:0);
+  const rx=Math.cos(player.yaw),rz=-Math.sin(player.yaw);
+  let vx=f*_d.x+st*rx,vy=f*_d.y+up,vz=f*_d.z+st*rz,l=Math.hypot(vx,vy,vz);const fspd=(keys.ShiftLeft||keys.ShiftRight)?42:22;
+  if(l>0){vx=vx/l*fspd;vy=vy/l*fspd;vz=vz/l*fspd;}else vx=vy=vz=0;
+  player.x+=vx*dt;player.y=clamp(player.y+vy*dt,.4,90);player.z+=vz*dt;player.vx=vx;player.vz=vz;}
+ else{player.vx=lerp(player.vx,mx*spd,1-Math.exp(-dt*12));player.vz=lerp(player.vz,mz*spd,1-Math.exp(-dt*12));
+  if(!pinned&&!player.down)moveEnt(player,player.vx*dt,player.vz*dt,.35);}
  const mvs=Math.hypot(player.vx,player.vz);player.bob+=dt*mvs*1.9;
  player.crumbT-=dt;if(player.crumbT<=0){player.crumbT=.6;player.crumbs.push([player.x,player.z]);if(player.crumbs.length>20)player.crumbs.shift();}
- const ptc=chAt(player);if(ptc==='F'||ptc==='x'){player.burnT=.3;if(Math.floor(S.t*4)!==Math.floor((S.t-dt)*4)){hurtPlayer(2.5);}}
+ const ptc=chAt(player);if(!S.fly&&(ptc==='F'||ptc==='x')){player.burnT=.3;if(Math.floor(S.t*4)!==Math.floor((S.t-dt)*4)){hurtPlayer(2.5);}}
  player.burnT-=dt;
  // shooting
  const w=curW(),def=WEAP[w.type];const wantFire=AP.on?AP.fire:mouseDown;
@@ -996,7 +1003,7 @@ function updateFx(dt,reg){
 /* ---- camera & viewmodel ---- */
 function updateCamera(dt){const pinned=!!player.pinnedBy;const low=pinned||player.down;const gy=groundAt(player.x,player.z);
  const ty=gy+(low?.45:1.62)+Math.sin(player.bob*2)*.04*Math.min(1,Math.hypot(player.vx,player.vz)/4);
- player.y=lerp(player.y,ty,1-Math.exp(-dt*16));camera.position.set(player.x,player.y,player.z);
+ if(!S.fly)player.y=lerp(player.y,ty,1-Math.exp(-dt*16));camera.position.set(player.x,player.y,player.z);
  if(S.shake>0){camera.position.x+=rand(-S.shake,S.shake);camera.position.y+=rand(-S.shake,S.shake);}
  camera.rotation.set(player.pitch+(pinned?.5:0),player.yaw,pinned?Math.sin(S.t*20)*.05:0);
  const w=curW();for(const k in vmModels)vmModels[k].visible=false;
@@ -1022,7 +1029,7 @@ function updateHud(dt){flashT=Math.max(0,flashT-dt*1.6);$('dmg').style.opacity=f
  const mp=$('mp');mp.querySelector('i').style.width=Math.max(0,player.hp)+'%';mp.querySelector('i').style.background=player.down?'#a22':hpColor(player.hp);mp.style.borderLeftColor=player.down?'#e33':hpColor(player.hp);mp.querySelector('.st').innerHTML=(player.down?'<b style="color:#f66">DOWN</b> ':Math.ceil(player.hp))+(player.kit?' <span class="kit">✚</span>':'');
  if(NET.role!=='off'){const nb=$('netbadge');nb.classList.remove('hidden');nb.textContent=(NET.role==='host'?'Hosting ':'Joined ')+NET.room+(NET.ping?' · '+NET.ping+' ms':'');}
  $('wname').textContent=def.name+(player.reloadT>0?' — reloading':'');$('acount').innerHTML=w.mag+' <small>/ '+(w.res===Infinity?'∞':w.res)+'</small>';
- $('slots').textContent=(player.inv.primary?'[1] '+WEAP[player.inv.primary.type].name+'  ':'[1] —  ')+'[2] Pistol'+(player.kit?'  [H] Heal':'')+'  [F] Light '+(player.flash?'on':'off');
+ $('slots').textContent=(S.fly?'GOD FLY — look and WASD, Space up, Ctrl down, Shift faster, G lands':((player.inv.primary?'[1] '+WEAP[player.inv.primary.type].name+'  ':'[1] —  ')+'[2] Pistol'+(player.kit?'  [H] Heal':'')+'  [F] Light '+(player.flash?'on':'off')+'  [G] Fly'));
  $('dir').innerHTML='AI Director: <b>'+(S.dirOn?DIR.mode:'WAITING')+'</b><br>intensity '+Math.round(DIR.intensity)+' · infected '+aliveCommons()+' · specials '+specials.filter(s=>!s.dead).length;
  const u=S.phase==='play'?useTargets():null;const pr=$('prompt');if(u&&!S.riding){pr.classList.remove('hidden');pr.innerHTML=(u.revive?'':'<b>'+(document.body.classList.contains('touching')?'[USE]':'[E]')+'</b> ')+u.label;}else pr.classList.add('hidden');
  const bar=$('bar');if(S.healT>0||S.revT>0){bar.classList.remove('hidden');const p=S.healT>0?1-S.healT/3:S.revT/2.5;$('barfill').style.width=(p*100)+'%';$('bartxt').textContent=S.healT>0?'Healing...':'Reviving '+S.revBot.name+'...';}else bar.classList.add('hidden');
@@ -1032,6 +1039,7 @@ function updateHud(dt){flashT=Math.max(0,flashT-dt*1.6);$('dmg').style.opacity=f
 const canvas=renderer.domElement;
 function lock(){if(AUTOTEST||COOPTEST||wantTouch())return;try{const p=canvas.requestPointerLock();if(p&&p.catch)p.catch(()=>{});}catch(e){}}
 function coopPause(){$('pause').classList.remove('hidden');mouseDown=false;keys={};NET.paused=true;syncTouch();}
+function toggleFly(){if(NET.role==='client'||S.phase!=='play')return;S.fly=!S.fly;if(S.fly){S.god=true;player.down=false;player.pinnedBy=null;player.pulledBy=null;player.hp=100;feed('<b>God fly on.</b> WASD goes where you look. Space up, Ctrl down, Shift is faster. G lands.','#fd8');}else{if(!COOPTEST)S.god=false;player.y=groundAt(player.x,player.z)+1.62;feed('Landed.','#ccc');}}
 function startGame(){initAudio();if(AU.ctx&&AU.ctx.state==='suspended')AU.ctx.resume();$('title').classList.add('hidden');$('hud').classList.remove('hidden');S.phase='play';S.started=true;if(COOPTEST)S.god=true;setObj(0);$('obj').textContent=OBJ[0];
  if(NET.role!=='client'){feed('<i>Trinity Street is quiet in the wrong way.</i>','#ccc');setTimeout(()=>bark(bots[0],'Guns are in the truck. Redwood Acres, the zoo, H Street, the mansion, the cookhouse.','plan',99),900);setTimeout(()=>bark(bots[1],'Chopper is on the pulp mill roof. Nothing else is flying.','plan2',99),3800);}
  player.yaw=-Math.PI/2;player.pitch=0.04;syncTouch();lock();if(NET.role!=='off')$('netbadge').classList.remove('hidden');}
@@ -1063,6 +1071,8 @@ document.addEventListener('keydown',e=>{keys[e.code]=true;
  if(e.code==='KeyQ'){player.slot=player.slot==='pistol'&&player.inv.primary?'primary':'pistol';player.reloadT=0;}
  if(e.code==='KeyE'&&!e.repeat)useAction();
  if(e.code==='KeyF'&&!e.repeat)player.flash=!player.flash;
+ if(e.code==='KeyG'&&!e.repeat)toggleFly();
+ if(S.fly&&(e.code==='Space'||e.code==='ControlLeft'||e.code==='ControlRight'))e.preventDefault();
  if(e.code==='KeyH'&&!e.repeat&&player.kit&&player.hp<100&&S.healT<=0&&!player.pinnedBy&&!player.pulledBy&&!player.down){S.healT=3;player.reloadT=0;}
  if(e.code==='KeyP'){if(document.pointerLockElement)document.exitPointerLock();if(NET.role==='host'){coopPause();return;}S.phase='paused';$('pause').classList.remove('hidden');mouseDown=false;syncTouch();}
  if(e.code==='Escape'&&!document.pointerLockElement){if(NET.role==='host'){coopPause();return;}S.phase='paused';$('pause').classList.remove('hidden');syncTouch();}});
