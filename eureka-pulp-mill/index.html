@@ -165,7 +165,8 @@ body.touching #pinmsg{font-size:18px;padding:0 16px;box-sizing:border-box}
  </div>
  <div class="tiny" id="roomhint">Solo, or co-op for up to 4 players. Share the room link — no server. Hold V to talk.</div>
  <div class="tiny"><a href="/dead-center/" style="color:#ccc">Dead Center, the hotel</a></div>
- <div class="tiny">Headphones recommended · Everything you see and hear is generated in code · Built by Grok Bot</div>
+ <div class="tiny">Headphones recommended · Built by Grok Bot</div>
+ <div class="tiny">Landmark photos: Carson Mansion and the Samoa mill, Tomas Sennett (public domain); Samoa Bridge, JP Smith (public domain); Samoa Cookhouse, Missvain (CC BY 4.0); Sequoia Park Zoo aviary, Missvain (CC0); Old Town Eureka, Pamla J. Eisenberg (CC BY 2.0); 935 3rd Street, Joe Mabel (CC BY 4.0). Full sources in tex/CREDITS.txt. Redwood Acres, the redwood path, and Myrtletown were provided for this game.</div>
 </div></div>
 <div id="lobby" class="screen hidden"><div class="card">
  <div class="kicker">ONLINE CO-OP · 4 SURVIVORS</div>
@@ -421,6 +422,31 @@ sign('SAMOA BRIDGE','#8a6a12','#1a1408',143.2*T,3.4,6.2*T,FACE,2.8,0.5);
 sign('SAMOA COOKHOUSE','#8a2e28','#fff',163.2*T,3.2,6.2*T,FACE,3.4,0.5);
 sign('EUREKA PULP MILL','#3a2418','#f0d7a4',188.2*T,3.6,6.2*T,FACE,3.4,0.55);
 sign('HELIPAD','#1c1c1c','#f4f4f4',201.2*T,12.2,6.2*T,FACE,1.6,0.4);
+const photoTex={};
+function photoPlane(file,x,y,z,w,h,ry){let tex=photoTex[file];if(!tex){tex=new THREE.TextureLoader().load('tex/'+file);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());photoTex[file]=tex;}
+ const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshLambertMaterial({map:tex,side:THREE.DoubleSide}));m.position.set(x,y,z);m.rotation.y=ry;scene.add(m);return m;}
+const NZ=6.92*T,WZ=5.35*T;
+const AZ=5.05*T;
+photoPlane('myrtle-street.jpg',7.5*T,3.6,6.05*T,9,4.9,0);
+photoPlane('myrtle-street.jpg',12.6*T,3.5,5.0*T,7.2,3.93,FACE);
+photoPlane('myrtle-street.jpg',16*T,3.9,NZ,10,5.45,0);
+photoPlane('myrtle-air.jpg',20.2*T,3.8,NZ,8,5.33,0);
+photoPlane('acres-camp.jpg',24.5*T,3.6,NZ,9,6.75,0);
+photoPlane('acres-track.jpg',30.2*T,4.4,NZ,12,6.75,0);
+photoPlane('acres-fair.jpg',28.2*T,4.0,AZ,6.4,4.8,FACE);
+photoPlane('acres-hall.jpg',32.6*T,3.9,AZ,7.2,4.43,FACE);
+photoPlane('acres-hall.jpg',37.5*T,2.15,6.15*T,6.2,3.8,0);
+photoPlane('forest.jpg',45.2*T,4.2,5.0*T,7.2,5.4,FACE);
+photoPlane('forest.jpg',50*T,6.5,NZ,16,12,0);
+photoPlane('forest.jpg',56*T,5.6,3.7*T,12,9,0);
+photoPlane('forest.jpg',64*T,6.2,NZ,14,10.5,0);
+photoPlane('zoo.jpg',78*T,3.6,NZ,10,6,0);photoPlane('zoo.jpg',80.6*T,3.6,WZ,5,6,FACE);
+photoPlane('street.jpg',96.2*T,3.2,NZ,9,5,0);photoPlane('street.jpg',94.2*T,3.2,WZ,5,5,FACE);
+photoPlane('office.jpg',101.5*T,3.5,NZ,8,5.6,0);photoPlane('office.jpg',103.1*T,3.4,WZ,4.5,5.5,FACE);
+photoPlane('mansion.jpg',119.5*T,4.8,NZ,16,8.6,0);photoPlane('mansion.jpg',122.8*T,4.6,WZ,5.5,8,FACE);
+photoPlane('bridge.jpg',152*T,4,5.9*T,18,6.5,0);photoPlane('bridge.jpg',143.1*T,3.6,WZ,5,6,FACE);
+photoPlane('cookhouse.jpg',162.2*T,3.6,NZ,8,5.8,0);photoPlane('cookhouse.jpg',163.2*T,3.5,WZ,5,6,FACE);
+photoPlane('mill.jpg',180*T,4.6,NZ,12,8,0);photoPlane('mill.jpg',187*T,6,4.4*T,16,10,0);photoPlane('mill.jpg',187.6*T,4.8,WZ,6,8,FACE);
 
 /* ---- doors. Every campaign door is a line across the road. ---- */
 const doorMeshes={};
@@ -573,7 +599,7 @@ const S={phase:'title',t:0,obj:0,kills:0,skills:0,heads:0,dmg:0,ff:0,shots:0,hit
 const player={x:4.5*T,z:8.5*T,y:1.6,yaw:-Math.PI/2,pitch:0.02,hp:100,down:false,kit:false,inv:{primary:null,pistol:{type:'pistol',mag:15,res:Infinity}},slot:'pistol',fireCd:0,reloadT:0,shoveCd:0,lastShove:-9,trig:false,bob:0,vx:0,vz:0,pinnedBy:null,pulledBy:null,pinShoves:0,flash:false,spread:0,crumbs:[],crumbT:0,hurtT:0,burnT:0};
 const commons=[],specials=[],bots=[],items=[];
 let ENTID=0;
-const MAXC=42,MAXI=90;
+const MAXC=420,MAXI=520;
 const SHIRTS=[0x6b5a3a,0x3a4a6b,0x7a2a2a,0x8e8a7c,0x2a2a2a,0x4a6a4a,0x7a5a7a,0x9a7a4a,0x5a3a2a,0xb8b0a0],PANTS=[0x2a2a35,0x3a3228,0x1f2a3a,0x4a4038,0x262626],SKINS=[0x8a9a7a,0x9a9282,0x7a8670,0xa09080];
 const PARTS=[{s:[.5,.62,.28],p:[0,.86,0],o:[0,.31,0]},{s:[.25,.28,.26],p:[0,1.48,0],o:[0,.14,0]},{s:[.12,.6,.12],p:[-.33,1.42,0],o:[0,-.29,0]},{s:[.12,.6,.12],p:[.33,1.42,0],o:[0,-.29,0]},{s:[.17,.84,.18],p:[-.13,.86,0],o:[0,-.42,0]},{s:[.17,.84,.18],p:[.13,.86,0],o:[0,-.42,0]}];
 const partMeshes=PARTS.map(()=>{const m=new THREE.InstancedMesh(boxGeo,new THREE.MeshLambertMaterial({color:0xffffff}),MAXI);m.frustumCulled=false;const c=new THREE.Color(1,1,1);for(let i=0;i<MAXI;i++)m.setColorAt(i,c);m.count=0;scene.add(m);return m;});
@@ -610,7 +636,7 @@ BOTDEF.forEach((d,i)=>{const m=makeHuman(d);const gun=gunModel(d.w,m.b);gun.posi
 /* ---- commons ---- */
 function aliveCommons(){let n=0;for(const c of commons)if(!c.dead)n++;return n;}
 function spawnCommon(x,z,alert,target){if(aliveCommons()>=MAXC)return null;if(!isWalk(Math.floor(x/T),Math.floor(z/T)))return null;
- const c={id:++ENTID,x,z,y:groundAt(x,z),yaw:rand(0,6.28),hp:50,dead:false,deathT:0,fall:0,state:alert?'rush':'wander',target:null,atk:rand(.4,1),phase:rand(0,6),wt:0,wdx:0,wdz:0,stag:0,pvx:0,pvz:0,shirt:pick(SHIRTS),pants:pick(PANTS),skin:pick(SKINS),speed:rand(4.7,5.6),swipe:0,chk:rand(0,.3),groanT:rand(1,8),hitT:0,mv:0};
+ const c={id:++ENTID,x,z,y:groundAt(x,z),yaw:rand(0,6.28),hp:75,dead:false,deathT:0,fall:0,state:alert?'rush':'wander',target:null,atk:rand(.2,.55),phase:rand(0,6),wt:0,wdx:0,wdz:0,stag:0,pvx:0,pvz:0,shirt:pick(SHIRTS),pants:pick(PANTS),skin:pick(SKINS),speed:rand(5.8,7.2),swipe:0,chk:rand(0,.3),groanT:rand(4,16),hitT:0,mv:0};
  if(alert)c.target=target||chooseTarget(c);commons.push(c);return c;}
 function chooseTarget(c){const alive=bots.filter(b=>!b.down);if(alive.length&&Math.random()<0.3){const b=pick(alive);return b;}return player;}
 function alertCommon(c,target){if(c.dead||c.state==='rush')return;c.state='rush';c.target=target||chooseTarget(c);if(Math.random()<.35)SFX.scream(c.x,c.z);}
@@ -628,7 +654,7 @@ function hurtPlayer(n){if(S.phase!=='play'||player.down)return;S.dmg+=n;DIR.inte
  if(player.hp<=0){player.hp=0;if(NET.role==='off')die();else{player.down=true;player.pinnedBy=null;player.pulledBy=null;feed('You are <b>DOWN</b>. A teammate can hold <b>E</b> to revive you.','#f88');checkWipe();}}}
 
 /* ---- specials ---- */
-const SPEC={boomer:{hp:50,r:.6,h:1.75,hh:1.75,col:'#b5c46a'},hunter:{hp:125,r:.4,h:1.3,hh:1.15,col:'#8aa0d0'},smoker:{hp:110,r:.35,h:2.0,hh:1.95,col:'#9ab060'}};
+const SPEC={boomer:{hp:100,r:.6,h:1.75,hh:1.75,col:'#b5c46a'},hunter:{hp:250,r:.4,h:1.3,hh:1.15,col:'#8aa0d0'},smoker:{hp:220,r:.35,h:2.0,hh:1.95,col:'#9ab060'}};
 function spawnSpecial(type){const sp=pickSpawn(10,22,true)||pickSpawn(6,30,false);if(!sp)return null;const x=(sp.x+.5)*T,z=(sp.z+.5)*T;const m=makeSpecialMesh(type);
  const s={id:++ENTID,type,x,z,y:groundAt(x,z),yaw:0,hp:SPEC[type].hp,mesh:m,state:'approach',cd:3,t:0,dead:false,deathT:0,stag:0,pvx:0,pvz:0,sndT:rand(.5,2),vx:0,vz:0,vy:0,tl:0,losLost:0,phase:0,hitT:0,vic:null};
  specials.push(s);return s;}
@@ -644,9 +670,9 @@ function killSpecial(s,byPlayer){if(s.dead)return;s.dead=true;s.deathT=0;if(byPl
  else if(s.type==='smoker'){SFX.cough(s.x,s.z);for(let i=0;i<40;i++)PSmoke.emit(s.x+rand(-1,1),s.y+rand(.5,2),s.z+rand(-1,1),rand(-.5,.5),rand(0,.4),rand(-.5,.5),rand(3,5),1.5,4,.35,.45,.25,.6,0);if(who)bark(who,'Got the Smoker!','skill',8);}
  else{for(let i=0;i<14;i++)PBlood.emit(s.x,s.y+1,s.z,rand(-1.5,1.5),rand(0,2.5),rand(-1.5,1.5),rand(.4,.8),.25,.12,.45,.03,.02,.95,9);if(who)bark(who,'Hunter\'s dead!','hkill',8);}}
 function bilePlayer(){if(S.biledT<=0){feed('You got <b>BOOMED</b>! Bile attracts the horde — fight!','#cf6');bark(null,'Oh no, you got puked on! Here they come!','biled',10);}S.biledT=12;SFX.splat();
- spawnHorde(14,player);for(const c of commons)if(!c.dead){c.state='rush';c.target=player;}}
+ spawnHorde(140,player);for(const c of commons)if(!c.dead){c.state='rush';c.target=player;}}
 function bileSurvivor(vic){if(!vic||vic===player){bilePlayer();return;}vic.biledT=12;SFX.splat(vic.x,vic.z);feed('<b>'+vic.name+'</b> got BOOMED. The horde wants them.','#cf6');
- spawnHorde(14,vic);for(const c of commons)if(!c.dead){c.state='rush';c.target=vic;}}
+ spawnHorde(140,vic);for(const c of commons)if(!c.dead){c.state='rush';c.target=vic;}}
 function damageSpecial(s,dmg,head,byPlayer){if(s.dead)return;s.hp-=head?dmg*2:dmg;s.hitT=.08;for(let i=0;i<3;i++)PBlood.emit(s.x,s.y+1,s.z,rand(-1,1),rand(0,1.5),rand(-1,1),rand(.3,.6),.2,.1,.5,.04,.02,.9,8);
  if(s.hp<=0)killSpecial(s,byPlayer);}
 
@@ -656,22 +682,28 @@ function pickSpawn(minD,maxD,ahead){const list=spawnTiles.hotel.concat(spawnTile
  for(let k=0;k<60;k++){const t=pick(list);const fd=flow[t.i];if(fd>=INF)continue;if(fd<minD||fd>maxD)continue;if(ahead&&route[t.i]>pr+3)continue;
   const wx=(t.x+.5)*T,wz=(t.z+.5)*T;const d=Math.hypot(wx-player.x,wz-player.z);if(d<12)continue;if(d<26&&losClear(player.x,player.z,wx,wz))continue;return t;}
  return null;}
-function spawnHorde(n,target){let left=n,tries=0;SFX.horde();DIR.peakT=S.t;
- while(left>0&&tries++<8){const sp=pickSpawn(6,20,false)||pickSpawn(4,30,false);if(!sp)break;const k=Math.min(left,Math.ceil(n/2));
-  for(let i=0;i<k;i++)spawnCommon((sp.x+.5)*T+rand(-.7,.7),(sp.z+.5)*T+rand(-.7,.7),true,target);left-=k;}}
+function hordeSpots(){const list=spawnTiles.hotel.concat(spawnTiles.lobby),spots=[];
+ for(const t of list){const fd=flow[t.i];if(fd>=INF||fd<3||fd>36)continue;const d=Math.hypot((t.x+.5)*T-player.x,(t.z+.5)*T-player.z);if(d<8||d>52)continue;spots.push(t);}
+ if(spots.length>=12)return spots;
+ for(const t of list){const fd=flow[t.i];if(fd>=INF||fd>60)continue;if(Math.hypot((t.x+.5)*T-player.x,(t.z+.5)*T-player.z)<6)continue;spots.push(t);}
+ return spots;}
+function spawnHorde(n,target){SFX.horde();DIR.peakT=S.t;const spots=hordeSpots();const cap=Math.min(n,MAXC-aliveCommons());let made=0,tries=0;
+ while(made<cap&&tries++<cap*8){const sp=spots.length?spots[(Math.random()*spots.length)|0]:(pickSpawn(4,40,false)||pickSpawn(2,70,false));if(!sp)break;
+  const ang=rand(0,6.28),rad=rand(0,.95);if(spawnCommon((sp.x+.5)*T+Math.sin(ang)*rad,(sp.z+.5)*T+Math.cos(ang)*rad,true,target))made++;}
+ return made;}
 function directorUpdate(dt){DIR.intensity=Math.max(0,DIR.intensity-dt*(S.t-DIR.peakT>6?5:1.5));
- if(DIR.intensity>85&&DIR.mode!=='RELAX'){DIR.mode='RELAX';DIR.relaxUntil=S.t+10;}
+ if(DIR.intensity>220&&DIR.mode!=='RELAX'){DIR.mode='RELAX';DIR.relaxUntil=S.t+6;}
  if(DIR.mode==='RELAX'&&S.t>DIR.relaxUntil)DIR.mode='BUILD-UP';
- if(DIR.mode!=='RELAX')DIR.mode=(S.t-DIR.peakT<12||DIR.intensity>45)?'PEAK':'BUILD-UP';
+ if(DIR.mode!=='RELAX')DIR.mode=(S.t-DIR.peakT<12||DIR.intensity>70)?'PEAK':'BUILD-UP';
  for(const w of DIR.waves)if(!w.done&&S.t>=w.t){w.done=true;if(w.special)spawnSpecial(w.special);else spawnHorde(w.n);}
  if(!S.dirOn||S.riding)return;
  const relax=DIR.mode==='RELAX';
- DIR.spawnT-=dt;const want=S.inLobby?11:13;
- if(!relax&&DIR.spawnT<=0){DIR.spawnT=0.7;let wand=0;for(const c of commons)if(!c.dead&&c.state==='wander')wand++;if(wand<want){const sp=pickSpawn(9,24,true);if(sp)spawnCommon((sp.x+.5)*T+rand(-.6,.6),(sp.z+.5)*T+rand(-.6,.6),false);}}
+ DIR.spawnT-=dt;const want=S.inLobby?36:46;
+ if(!relax&&DIR.spawnT<=0){DIR.spawnT=0.22;let wand=0;for(const c of commons)if(!c.dead&&c.state==='wander')wand++;if(wand<want){const sp=pickSpawn(9,28,true);if(sp)spawnCommon((sp.x+.5)*T+rand(-.6,.6),(sp.z+.5)*T+rand(-.6,.6),false);}}
  const alive=specials.filter(s=>!s.dead).length;
- if(!relax&&S.t>DIR.nextSpecial&&alive<2){const type=DIR.queue.length?DIR.queue.shift():pick(['boomer','hunter','smoker']);if(spawnSpecial(type))DIR.nextSpecial=S.t+rand(28,42);else DIR.queue.unshift(type);}
+ if(!relax&&S.t>DIR.nextSpecial&&alive<4){const type=DIR.queue.length?DIR.queue.shift():pick(['boomer','hunter','smoker']);if(spawnSpecial(type))DIR.nextSpecial=S.t+rand(14,22);else DIR.queue.unshift(type);}
  const eventOn=S.alarmT>0&&S.t-S.alarmT<25||S.elevT>0&&!S.elevArrived;
- if(!relax&&!eventOn&&S.t>DIR.nextHorde){spawnHorde(Math.floor(rand(9,14)));DIR.nextHorde=S.t+rand(65,90);feed('<i>You hear a horde coming...</i>','#e99');}}
+ if(!relax&&!eventOn&&S.t>DIR.nextHorde){spawnHorde(Math.floor(rand(90,140)));DIR.nextHorde=S.t+rand(50,72);feed('<i>You hear a horde coming...</i>','#e99');}}
 
 /* ---- shooting ---- */
 const _o=new THREE.Vector3(),_d=new THREE.Vector3(),_e=new THREE.Vector3(),_r=new THREE.Vector3(),_u=new THREE.Vector3();
@@ -728,15 +760,15 @@ function useTargets(ent){const self=ent||player;const out=[];const yaw=self.yaw|
  for(const b of bots)if(b!==self&&b.down){const d=Math.hypot(b.x-self.x,b.z-self.z);if(d<2.2)out.push({d:-1,label:'Hold E to revive '+b.name,act:null,revive:b});}
  out.sort((a,b)=>a.d-b.d);return out[0]||null;}
 function useAction(){const u=useTargets();if(u&&u.act)u.act();}
-function tryOpen(id){if(doors[id])return;if(id==='gate'){openGate();return;}if(!DOOR_LABEL[id])return;doors[id]=true;flowDirty=true;SFX.door();feed(DOOR_LABEL[id].replace('Open the ','The ')+' is open.','#fd8');S.dirOn=true;DIR.waves.push({t:S.t+1,n:6});}
+function tryOpen(id){if(doors[id])return;if(id==='gate'){openGate();return;}if(!DOOR_LABEL[id])return;doors[id]=true;flowDirty=true;SFX.door();feed(DOOR_LABEL[id].replace('Open the ','The ')+' is open.','#fd8');S.dirOn=true;DIR.waves.push({t:S.t+1,n:60});}
 function inSafe(ent,s){const tx=Math.floor(ent.x/T),tz=Math.floor(ent.z/T);return tx>=s.x0&&tx<=s.x1&&tz>=s.z0&&tz<=s.z1&&charAt(tx,tz)==='K';}
 function closeSafe(){const s=SAFES[safeIndex];if(!s)return;if(NET.role==='off'){if(!inSafe(player,s))return;}else{const living=livingHumans();if(!living.length||!living.every(h=>inSafe(h,s))){feed('The whole team has to be in the safe room.','#fd8');return;}}
  doors[s.inn]=false;doors[s.out]=true;flowDirty=true;safeIndex++;recomputeRoute();player.hp=100;for(const b of bots){if(b.down){b.down=false;b.hp=40;}else b.hp=Math.max(b.hp,80);}for(const c of commons)if(!c.dead&&inSafe(c,s))killCommon(c,false,false);
- DIR.relaxUntil=S.t+12;DIR.mode='RELAX';setObj(s.nextObj);feed('<b>SAFE ROOM</b> — '+s.name,'#9f9');bark(null,s.line,'safe'+s.name,99);SFX.door();}
+ DIR.relaxUntil=S.t+8;DIR.mode='RELAX';setObj(s.nextObj);feed('<b>SAFE ROOM</b> — '+s.name,'#9f9');bark(null,s.line,'safe'+s.name,99);SFX.door();}
 function openGate(){if(doors.gate)return;doors.gate=true;flowDirty=true;S.alarmT=S.t;SFX.door(FIN.gateX,FIN.gateZ);SFX.alarm(14);setObj(7);feed('<b>The gate gives.</b> Everything on the bridge heard it.','#f66');bark(null,'So much for quiet. Cookhouse is on the other side.','gate',99);
- S.dirOn=true;DIR.waves.push({t:S.t+1,n:8},{t:S.t+7,n:10},{t:S.t+14,n:8},{t:S.t+6,special:'hunter'});DIR.relaxUntil=0;DIR.mode='PEAK';}
+ S.dirOn=true;DIR.waves.push({t:S.t+1,n:80},{t:S.t+7,n:100},{t:S.t+14,n:80},{t:S.t+6,special:'hunter'});DIR.relaxUntil=0;DIR.mode='PEAK';}
 function callHeli(){if(S.elevT>=0)return;S.elevT=S.t;setObj(10);doorMeshes.btn.material=mat(0x22ff44,{emissive:0x116622});SFX.ding(FIN.callX,FIN.callZ);feed('Mayday received. The chopper is <b>30 seconds</b> out. Hold the roof.','#fd8');bark(null,'I hear rotors! Keep them off the stairs!','heli',99);
- DIR.waves.push({t:S.t+2,n:8},{t:S.t+10,n:10},{t:S.t+18,n:9},{t:S.t+24,n:8},{t:S.t+8,special:'smoker'});}
+ DIR.waves.push({t:S.t+2,n:80},{t:S.t+10,n:100},{t:S.t+18,n:90},{t:S.t+24,n:80},{t:S.t+8,special:'smoker'});}
 function survivorsInside(){if(NET.role==='off')return chAt(player)==='R';const living=livingHumans();return living.length>0&&living.every(h=>chAt(h)==='R');}
 function boardHeli(){if(!S.elevArrived||chAt(player)!=='R')return;if(!survivorsInside()){feed('The whole team has to be on the pad.','#fd8');return;}completeChapter();}
 
@@ -768,7 +800,7 @@ function updateBot(b,dt){if(b.net){updateNetSurvivor(b,dt);return;}
  {const fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw),bx=b.x-player.x,bz=b.z-player.z,bd=Math.hypot(bx,bz);if(bd<9&&bd>.1){const along=(bx*fx+bz*fz),side=(bx*fz-bz*fx);if(along>0&&Math.abs(side)<1.1){const sgn=side>=0?1:-1;mvx+=fz*sgn*3.5;mvz+=-fx*sgn*3.5;}}}
  for(const o of bots)if(o!==b){const dd=Math.hypot(o.x-b.x,o.z-b.z);if(dd<1.1&&dd>0.01){mvx+=(b.x-o.x)/dd*2;mvz+=(b.z-o.z)/dd*2;}}
  const ox=b.x,oz=b.z;moveEnt(b,mvx*dt,mvz*dt,.3);b.moveSpd=Math.hypot(b.x-ox,b.z-oz)/Math.max(dt,1e-4);
- if(chAt(b)==='F'||chAt(b)==='x')b.hp=Math.max(1,b.hp-6*dt);
+ if(chAt(b)==='F'||chAt(b)==='x')b.hp=Math.max(1,b.hp-16*dt);
  // shooting
  b.cd-=dt;if(b.reloadT>0){b.reloadT-=dt;if(b.reloadT<=0)b.mag=b.w==='shotgun'?8:50;}
  if(b.tgt){const t=b.tgt;const ty=Math.atan2(t.x-b.x,t.z-b.z);b.yaw=lerpAng(b.yaw,ty,dt*12);
@@ -796,20 +828,23 @@ function updateCommon(c,dt){c.hitT=Math.max(0,c.hitT-dt);
   if(c.wdx||c.wdz){moveEnt(c,c.wdx*.7*dt,c.wdz*.7*dt,.3);c.yaw=lerpAng(c.yaw,Math.atan2(c.wdx,c.wdz),dt*4);}
   c.chk-=dt;if(c.chk<=0){c.chk=.3;const see=ent=>!!ent&&!ent.down&&(()=>{const d=Math.hypot(ent.x-c.x,ent.z-c.z);return d<5||(d<15&&losClear(c.x,c.z,ent.x,ent.z));})();
    if(see(player))alertCommon(c,player);else if(NET.role==='host'){const b=bots.find(x=>x.net&&see(x));if(b)alertCommon(c,b);}}
-  c.groanT-=dt;if(c.groanT<=0){c.groanT=rand(4,10);SFX.groan(c.x,c.z);}}
+  c.groanT-=dt;if(c.groanT<=0){c.groanT=rand(14,30);if(Math.random()<.25)SFX.groan(c.x,c.z);}}
  else{let t=c.target;if(!t||t.down)t=c.target=NET.role==='host'?chooseTarget(c):player;if(S.biledT>0)t=c.target=player;
   const d=Math.hypot(t.x-c.x,t.z-c.z);
-  if(d<1.15){c.yaw=lerpAng(c.yaw,Math.atan2(t.x-c.x,t.z-c.z),dt*12);c.atk-=dt;if(c.atk<=0){c.atk=rand(.9,1.2);c.swipe=.3;hurtSurvivor(t,t===player?2.5:1.5);}}
-  else{let dir=null;if(d<12&&losClear(c.x,c.z,t.x,t.z))dir=[(t.x-c.x)/d,(t.z-c.z)/d];else dir=flowStep(c.x,c.z);
+  if(d<1.22){c.yaw=lerpAng(c.yaw,Math.atan2(t.x-c.x,t.z-c.z),dt*12);c.atk-=dt;if(c.atk<=0){c.atk=rand(.55,.8);c.swipe=.3;hurtSurvivor(t,t===player?12:8);}}
+  else{let dir=null;if(d<14&&losClear(c.x,c.z,t.x,t.z))dir=[(t.x-c.x)/d,(t.z-c.z)/d];else dir=flowStep(c.x,c.z);
    if(dir){const sp=c.speed*(S.biledT>0?1.12:1);moveEnt(c,dir[0]*sp*dt,dir[1]*sp*dt,.3);c.yaw=lerpAng(c.yaw,Math.atan2(dir[0],dir[1]),dt*10);}}
-  c.groanT-=dt;if(c.groanT<=0){c.groanT=rand(2,6);if(Math.random()<.5)SFX.scream(c.x,c.z);else SFX.groan(c.x,c.z);}}
+  c.groanT-=dt;if(c.groanT<=0){c.groanT=rand(10,22);if(Math.random()<.06)SFX.scream(c.x,c.z);else if(Math.random()<.12)SFX.groan(c.x,c.z);}}
  c.mv=Math.hypot(c.x-ox,c.z-oz)/Math.max(dt,1e-4);c.phase+=dt*(1.5+c.mv*1.6);c.swipe=Math.max(0,c.swipe-dt);c.y=groundAt(c.x,c.z);}
-function separateCommons(){const a=commons.filter(c=>!c.dead);for(let i=0;i<a.length;i++){const p=a[i];for(let j=i+1;j<a.length;j++){const q=a[j];const dx=q.x-p.x,dz=q.z-p.z,d2=dx*dx+dz*dz;if(d2<.36&&d2>1e-6){const d=Math.sqrt(d2),k=(.6-d)/2/d;p.x-=dx*k;p.z-=dz*k;q.x+=dx*k;q.z+=dz*k;}}
+function separateCommons(){const a=[];for(const c of commons)if(!c.dead)a.push(c);const cell=1.2,buckets=new Map();
+ for(let i=0;i<a.length;i++){const p=a[i];const key=((p.x/cell)|0)+','+((p.z/cell)|0);let bucket=buckets.get(key);if(!bucket)buckets.set(key,bucket=[]);bucket.push(i);}
+ for(let i=0;i<a.length;i++){const p=a[i];const kx=(p.x/cell)|0,kz=(p.z/cell)|0;
+  for(let gz=-1;gz<=1;gz++)for(let gx=-1;gx<=1;gx++){const bucket=buckets.get((kx+gx)+','+(kz+gz));if(!bucket)continue;for(const j of bucket){if(j<=i)continue;const q=a[j];const dx=q.x-p.x,dz=q.z-p.z,d2=dx*dx+dz*dz;if(d2<.36&&d2>1e-6){const d=Math.sqrt(d2),k=(.6-d)/2/d;p.x-=dx*k;p.z-=dz*k;q.x+=dx*k;q.z+=dz*k;}}}
   const dx=p.x-player.x,dz=p.z-player.z,d=Math.hypot(dx,dz);if(d<.75&&d>1e-4){p.x+=dx/d*(.75-d);p.z+=dz/d*(.75-d);}
   if(NET.role==='host'){for(const b of bots){if(!b.net||b.down)continue;const bx=p.x-b.x,bz=p.z-b.z,bd=Math.hypot(bx,bz);if(bd<.75&&bd>1e-4){p.x+=bx/bd*(.75-bd);p.z+=bz/bd*(.75-bd);}}}
   collide(p,.3);}}
 const _root=new THREE.Matrix4(),_R=new THREE.Matrix4(),_P=new THREE.Matrix4(),_M=new THREE.Matrix4(),_c=new THREE.Color();
-function drawCommons(){let n=0;for(const c of commons){if(n>=MAXI)break;const rush=!c.dead&&c.state==='rush'&&c.stag<=0;
+function drawCommons(){let n=0;const list=[];for(const c of commons)if(!c.dead)list.push(c);for(const c of commons)if(c.dead)list.push(c);for(const c of list){if(n>=MAXI)break;const rush=!c.dead&&c.state==='rush'&&c.stag<=0;
  _root.makeRotationY(c.yaw);if(c.dead){_R.makeRotationX(-c.fall*1.48);_root.multiply(_R);}else if(rush&&c.mv>1){_R.makeRotationX(.2);_root.multiply(_R);}else if(c.stag>0){_R.makeRotationX(-.35);_root.multiply(_R);}
  _root.setPosition(c.x,c.y+(c.dead?c.fall*.12:0),c.z);const sw=Math.sin(c.phase),mvk=Math.min(1,c.mv/2.5);
  for(let k=0;k<6;k++){const p=PARTS[k];let rot=0;
@@ -841,22 +876,22 @@ function updateSpecial(s,dt){const m=s.mesh;s.hitT=Math.max(0,s.hitT-dt);
  const chase=(sp,stopAt)=>{if(d<=stopAt)return 0;let dir=(d<12&&los)?[dx/d,dz/d]:flowStep(s.x,s.z);if(!dir)return 0;const ox=s.x,oz=s.z;moveEnt(s,dir[0]*sp*dt,dir[1]*sp*dt,.35);s.yaw=lerpAng(s.yaw,Math.atan2(dir[0],dir[1]),dt*8);return Math.hypot(s.x-ox,s.z-oz)/dt;};
  let spd=0;s.cd-=dt;
  if(s.type==='boomer'){
-  if(s.state==='approach'){spd=chase(2.5,2.2);if(d<4.6&&los&&s.cd<=0){s.state='vomit';s.t=.85;SFX.vomit(s.x,s.z);}}
+  if(s.state==='approach'){spd=chase(3.2,2.2);if(d<5.2&&los&&s.cd<=0){s.state='vomit';s.t=.7;SFX.vomit(s.x,s.z);}}
   else if(s.state==='vomit'){face();s.t-=dt;m.belly.scale.setScalar(.62+(.85-s.t)*.25);
    for(let i=0;i<3;i++)PBlood.emit(s.x+Math.sin(s.yaw)*.4,s.y+1.55,s.z+Math.cos(s.yaw)*.4,dx/d*7+rand(-1,1),rand(0,2),dz/d*7+rand(-1,1),.6,.25,.5,.5,.7,.1,.9,6);
-   if(s.t<=0){m.belly.scale.setScalar(.62);s.state='approach';s.cd=14;if(d<6&&los)bileSurvivor(vic);}}}
+   if(s.t<=0){m.belly.scale.setScalar(.62);s.state='approach';s.cd=9;if(d<6&&los)bileSurvivor(vic);}}}
  else if(s.type==='hunter'){
-  if(s.state==='approach'){spd=chase(d<16?6.4:5,3);m.b.position.y=-.35;if(d<15&&d>3.2&&los&&s.cd<=0&&!vic.pinnedBy&&!vic.pulledBy){s.state='prep';s.t=.75;s.vic=vic;SFX.hunter(s.x,s.z);}}
+  if(s.state==='approach'){spd=chase(d<16?7.6:6.2,3);m.b.position.y=-.35;if(d<16&&d>3.2&&los&&s.cd<=0&&!vic.pinnedBy&&!vic.pulledBy){s.state='prep';s.t=.55;s.vic=vic;SFX.hunter(s.x,s.z);}}
   else if(s.state==='prep'){face();s.t-=dt;m.b.position.y=-.55;if(s.t<=0){const hs=Math.min(17,d*1.5+5);s.vx=dx/d*hs;s.vz=dz/d*hs;s.vy=4.2;s.state='leap';}}
   else if(s.state==='leap'){s.vy-=13*dt;s.y+=s.vy*dt;const ox=s.x,oz=s.z;moveEnt(s,s.vx*dt,s.vz*dt,.35);if(Math.hypot(s.x-ox,s.z-oz)<Math.hypot(s.vx,s.vz)*dt*.5){s.vx*=.2;s.vz*=.2;}
    const nd=Math.hypot(vic.x-s.x,vic.z-s.z);const py=groundAt(vic.x,vic.z);
    if(nd<1.25&&Math.abs(s.y-py)<2&&!vic.pinnedBy&&!vic.pulledBy&&!vic.down){if(S.t-(vic.lastShove||-9)<.3){s.state='approach';s.cd=3;s.stag=1;s.pvx=-s.vx*.3;s.pvz=-s.vz*.3;feed(vic===player?'Deflected the pounce!':vic.name+' shoved the pounce away.','#9f9');}
-    else{s.state='pin';s.vic=vic;vic.pinnedBy=s;vic.pinShoves=0;hurtVic(vic,5);
+    else{s.state='pin';s.vic=vic;vic.pinnedBy=s;vic.pinShoves=0;hurtVic(vic,12);
      if(vic===player){feed('<b>HUNTER POUNCE!</b> Mash <b>RIGHT-CLICK</b> to shove it off, or wait for your team.','#f86');bark(null,'Hunter\'s on you! Hang on!','pinned',5);}
      else feed('<b>HUNTER</b> pounced <b>'+vic.name+'</b>! Shoot it off them.','#f86');}}
    const g=groundAt(s.x,s.z);if(s.y<=g&&s.vy<0&&s.state==='leap'){s.y=g;s.state='approach';s.cd=2.5;}}
   else if(s.state==='pin'){if(vic.down||vic.pinnedBy!==s){s.state='approach';s.cd=2;s.y=groundAt(s.x,s.z);}
-   else{s.x=vic.x-Math.sin(vic.yaw)*.7;s.z=vic.z-Math.cos(vic.yaw)*.7;s.y=groundAt(s.x,s.z)+.1;s.yaw=vic.yaw;hurtVic(vic,5.5*dt);if(Math.random()<dt*10)PBlood.emit(vic.x,s.y+.8,vic.z,rand(-1,1),rand(1,2),rand(-1,1),.5,.2,.1,.5,.04,.02,.9,8);m.b.position.y=-.45;}}
+   else{s.x=vic.x-Math.sin(vic.yaw)*.7;s.z=vic.z-Math.cos(vic.yaw)*.7;s.y=groundAt(s.x,s.z)+.1;s.yaw=vic.yaw;hurtVic(vic,14*dt);if(Math.random()<dt*10)PBlood.emit(vic.x,s.y+.8,vic.z,rand(-1,1),rand(1,2),rand(-1,1),.5,.2,.1,.5,.04,.02,.9,8);m.b.position.y=-.45;}}
   if(s.state!=='leap'&&s.state!=='pin')s.y=groundAt(s.x,s.z);}
  else if(s.type==='smoker'){
   const mouth=new THREE.Vector3(s.x+Math.sin(s.yaw)*.15,s.y+2.0,s.z+Math.cos(s.yaw)*.15),tgt=new THREE.Vector3(vic.x,groundAt(vic.x,vic.z)+1.2,vic.z);
@@ -866,7 +901,7 @@ function updateSpecial(s,dt){const m=s.mesh;s.hitT=Math.max(0,s.hitT-dt);
    if(vic===player){feed('<b>SMOKER</b> has you! Shoot it, or shove when it\'s close.','#cf6');bark(null,'Smoker\'s got you! I\'m on it!','pulled',5);}
    else feed('<b>SMOKER</b> grabbed <b>'+vic.name+'</b>!','#cf6');}}
   else if(s.state==='pull'){if(NET.role!=='off'&&(vic.down||vic.pulledBy!==s)){releaseTongue(s);}else{face();s.tl=mouth.distanceTo(tgt);if(!los){s.losLost+=dt;if(s.losLost>.5){releaseTongue(s);feed('The tongue snapped!','#9f9');}}
-   if(d>1.5){moveEnt(vic,dx/d*-2.3*dt,dz/d*-2.3*dt,.35);hurtVic(vic,1.5*dt);}else hurtVic(vic,5*dt);}}
+   if(d>1.5){moveEnt(vic,dx/d*-2.6*dt,dz/d*-2.6*dt,.35);hurtVic(vic,4*dt);}else hurtVic(vic,12*dt);}}
   s.y=groundAt(s.x,s.z);
   if((s.state==='tongue'||s.state==='pull')&&m.tongue){const tg=m.tongue;const len=Math.max(.01,Math.min(s.tl,mouth.distanceTo(tgt)));const dirv=tgt.clone().sub(mouth).normalize();tg.visible=true;tg.position.copy(mouth).addScaledVector(dirv,len/2);tg.scale.set(.06,.06,len);tg.lookAt(tgt);}else if(m.tongue)m.tongue.visible=false;}
  poseSpecial(s,dt,spd);}
@@ -901,7 +936,7 @@ function update(dt){S.t+=dt;
   if(!pinned&&!player.down)moveEnt(player,player.vx*dt,player.vz*dt,.35);}
  const mvs=Math.hypot(player.vx,player.vz);player.bob+=dt*mvs*1.9;
  player.crumbT-=dt;if(player.crumbT<=0){player.crumbT=.6;player.crumbs.push([player.x,player.z]);if(player.crumbs.length>20)player.crumbs.shift();}
- const ptc=chAt(player);if(!S.fly&&(ptc==='F'||ptc==='x')){player.burnT=.3;if(Math.floor(S.t*4)!==Math.floor((S.t-dt)*4)){hurtPlayer(2.5);}}
+ const ptc=chAt(player);if(!S.fly&&(ptc==='F'||ptc==='x')){player.burnT=.3;if(Math.floor(S.t*4)!==Math.floor((S.t-dt)*4)){hurtPlayer(8);}}
  player.burnT-=dt;
  // shooting
  const w=curW(),def=WEAP[w.type];const wantFire=AP.on?AP.fire:mouseDown;
@@ -926,7 +961,7 @@ function update(dt){S.t+=dt;
  if(!S.riding)for(const b of bots)updateBot(b,dt);
  // ----- triggers / objectives -----
  const reg=region();
- if(S.obj===1&&!S.dirOn&&player.x>16*T){player.flash=true;S.dirOn=true;DIR.nextSpecial=S.t+24;DIR.nextHorde=S.t+55;bark(null,'Trinity is behind us. First safe room is Redwood Acres.','town',99);}
+ if(S.obj===1&&!S.dirOn&&player.x>16*T){player.flash=true;S.dirOn=true;DIR.nextSpecial=S.t+16;DIR.nextHorde=S.t+40;bark(null,'Trinity is behind us. First safe room is Redwood Acres.','town',99);}
  if(!S.dirOn&&S.t>40&&player.x>16*T)S.dirOn=true;
  if(zoneAt[Math.floor(player.z/T)*W+Math.floor(player.x/T)]===2)bark(null,'Redwoods. Stay on the path.','trees',99);
  if(player.x>140*T&&!doors.gate&&S.obj<6){setObj(6);bark(null,'Bridge gate is chained. Forcing it brings the horde.','gatetalk',99);}
@@ -1184,7 +1219,7 @@ function updateNetSurvivor(b,dt){const inp=freshInp(b);
  let spd=inp.sprint?6.3:4.3;if(b.hp<30)spd*=.75;if(pulled)spd=0;
  b.vx=lerp(b.vx||0,mx*spd,1-Math.exp(-dt*12));b.vz=lerp(b.vz||0,mz*spd,1-Math.exp(-dt*12));
  if(!pulled)moveEnt(b,b.vx*dt,b.vz*dt,.35);
- if(chAt(b)==='F'||chAt(b)==='x')b.hp=Math.max(1,b.hp-6*dt);
+ if(chAt(b)==='F'||chAt(b)==='x')b.hp=Math.max(1,b.hp-16*dt);
  const w=entW(b);
  if(w&&inp.fire&&!pulled&&b.fireCd<=0&&!(b.reloadT>0)){const def=WEAP[w.type];if(def.auto||!b.trig){if(w.mag>0)fireEnt(b);else if(w.res>0)startReloadEnt(b);b.trig=true;}}
  if(!inp.fire)b.trig=false;
@@ -1403,7 +1438,7 @@ window.__game={autopilot,update,updateCamera,fire,AP,useTargets,moveEnt,collide,
   return {t:+S.t.toFixed(1),phase:S.phase,obj:S.obj,objText:OBJ[S.obj],safe:safeIndex,hp:Math.round(player.hp),pos:[+(player.x/T).toFixed(1),+(player.z/T).toFixed(1)],tile:chAt(player),kills:S.kills,skills:S.skills,commons:aliveCommons(),specials:specials.filter(s=>!s.dead).map(s=>s.type+':'+s.state),bots:bots.map(b=>b.name+':'+Math.round(b.hp)+(b.down?'D':'')),dmg:Math.round(S.dmg),ff:S.ff,dir:DIR.mode};},
  lookAt(x,y,z){const dx=x-player.x,dz=z-player.z;player.yaw=Math.atan2(-dx,-dz);player.pitch=Math.atan2(y-player.y,Math.hypot(dx,dz));updateCamera(1);},
  teleport(tx,tz){player.x=(tx+.5)*T;player.z=(tz+.5)*T;player.y=groundAt(player.x,player.z)+1.6;updateCamera(1);},
- spawnCommon,spawnSpecial,render,routeAtStart:route[tileOf(player)]};
+ spawnCommon,spawnSpecial,spawnHorde,DIR,render,routeAtStart:route[tileOf(player)]};
 
 </script>
 </body></html>

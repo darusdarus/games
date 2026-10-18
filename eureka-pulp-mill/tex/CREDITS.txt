@@ -1,0 +1,18 @@
+Landmark photos used as textures. Each file keeps the license of its source.
+Redwood Acres, the forest path after it, and Myrtletown use photos provided for this game.
+
+Local file | Source | Creator | License | Page
+myrtle-street.jpg | Myrtletown residential street | Provided for this game | Permission granted by the provider to use it here |
+myrtle-air.jpg | Myrtletown from the air | Provided for this game | Permission granted by the provider to use it here |
+acres-hall.jpg | Redwood Acres exhibit hall, Est. 1937 | Provided for this game | Permission granted by the provider to use it here |
+acres-camp.jpg | Redwood Acres RV camp | Provided for this game | Permission granted by the provider to use it here |
+acres-track.jpg | Redwood Acres racetrack, aerial | Provided for this game | Permission granted by the provider to use it here |
+acres-fair.jpg | Redwood Acres fair midway | Provided for this game | Permission granted by the provider to use it here |
+forest.jpg | Redwood path after Redwood Acres | Provided for this game | Permission granted by the provider to use it here |
+mansion.jpg | File:CALIFORNIA--EUREKA - NARA - 542817.jpg | Tomas Sennett | Public domain | https://commons.wikimedia.org/wiki/File:CALIFORNIA--EUREKA_-_NARA_-_542817.jpg
+mill.jpg | File:GEORGIA PACIFIC LUMBER MILL - NARA - 545925.jpg | Tomas Sennett | Public domain | https://commons.wikimedia.org/wiki/File:GEORGIA_PACIFIC_LUMBER_MILL_-_NARA_-_545925.jpg
+bridge.jpg | File:Highway 255.JPG | JP Smith | Public domain | https://commons.wikimedia.org/wiki/File:Highway_255.JPG
+cookhouse.jpg | File:Samoa Cookhouse - December 2021 - Sarah Stierch 01.jpg | Missvain | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Samoa_Cookhouse_-_December_2021_-_Sarah_Stierch_01.jpg
+zoo.jpg | File:Nancy Hilfiker Aviary - December 2024 - Sarah Stierch 03.jpg | Missvain | CC0 | https://commons.wikimedia.org/wiki/File:Nancy_Hilfiker_Aviary_-_December_2024_-_Sarah_Stierch_03.jpg
+street.jpg | File:Old Town Eureka, California.jpg | Pamla J. Eisenberg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Old_Town_Eureka,_California.jpg
+office.jpg | File:Eureka, California - Old Town 20 - 935 3rd Street.jpg | Joe Mabel | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Eureka,_California_-_Old_Town_20_-_935_3rd_Street.jpg
