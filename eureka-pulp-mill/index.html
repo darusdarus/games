@@ -166,7 +166,7 @@ body.touching #pinmsg{font-size:18px;padding:0 16px;box-sizing:border-box}
  <div class="tiny" id="roomhint">Solo, or co-op for up to 4 players. Share the room link — no server. Hold V to talk.</div>
  <div class="tiny"><a href="/dead-center/" style="color:#ccc">Dead Center, the hotel</a></div>
  <div class="tiny">Headphones recommended · Built by Grok Bot</div>
- <div class="tiny">Landmark photos: Carson Mansion and the Samoa mill, Tomas Sennett (public domain); Samoa Bridge, JP Smith (public domain); Samoa Cookhouse, Missvain (CC BY 4.0); Sequoia Park Zoo aviary, Missvain (CC0); Old Town Eureka, Pamla J. Eisenberg (CC BY 2.0); 935 3rd Street, Joe Mabel (CC BY 4.0). Full sources in tex/CREDITS.txt. Redwood Acres and the redwood path after it were provided for this game. Myrtletown stays painted.</div>
+ <div class="tiny">Landmark photos: Carson Mansion and the Samoa mill, Tomas Sennett (public domain); Samoa Bridge, JP Smith (public domain); Samoa Cookhouse, Missvain (CC BY 4.0); Sequoia Park Zoo aviary, Missvain (CC0); Old Town Eureka, Pamla J. Eisenberg (CC BY 2.0); 935 3rd Street, Joe Mabel (CC BY 4.0). Full sources in tex/CREDITS.txt. Redwood Acres, the redwood path, and Myrtletown were provided for this game.</div>
 </div></div>
 <div id="lobby" class="screen hidden"><div class="card">
  <div class="kicker">ONLINE CO-OP · 4 SURVIVORS</div>
@@ -427,6 +427,10 @@ function photoPlane(file,x,y,z,w,h,ry){let tex=photoTex[file];if(!tex){tex=new T
  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshLambertMaterial({map:tex,side:THREE.DoubleSide}));m.position.set(x,y,z);m.rotation.y=ry;scene.add(m);return m;}
 const NZ=6.92*T,WZ=5.35*T;
 const AZ=5.05*T;
+photoPlane('myrtle-street.jpg',7.5*T,3.6,6.05*T,9,4.9,0);
+photoPlane('myrtle-street.jpg',12.6*T,3.5,5.0*T,7.2,3.93,FACE);
+photoPlane('myrtle-street.jpg',16*T,3.9,NZ,10,5.45,0);
+photoPlane('myrtle-air.jpg',20.2*T,3.8,NZ,8,5.33,0);
 photoPlane('acres-camp.jpg',24.5*T,3.6,NZ,9,6.75,0);
 photoPlane('acres-track.jpg',30.2*T,4.4,NZ,12,6.75,0);
 photoPlane('acres-fair.jpg',28.2*T,4.0,AZ,6.4,4.8,FACE);

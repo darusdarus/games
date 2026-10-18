@@ -1,7 +1,9 @@
 Landmark photos used as textures. Each file keeps the license of its source.
-Myrtletown stays painted. Redwood Acres and the forest path after it use photos provided for this game.
+Redwood Acres, the forest path after it, and Myrtletown use photos provided for this game.
 
 Local file | Source | Creator | License | Page
+myrtle-street.jpg | Myrtletown residential street | Provided for this game | Permission granted by the provider to use it here |
+myrtle-air.jpg | Myrtletown from the air | Provided for this game | Permission granted by the provider to use it here |
 acres-hall.jpg | Redwood Acres exhibit hall, Est. 1937 | Provided for this game | Permission granted by the provider to use it here |
 acres-camp.jpg | Redwood Acres RV camp | Provided for this game | Permission granted by the provider to use it here |
 acres-track.jpg | Redwood Acres racetrack, aerial | Provided for this game | Permission granted by the provider to use it here |
