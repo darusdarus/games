@@ -166,7 +166,7 @@ body.touching #pinmsg{font-size:18px;padding:0 16px;box-sizing:border-box}
  <div class="tiny" id="roomhint">Solo, or co-op for up to 4 players. Share the room link — no server. Hold V to talk.</div>
  <div class="tiny"><a href="/dead-center/" style="color:#ccc">Dead Center, the hotel</a></div>
  <div class="tiny">Headphones recommended · Built by Grok Bot</div>
- <div class="tiny">Landmark photos: Carson Mansion and the Samoa mill, Tomas Sennett (public domain); Samoa Bridge, JP Smith (public domain); Samoa Cookhouse, Missvain (CC BY 4.0); Sequoia Park Zoo aviary, Missvain (CC0); coast redwoods at Founders Grove, Jay Sturner (CC BY 2.0); Old Town Eureka, Pamla J. Eisenberg (CC BY 2.0); 935 3rd Street, Joe Mabel (CC BY 4.0). Full sources in tex/CREDITS.txt. Redwood Acres and Myrtletown stay painted.</div>
+ <div class="tiny">Landmark photos: Carson Mansion and the Samoa mill, Tomas Sennett (public domain); Samoa Bridge, JP Smith (public domain); Samoa Cookhouse, Missvain (CC BY 4.0); Sequoia Park Zoo aviary, Missvain (CC0); coast redwoods at Founders Grove, Jay Sturner (CC BY 2.0); Old Town Eureka, Pamla J. Eisenberg (CC BY 2.0); 935 3rd Street, Joe Mabel (CC BY 4.0). Full sources in tex/CREDITS.txt. Redwood Acres photos were provided for this game. Myrtletown stays painted.</div>
 </div></div>
 <div id="lobby" class="screen hidden"><div class="card">
  <div class="kicker">ONLINE CO-OP · 4 SURVIVORS</div>
@@ -426,6 +426,12 @@ const photoTex={};
 function photoPlane(file,x,y,z,w,h,ry){let tex=photoTex[file];if(!tex){tex=new THREE.TextureLoader().load('tex/'+file);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());photoTex[file]=tex;}
  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshLambertMaterial({map:tex,side:THREE.DoubleSide}));m.position.set(x,y,z);m.rotation.y=ry;scene.add(m);return m;}
 const NZ=6.92*T,WZ=5.35*T;
+const AZ=5.05*T;
+photoPlane('acres-camp.jpg',24.5*T,3.6,NZ,9,6.75,0);
+photoPlane('acres-track.jpg',30.2*T,4.4,NZ,12,6.75,0);
+photoPlane('acres-fair.jpg',28.2*T,4.0,AZ,6.4,4.8,FACE);
+photoPlane('acres-hall.jpg',32.6*T,3.9,AZ,7.2,4.43,FACE);
+photoPlane('acres-hall.jpg',37.5*T,2.15,6.15*T,6.2,3.8,0);
 photoPlane('redwood.jpg',50*T,7,NZ,14,12,0);photoPlane('redwood.jpg',46.3*T,6.6,WZ,5,11,FACE);
 photoPlane('zoo.jpg',78*T,3.6,NZ,10,6,0);photoPlane('zoo.jpg',80.6*T,3.6,WZ,5,6,FACE);
 photoPlane('street.jpg',96.2*T,3.2,NZ,9,5,0);photoPlane('street.jpg',94.2*T,3.2,WZ,5,5,FACE);
