@@ -144,7 +144,7 @@ body.touching #pinmsg{font-size:18px;padding:0 16px;box-sizing:border-box}
 <div id="title" class="screen"><div class="card">
  <div class="kicker">AN ORIGINAL LOW-POLY SIM · EUREKA, CALIFORNIA</div>
  <h1>EUREKA</h1><h2>PULP MILL</h2>
- <div class="sub">The neighborhood is overrun. The only helicopter left is on the roof of the Samoa pulp mill.<br>Cross town, force the bridge, and hold the roof until the skids touch down.</div>
+ <div class="sub">Start on Trinity Street in Myrtletown. Safe rooms at Redwood Acres, Sequoia Park Zoo, 3109 H Street, the Carson Mansion, and the Samoa Cookhouse.<br>The only helicopter left is on the Samoa pulp mill.</div>
  <div class="controls">
   <div><b>WASD</b>Move</div><div><b>MOUSE</b>Look</div><div><b>L-CLICK</b>Shoot</div>
   <div><b>R-CLICK</b>Shove</div><div><b>R</b>Reload</div><div><b>1 / 2</b>Primary / Pistol</div>
@@ -206,55 +206,99 @@ function angDiff(a,b){let d=b-a;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+
 const lerpAng=(a,b,t)=>a+angDiff(a,b)*clamp(t,0,1);
 
 /* ================= LEVEL MAP (2m tiles) =================
-   Neighborhood (west) -> Eureka streets -> Samoa bridge -> pulp mill -> roof helipad.
-   Progress is +x. Stairs at x=52 climb from the mill floor (y=0) to the roof (y=10). */
-const T=2,W=64,H=14,N=W*H,INF=1e9;
+   Myrtletown, Trinity St -> Redwood Acres -> redwoods -> Sequoia Park Zoo
+   -> 3109 H St -> Carson Mansion -> Samoa bridge -> Samoa Cookhouse -> pulp mill roof.
+   Progress is +x. The main road is z=7..9. Safe rooms are K. Doors are D. */
+const T=2,W=206,H=16,N=W*H,INF=1e9;
 const G=[];for(let z=0;z<H;z++)G.push(new Array(W).fill('#'));
-const fill=(x0,z0,x1,z1,c)=>{for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++)G[z][x]=c;};
-const put=(x,z,c)=>{G[z][x]=c;};
-fill(1,1,12,12,'n');
-fill(2,2,4,4,'#');fill(8,2,10,4,'#');
-fill(2,8,4,10,'#');fill(8,9,10,11,'#');
-fill(5,5,12,7,'.');
-put(5,5,'w');put(6,5,'w');put(7,5,'w');
-for(const [x,z] of [[1,1],[6,2],[11,2],[1,11],[6,11],[11,10],[1,3]])put(x,z,'t');
-fill(13,5,28,7,'.');
-fill(16,1,26,3,'m');
-put(18,4,'.');put(19,4,'.');
-put(24,4,'.');put(25,4,'.');
-put(16,1,'c');put(17,1,'c');put(26,1,'c');put(26,2,'c');put(16,3,'c');
-fill(21,5,22,7,'B');
-fill(29,5,40,7,'.');
-put(29,5,'A');put(29,6,'A');put(29,7,'A');
-for(let x=30;x<=40;x++){put(x,4,'=');put(x,8,'=');}
-fill(41,3,46,12,'.');
-put(42,3,'c');put(43,3,'c');put(44,4,'F');
-put(42,12,'c');put(45,11,'c');put(41,8,'F');
-put(46,3,'c');put(46,12,'c');
-fill(47,4,51,11,'m');
-put(48,4,'I');put(50,5,'I');put(50,10,'I');put(48,11,'I');
-put(49,8,'x');put(47,11,'c');put(51,4,'c');
-for(const z of [6,7])for(const x of [48,49,50])put(x,z,'m');
-fill(52,5,56,7,'S');
-fill(57,5,59,7,',');
-put(60,5,'d');put(60,6,'d');put(60,7,'d');
-fill(61,5,62,8,'R');
+const zoneAt=new Uint8Array(N);
+const doorOf=new Int16Array(N).fill(-1);
+const DOOR_IDS=[];
+const doors={};
+const FIN={stx:194,stn:5,callX:200.5*T,callZ:8.5*T,padX:203.5*T,padZ:8*T,gateX:144.5*T,gateZ:8.5*T};
+let safeIndex=0;
+const SAFES=[
+ {name:'Redwood Acres',x0:38,x1:40,z0:7,z1:9,inn:'acresIn',out:'acresOut',nextObj:2,line:'Out through the redwoods. The zoo is the next safe room.'},
+ {name:'Sequoia Park Zoo',x0:85,x1:87,z0:7,z1:9,inn:'zooIn',out:'zooOut',nextObj:3,line:'H Street next. The Rentor office is 3109.'},
+ {name:'Rentor, 3109 H Street',x0:108,x1:111,z0:7,z1:9,inn:'rentorIn',out:'rentorOut',nextObj:4,line:'Old Town. The Carson Mansion is on the bay.'},
+ {name:'Carson Mansion',x0:130,x1:133,z0:7,z1:9,inn:'mansionIn',out:'mansionOut',nextObj:5,line:'Samoa bridge next. The cookhouse is on the far side.'},
+ {name:'Samoa Cookhouse',x0:170,x1:173,z0:7,z1:9,inn:'cookIn',out:'cookOut',nextObj:8,line:'The mill road. The chopper is on the roof.'},
+];
+function put(x,z,c,zn){G[z][x]=c;if(zn!=null)zoneAt[z*W+x]=zn;}
+function fill(x0,z0,x1,z1,c,zn){for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++)put(x,z,c,zn);}
+function doorX(id,x,z0,z1,zn){if(doors[id]==null){doors[id]=false;DOOR_IDS.push(id);}const i=DOOR_IDS.indexOf(id);for(let z=z0;z<=z1;z++){put(x,z,'D',zn);doorOf[z*W+x]=i;}}
+fill(2,2,12,5,'#',0);fill(2,11,12,13,'#',0);
+fill(2,6,16,6,'n',0);fill(2,10,16,10,'n',0);
+fill(3,7,17,9,'.',0);
+put(5,8,'w',0);put(6,8,'w',0);put(7,8,'w',0);
+for(const [x,z] of [[1,1],[4,6],[12,6],[2,13],[14,2],[8,14],[16,2]])put(x,z,'t',0);
+fill(18,7,19,9,'B',0);
+fill(16,3,23,6,'n',0);
+fill(20,7,31,9,'.',0);
+fill(28,3,44,13,'n',1);
+fill(34,1,41,14,'#',1);
+fill(35,6,40,10,'m',1);
+fill(38,7,40,9,'K',1);
+doorX('acresIn',34,7,9,1);doorX('acresOut',41,7,9,1);
+fill(42,7,46,9,'.',1);
+fill(47,2,70,13,'t',2);
+fill(47,7,54,9,'n',2);fill(52,4,60,7,'n',2);fill(58,7,70,10,'n',2);
+fill(71,3,90,13,'n',3);
+for(let x=74;x<=80;x++)put(x,6,'=',3);
+put(77,6,'n',3);fill(74,3,80,5,'n',3);
+for(let x=74;x<=80;x++)put(x,11,'=',3);
+put(76,11,'n',3);fill(74,12,80,13,'n',3);
+fill(82,1,88,14,'#',3);
+fill(83,6,87,10,'m',3);fill(85,7,87,9,'K',3);
+doorX('zooIn',82,7,9,3);doorX('zooOut',88,7,9,3);
+fill(89,7,94,9,'.',4);
+fill(95,3,97,13,'.',4);fill(93,7,103,9,'.',4);
+fill(104,1,112,14,'#',4);
+fill(105,6,111,10,'m',4);fill(108,7,111,9,'K',4);
+doorX('rentorIn',104,7,9,4);doorX('rentorOut',112,7,9,4);
+fill(113,7,123,9,'.',4);
+fill(122,2,136,6,'#',6);fill(125,3,134,5,'m',6);
+fill(124,2,134,14,'#',6);
+fill(125,6,133,11,'m',6);fill(130,7,133,9,'K',6);
+doorX('mansionIn',124,7,9,6);doorX('mansionOut',134,7,9,6);
+put(126,3,'I',6);
+for(let x=118;x<=143;x++)if(G[1][x]==='#')put(x,1,'~',6);
+fill(135,7,143,9,'.',4);
+fill(144,1,144,14,'#',7);doorX('gate',144,7,9,7);
+fill(145,7,160,9,'.',7);
+for(let x=145;x<=160;x++){for(let z=1;z<=5;z++)put(x,z,'~',7);for(let z=11;z<=14;z++)put(x,z,'~',7);put(x,6,'=',7);put(x,10,'=',7);}
+fill(161,7,163,9,'.',8);
+fill(164,1,174,14,'#',8);
+fill(165,6,173,10,'m',8);fill(170,7,173,9,'K',8);
+doorX('cookIn',164,7,9,8);doorX('cookOut',174,7,9,8);
+fill(175,7,182,9,'.',9);
+fill(183,4,188,12,'.',9);
+put(184,4,'c',9);put(186,12,'c',9);put(185,5,'F',9);put(183,11,'c',9);
+fill(189,5,193,11,'m',9);
+put(190,5,'I',9);put(192,11,'I',9);put(191,10,'x',9);
+for(const z of [7,8,9])for(const x of [190,191,192])put(x,z,'m',9);
+fill(194,7,198,9,'S',9);
+fill(199,7,201,9,',',9);
+doorX('roof',202,7,9,9);
+fill(203,6,204,10,'R',9);
+for(let z=4;z<=13;z++)if(z<7||z>9)put(202,z,'#',9);
+for(let z=4;z<=13;z++)put(205,z,',',9);
+for(let x=203;x<=204;x++)for(let z=11;z<=12;z++)if(G[z][x]!=='R')put(x,z,',',9);
 
 const ROOF=new Set([',','R']);
 const MILL=new Set(['m']);
-const WALK=new Set(['.','n','w','m','S',',','R','F','x']);
-const DOORC=new Set(['A','d','g','r']);
-const WALLC=new Set(['#','=','b','t','I','B','c']);
-const tileBase=c=>(ROOF.has(c)||c==='d')?10:0;
-const ceilOf=c=>MILL.has(c)?5.2:null;
-const STX=52,STN=5;
+const WALK=new Set(['.','n','w','m','S',',','R','F','x','K']);
+const WALLC=new Set(['#','=','b','t','I','B','c','~']);
+const DOOR_LABEL={acresIn:'Open the Redwood Acres door',zooIn:'Open the zoo door',rentorIn:'Open the office door',mansionIn:'Open the mansion door',cookIn:'Open the cookhouse door',gate:'Force the bridge gate'};
+function doorId(tx,tz){const i=(tz>=0&&tz<H&&tx>=0&&tx<W)?doorOf[tz*W+tx]:-1;return i>=0?DOOR_IDS[i]:'';}
+function tileBase(c,tx,tz){if(ROOF.has(c))return 10;if(c==='D'&&doorId(tx,tz)==='roof')return 10;return 0;}
+function ceilOf(c,tx,tz){if(c!=='m'&&c!=='K')return null;const zn=zoneAt[tz*W+tx];if(zn===6)return 5.4;if(zn===8)return 3.6;if(zn===1)return 4.6;return 4.2;}
 const charAt=(tx,tz)=>(tz>=0&&tz<H&&tx>=0&&tx<W)?G[tz][tx]:' ';
-function groundAt(x,z){const tx=Math.floor(x/T),tz=Math.floor(z/T);const c=charAt(tx,tz);if(c==='S')return 10*clamp((x-STX*T)/(STN*T),0,1);return tileBase(c);}
+function groundAt(x,z){const tx=Math.floor(x/T),tz=Math.floor(z/T);const c=charAt(tx,tz);if(c==='S')return 10*clamp((x-FIN.stx*T)/(FIN.stn*T),0,1);return tileBase(c,tx,tz);}
 const tileH=(tx,tz)=>groundAt((tx+.5)*T,(tz+.5)*T);
-function ceilAt(x,z){const c=charAt(Math.floor(x/T),Math.floor(z/T));if(c===' '||WALLC.has(c))return null;const ch=ceilOf(c);return ch===null?null:groundAt(x,z)+ch;}
-const doors={A:false,d:false,g:false,r:true};
-function isWalk(tx,tz){const c=charAt(tx,tz);if(WALK.has(c))return true;if(DOORC.has(c))return doors[c];return false;}
-function blocks(tx,tz){const c=charAt(tx,tz);if(c===' '||WALLC.has(c)||c==='I')return true;if(DOORC.has(c))return !doors[c];return false;}
+function ceilAt(x,z){const tx=Math.floor(x/T),tz=Math.floor(z/T);const c=charAt(tx,tz);if(c===' '||WALLC.has(c))return null;const ch=ceilOf(c,tx,tz);return ch===null?null:groundAt(x,z)+ch;}
+function isWalk(tx,tz){const c=charAt(tx,tz);if(WALK.has(c))return true;if(c==='D')return !!doors[doorId(tx,tz)];return false;}
+function blocks(tx,tz){const c=charAt(tx,tz);if(c===' '||WALLC.has(c)||c==='I')return true;if(c==='D')return !doors[doorId(tx,tz)];return false;}
 function losClear(x0,z0,x1,z1){const dx=x1-x0,dz=z1-z0,d=Math.hypot(dx,dz);const n=Math.ceil(d/0.5);for(let i=1;i<n;i++){const t=i/n;if(blocks(Math.floor((x0+dx*t)/T),Math.floor((z0+dz*t)/T)))return false;}return true;}
 function wallHitT(ox,oz,dx,dz,maxT){let tx=Math.floor(ox/T),tz=Math.floor(oz/T);const sx=dx>0?1:-1,sz=dz>0?1:-1;
  const ddx=dx!==0?Math.abs(T/dx):Infinity,ddz=dz!==0?Math.abs(T/dz):Infinity;
@@ -264,14 +308,15 @@ class Heap{constructor(){this.a=[];}get size(){return this.a.length;}
  push(d,i){const a=this.a;a.push([d,i]);let k=a.length-1;while(k>0){const p=(k-1)>>1;if(a[p][0]<=a[k][0])break;[a[p],a[k]]=[a[k],a[p]];k=p;}}
  pop(){const a=this.a,top=a[0],last=a.pop();if(a.length){a[0]=last;let k=0;for(;;){const l=2*k+1,r=l+1;let m=k;if(l<a.length&&a[l][0]<a[m][0])m=l;if(r<a.length&&a[r][0]<a[m][0])m=r;if(m===k)break;[a[m],a[k]]=[a[k],a[m]];k=m;}}return top;}}
 function dijkstra(srcs,doorsOpen=false,link=false){const d=new Float32Array(N).fill(INF),h=new Heap();
- const ok=(x,z)=>{const c=charAt(x,z);if(WALK.has(c))return true;if(DOORC.has(c))return doorsOpen||doors[c];return false;};
+ const ok=(x,z)=>{const c=charAt(x,z);if(WALK.has(c))return true;if(c==='D')return doorsOpen||!!doors[doorId(x,z)];return false;};
  for(const i of srcs){d[i]=0;h.push(0,i);}
  while(h.size){const [dd,i]=h.pop();if(dd>d[i])continue;const x=i%W,z=(i/W)|0;
   for(const [ax,az] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+ax,nz=z+az;if(!ok(nx,nz))continue;const c=G[nz][nx];const ni=nz*W+nx,nd=dd+((c==='F'||c==='x')?6:1);if(nd<d[ni]){d[ni]=nd;h.push(nd,ni);}}
   if(link){const c=G[z][x];const ni=c==='e'?(z+5)*W+x:c==='f'?(z-5)*W+x:-1;if(ni>=0&&dd+1<d[ni]){d[ni]=dd+1;h.push(dd+1,ni);}}}
  return d;}
-const safeTiles=[];for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(G[z][x]==='R')safeTiles.push(z*W+x);
-const route=dijkstra(safeTiles,true,true);
+function goalTiles(){const ids=[];if(safeIndex<SAFES.length){const s=SAFES[safeIndex];for(let z=s.z0;z<=s.z1;z++)for(let x=s.x0;x<=s.x1;x++)if(G[z][x]==='K')ids.push(z*W+x);return ids;}
+ for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(G[z][x]==='R')ids.push(z*W+x);return ids;}
+let route;function recomputeRoute(){route=dijkstra(goalTiles(),true,false);}recomputeRoute();
 let flow=new Float32Array(N).fill(INF),flowTile=-1,flowDirty=true;
 function flowStep(x,z){const tx=Math.floor(x/T),tz=Math.floor(z/T);const d0=flow[tz*W+tx];if(d0===undefined||d0>=INF)return null;let best=d0,bx=0,bz=0;
  for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dz)continue;const nx=tx+dx,nz=tz+dz;if(!isWalk(nx,nz))continue;if(dx&&dz&&(!isWalk(tx+dx,tz)||!isWalk(tx,tz+dz)))continue;const v=flow[nz*W+nx]+(dx&&dz?0.4:0);if(v<best){best=v;bx=dx;bz=dz;}}
@@ -285,7 +330,7 @@ function moveEnt(e,dx,dz,r){const n=Math.ceil(Math.hypot(dx,dz)/(r*0.7))||1;for(
 const tileOf=e=>Math.floor(e.z/T)*W+Math.floor(e.x/T);
 const chAt=e=>charAt(Math.floor(e.x/T),Math.floor(e.z/T));
 const spawnTiles={hotel:[],lobby:[]};
-for(let z=0;z<H;z++)for(let x=0;x<W;x++){const c=G[z][x];if(x<13)continue;if(c==='.'||c==='n')spawnTiles.hotel.push({x,z,i:z*W+x});if(c==='m'||c===',')spawnTiles.lobby.push({x,z,i:z*W+x});}
+for(let z=0;z<H;z++)for(let x=0;x<W;x++){const c=G[z][x];if(x<18)continue;if(c==='.'||c==='n')spawnTiles.hotel.push({x,z,i:z*W+x});if(c==='m'||c===',')spawnTiles.lobby.push({x,z,i:z*W+x});}
 
 /* ================= RENDERER / SCENE ================= */
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance',preserveDrawingBuffer:AUTOTEST});
@@ -317,73 +362,78 @@ const shade=(c,f)=>{const col=new THREE.Color(c);col.multiplyScalar(f);return co
 const fires=[]; // {x,y,z,r,big}
 {const walls=[],trims=[],floors=[],ceils=[],obst=[],lamps=[],flick=[];
  for(let z=0;z<H;z++)for(let x=0;x<W;x++){const c=G[z][x],cx=(x+.5)*T,cz=(z+.5)*T;if(c===' ')continue;
-  if(c==='t'){floors.push({x:cx,y:-0.12,z:cz,sx:T,sy:0.24,sz:T,c:0x3a4a32});obst.push({x:cx,y:2.2,z:cz,sx:.35,sy:4.4,sz:.35,c:0x3a2a1c});obst.push({x:cx,y:4.6,z:cz,sx:2.4,sy:2.2,sz:2.4,c:pick([0x1d3a28,0x244432,0x163022])});continue;}
+  if(c==='t'){const red=zoneAt[z*W+x]===2;floors.push({x:cx,y:-0.12,z:cz,sx:T,sy:0.24,sz:T,c:red?0x1a2a18:0x3a4a32});const th=red?14:4.4;obst.push({x:cx,y:th/2,z:cz,sx:red?.7:.35,sy:th,sz:red?.7:.35,c:0x3a2a1c});obst.push({x:cx,y:th-(red?1.2:0),z:cz,sx:red?3.2:2.4,sy:red?2.4:2.2,sz:red?3.2:2.4,c:pick([0x1d3a28,0x244432,0x163022])});continue;}
+  if(c==='~'){floors.push({x:cx,y:-0.55,z:cz,sx:T,sy:0.1,sz:T,c:0x2c6864});continue;}
   if(c==='='){const oz=(WALK.has(charAt(x,z+1))?1:-1)*T*0.42;obst.push({x:cx,y:0.62,z:cz+oz,sx:T*1.02,sy:1.15,sz:0.16,c:0x8d8680});obst.push({x:cx,y:0.42,z:cz+oz,sx:0.18,sy:1.05,sz:0.24,c:0x5a534c});continue;}
-  if(c==='#'||c==='b'){let lo=1e9,hi=-1e9,mill=false,high=false;
-   for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const n=charAt(x+b,z+a);if(n===' '||WALLC.has(n))continue;const bh=tileH(x+b,z+a);const lip=MILL.has(n)?6.4:(ROOF.has(n)||n==='S'||n==='d')?1.5:3.2;lo=Math.min(lo,bh);hi=Math.max(hi,bh+lip);if(MILL.has(n)||x>44)mill=true;if(ROOF.has(n)||n==='S'||n==='d')high=true;}
-   if(lo>hi){lo=0;hi=3;}lo-=0.15;const v=0.88+Math.random()*0.16;
-   const col=mill?shade(0x6b4032,v):high?shade(0x5a5650,v):shade(((x*3+z)%4===0)?0x6a5a48:0x7d6b56,v);
+  if(c==='#'||c==='b'){let lo=1e9,hi=-1e9,mill=false,high=false;const zn=zoneAt[z*W+x];
+   for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const n=charAt(x+b,z+a);if(n===' '||WALLC.has(n)||n==='D')continue;const bh=tileH(x+b,z+a);const lip=(MILL.has(n)||zn===9)?6.4:(ROOF.has(n)||n==='S')?1.5:zn===6?10:zn===1?5.2:zn===8?4.2:3.2;lo=Math.min(lo,bh);hi=Math.max(hi,bh+lip);if(MILL.has(n)||zn===9)mill=true;if(ROOF.has(n)||n==='S')high=true;}
+   if(lo>hi){lo=0;hi=zn===6?10:3;}lo-=0.15;const v=0.88+Math.random()*0.16;
+   const col=zn===6?shade(0xc4a882,v):zn===1?shade(0x7a3030,v):zn===8?shade(0x8a2e28,v):zn===9||mill?shade(0x6b4032,v):high?shade(0x5a5650,v):shade(((x*3+z)%4===0)?0x6a5a48:0x7d6b56,v);
    walls.push({x:cx,y:(lo+hi)/2,z:cz,sx:T,sy:hi-lo,sz:T,c:col});
-   if(!high)trims.push({x:cx,y:lo+0.28,z:cz,sx:T*1.02,sy:0.22,sz:T*1.02,c:mill?0x3a241c:0x4a3a2a});
+   if(!high)trims.push({x:cx,y:lo+0.28,z:cz,sx:T*1.02,sy:0.22,sz:T*1.02,c:zn===6?0x6a4030:zn===8||zn===1?0x3a1818:mill?0x3a241c:0x4a3a2a});
    continue;}
-  const b=tileH(x,z);
+  const b=tileH(x,z);const zn=zoneAt[z*W+x];
   let fc=0x3e4246;
-  if(c==='n'||c==='w')fc=shade(0x3d4a34,0.88+Math.random()*.22);
-  else if(c==='.'||c==='A')fc=(x>=29&&x<=40)?(((x+z)&1)?0x4a4638:0x3a362c):(((x+z)&1)?0x3c4044:0x34383c);
-  else if(c==='m')fc=((x+z)&1)?0x4e463c:0x3c342c;
+  if(c==='n'||c==='w')fc=zn===2?shade(0x243628,0.85+Math.random()*.2):shade(0x3d4a34,0.88+Math.random()*.22);
+  else if(c==='.'||c==='D')fc=(zn===7)?(((x+z)&1)?0x4a4638:0x3a362c):(((x+z)&1)?0x3c4044:0x34383c);
+  else if(c==='K')fc=0x6a5038;
+  else if(c==='m')fc=zn===6?0x7a6854:zn===8?0x5a3030:zn===1?0x6a4030:((x+z)&1)?0x4e463c:0x3c342c;
   else if(c==='F'||c==='x'||c==='B')fc=0x241610;
   else if(c==='R')fc=0x6a7268;
-  else if(c==='d'||ROOF.has(c))fc=shade(0x5c584e,0.9+Math.random()*.15);
+  else if(ROOF.has(c))fc=shade(0x5c584e,0.9+Math.random()*.15);
   else if(c==='c')fc=0x3a3028;
   if(c==='S'){for(let s=0;s<2;s++){const sx=(x+.25+.5*s)*T,top=groundAt(sx,cz);floors.push({x:sx,y:top-0.08,z:cz,sx:T/2-0.02,sy:0.16,sz:T,c:s?0x6e7270:0x5c605e});}}
   else floors.push({x:cx,y:b-0.12,z:cz,sx:T,sy:0.24,sz:T,c:fc});
-  const ch=ceilOf(c);
-  if(ch!==null){ceils.push({x:cx,y:b+ch+0.12,z:cz,sx:T,sy:0.24,sz:T,c:0x3a342c});
-   if(c==='m'&&(x+z)%3===0)(Math.random()<0.45?flick:lamps).push({x:cx,y:b+ch-0.02,z:cz,sx:0.8,sy:0.06,sz:0.4,c:0xffe2b0});}
+  const ch=ceilOf(c,x,z);
+  if(ch!==null){ceils.push({x:cx,y:b+ch+0.12,z:cz,sx:T,sy:0.24,sz:T,c:zn===6?0x4a4030:0x3a342c});
+   if((c==='m'||c==='K')&&(x+z)%3===0)(Math.random()<0.45?flick:lamps).push({x:cx,y:b+ch-0.02,z:cz,sx:0.8,sy:0.06,sz:0.4,c:0xffe2b0});}
   if(c==='c'){obst.push({x:cx,y:b+0.4,z:cz,sx:T*0.72,sy:0.7,sz:T*0.62,ry:rand(-.2,.2),c:pick([0x6b4423,0x5a3a22,0x4a4038])});obst.push({x:cx+rand(-.2,.2),y:b+0.85,z:cz,sx:T*0.4,sy:0.28,sz:T*0.4,c:0x3a2a1a});}
   if(c==='B'){obst.push({x:cx,y:b+0.42,z:cz,sx:1.55,sy:0.7,sz:0.85,ry:(x+z)*.4,c:pick([0x2a2420,0x3a1a14,0x1a1c1e])});obst.push({x:cx,y:b+0.85,z:cz-0.1,sx:0.85,sy:0.38,sz:0.7,c:0x151515});fires.push({x:cx,y:b+0.35,z:cz,r:0.55,big:false});}
   if(c==='F'||c==='x')fires.push({x:cx,y:b+0.05,z:cz,r:c==='x'?1.1:0.8,big:c==='x'});
   if(c==='I')obst.push({x:cx,y:b+2.7,z:cz,sx:0.55,sy:5.4,sz:0.55,c:0x6a5344});
-  if(c==='R'&&x===61&&z===6){obst.push({x:cx+T*.5,y:b+0.02,z:cz+T*.5,sx:3.2,sy:0.04,sz:3.2,c:0xc9a227});}
+  if(c==='R'&&x===203&&z===8){obst.push({x:cx+T*.5,y:b+0.02,z:cz,sx:3.4,sy:0.04,sz:3.4,c:0xc9a227});}
  }
  instBoxes(walls);instBoxes(trims);instBoxes(floors);instBoxes(ceils);instBoxes(obst);
  instBoxes(lamps,new THREE.MeshBasicMaterial({color:0xffe6b0}));
  var flickMesh=instBoxes(flick,new THREE.MeshBasicMaterial({color:0xffe6b0}));
 }
 const flickMat=scene.children[scene.children.length-1].material;
-// abandoned pickup the guns are sitting on
-box(1.8,0.62,3.3,0x243028,6.3*T,0.4,5.15*T,scene);
-box(1.45,0.55,1.25,0x1c2820,5.7*T,0.95,4.35*T,scene);
-box(0.15,0.35,0.5,0xc9a24a,7.15*T,0.55,6.4*T,scene);
-// digester tanks and a roller line inside the hall
-box(2.4,3.2,2.4,0x6a5438,44*T,1.6,4.2*T,scene);box(2.6,0.4,2.6,0x4a3a28,44*T,3.3,4.2*T,scene);
-box(1.6,2.4,1.6,0x5a4834,45.2*T,1.2,10.5*T,scene);
-{const roller=new THREE.Mesh(cylGeo,mat(0x4a4038));roller.rotation.z=Math.PI/2;roller.scale.set(.55,1.8,.55);roller.position.set(49.2*T,1.15,9.2*T);scene.add(roller);
- const roller2=roller.clone();roller2.position.set(49.2*T,1.15,10.2*T);scene.add(roller2);}
-// signs. rotation.y = -PI/2 faces west, toward survivors walking +x.
+box(1.8,0.62,3.3,0x243028,6.2*T,0.4,7.15*T,scene);
+box(1.45,0.55,1.25,0x1c2820,5.6*T,0.95,6.4*T,scene);
+box(2.2,1.1,8,0x6a3030,30*T,0.7,4.2*T,scene);
+box(6,2.2,3,0x4a4038,31*T,1.4,11.5*T,scene);
+box(4,16,4,0x7a5a3a,127*T,8,3.2*T,scene);box(5,1.6,5,0x2f6a45,127*T,16.4,3.2*T,scene);
+box(2.6,4.2,2.6,0x6a5438,191*T,2.1,11.2*T,scene);box(2.8,0.4,2.8,0x4a3a28,191*T,4.3,11.2*T,scene);
+{const roller=new THREE.Mesh(cylGeo,mat(0x4a4038));roller.rotation.z=Math.PI/2;roller.scale.set(.55,1.8,.55);roller.position.set(191.2*T,1.15,10.2*T);scene.add(roller);}
 function signTex(text,bg,fg,w=256,h=64){return canvasTex(w,h,(g,W2,H2)=>{g.fillStyle=bg;g.fillRect(0,0,W2,H2);g.fillStyle=fg;g.font='bold '+Math.floor(H2*0.42)+'px Arial';g.textAlign='center';g.textBaseline='middle';const lines=text.split('\n');lines.forEach((l,i)=>g.fillText(l,W2/2,H2/2+(i-(lines.length-1)/2)*H2*0.42));});}
 function sign(text,bg,fg,x,y,z,ry,w,h){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:signTex(text,bg,fg,512,Math.round(512*h/w)),transparent:true,side:THREE.DoubleSide}));m.position.set(x,y,z);m.rotation.y=ry;scene.add(m);return m;}
-sign('CUTTEN','#2a241c','#f3ead4',12.15*T,2.4,6.5*T,-Math.PI/2,1.8,0.42);
-sign('MARKET','#6a1a1a','#fff',17.7*T,2.5,4.15*T,0,1.5,0.4);
-sign('ROAD CLOSED','#111','#f33',20.2*T,2.3,4.85*T,Math.PI,1.7,0.36);
-sign('SAMOA BRIDGE','#8a6a12','#1a1408',28.15*T,3.3,6.5*T,-Math.PI/2,2.6,0.48);
-sign('EUREKA PULP MILL','#3a2418','#f0d7a4',46.15*T,3.6,6.5*T,-Math.PI/2,3.4,0.55);
-sign('NO ENTRY','#a31818','#fff',46.15*T,2.55,8.4*T,-Math.PI/2,1.7,0.4);
-sign('HELIPAD','#1c1c1c','#f4f4f4',59.2*T,12.4,5.15*T,-Math.PI/2,1.6,0.4);
-sign('CHOPPER ON THE ROOF','rgba(0,0,0,0)','#d42',19.8*T,2.1,2.15*T,Math.PI,2.8,0.45);
+const FACE=-Math.PI/2;
+sign('TRINITY ST','#2a241c','#f3ead4',8.2*T,2.5,6.2*T,FACE,2.2,0.42);
+sign('MYRTLETOWN','#2a241c','#f3ead4',10.2*T,3.1,6.2*T,FACE,2.4,0.42);
+sign('REDWOOD ACRES','#7a3030','#fff',33.2*T,3.2,6.2*T,FACE,3.2,0.5);
+sign('SEQUOIA PARK ZOO','#1d3a28','#e8f0d8',81.2*T,3.3,6.2*T,FACE,3.6,0.5);
+sign('H STREET','#222','#f2efe8',96.5*T,2.8,4.2*T,0,1.8,0.4);
+sign('3109 H ST','#222','#f2efe8',103.2*T,3.1,6.2*T,FACE,2.2,0.42);
+sign('RENTOR','#6a1a1a','#fff',103.2*T,2.4,6.2*T,FACE,1.8,0.4);
+sign('CARSON MANSION','#c4a882','#2a1c10',123.2*T,4.2,6.2*T,FACE,3.4,0.5);
+sign('INGOMAR CLUB','#2a1c10','#f0e2c4',123.2*T,3.4,6.2*T,FACE,2.6,0.4);
+sign('SAMOA BRIDGE','#8a6a12','#1a1408',143.2*T,3.4,6.2*T,FACE,2.8,0.5);
+sign('SAMOA COOKHOUSE','#8a2e28','#fff',163.2*T,3.2,6.2*T,FACE,3.4,0.5);
+sign('EUREKA PULP MILL','#3a2418','#f0d7a4',188.2*T,3.6,6.2*T,FACE,3.4,0.55);
+sign('HELIPAD','#1c1c1c','#f4f4f4',201.2*T,12.2,6.2*T,FACE,1.6,0.4);
 
-/* ---- doors ---- */
+/* ---- doors. Every campaign door is a line across the road. ---- */
 const doorMeshes={};
 {function leafGate(x,y,z0,z1,color){const span=z1-z0,mid=(z0+z1)/2;
   const N=new THREE.Group();N.position.set(x,y,z0);scene.add(N);box(.14,2.7,span/2,color,0,1.45,span/4,N);box(.2,.08,.5,0xddd,0,1.3,span/2-.3,N);
   const Sth=new THREE.Group();Sth.position.set(x,y,z1);scene.add(Sth);box(.14,2.7,span/2,color,0,1.45,-span/4,Sth);box(.2,.08,.5,0xddd,0,1.3,-span/2+.3,Sth);
   box(.5,.4,span+0.2,0x3a3028,x,y+2.95,mid,scene);
   return {update(o,dt){N.rotation.y=lerp(N.rotation.y,o?-1.35:0,dt*4);Sth.rotation.y=lerp(Sth.rotation.y,o?1.35:0,dt*4);}};}
- doorMeshes.A=leafGate(29.5*T,0,5*T,8*T,0xc4a35a);
- doorMeshes.d=leafGate(60.5*T,10,5*T,8*T,0x8d9398);
- doorMeshes.g={update(){}};doorMeshes.r={update(){}};
- box(.55,1.15,.55,0x2a2a2a,59.5*T,10.55,6.5*T,scene);
- doorMeshes.btn=box(.18,.18,.18,0xff3311,59.5*T,11.2,6.5*T,scene,{emissive:0x661100});
+ for(const id of DOOR_IDS){let x0=99,z0=99,z1=0;for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(doorId(x,z)===id){x0=Math.min(x0,x);z0=Math.min(z0,z);z1=Math.max(z1,z);}
+  const col=id==='gate'?0xc4a35a:id==='roof'?0x8d9398:id.startsWith('mansion')?0xc4a882:id.startsWith('cook')?0x8a2e28:0x6a5344;
+  doorMeshes[id]=leafGate((x0+.5)*T,id==='roof'?10:0,z0*T,(z1+1)*T,col);}
+ box(.55,1.15,.55,0x2a2a2a,FIN.callX,10.55,FIN.callZ,scene);
+ doorMeshes.btn=box(.18,.18,.18,0xff3311,FIN.callX,11.2,FIN.callZ,scene,{emissive:0x661100});
 }
 
 /* ---- sky, bay, the town north of the route ---- */
@@ -395,13 +445,13 @@ const doorMeshes={};
  win.wrapS=win.wrapT=THREE.RepeatWrapping;
  const bmats=[1,2,3].map(r=>{const t=win.clone();t.needsUpdate=true;t.repeat.set(r,r*1.4);return new THREE.MeshLambertMaterial({color:0x2a3130,emissive:0xffffff,emissiveMap:t,emissiveIntensity:0.35});});
  window.__smokeStacks=[];
- const mud=new THREE.Mesh(new THREE.PlaneGeometry(420,280),new THREE.MeshLambertMaterial({color:0x6d654c}));mud.rotation.x=-Math.PI/2;mud.position.set(30*T,-1.05,4*T);scene.add(mud);
- const bay=new THREE.Mesh(new THREE.PlaneGeometry(180,90),new THREE.MeshLambertMaterial({color:0x2c6864}));bay.rotation.x=-Math.PI/2;bay.position.set(35*T,-0.55,-6*T);scene.add(bay);
- const bay2=new THREE.Mesh(new THREE.PlaneGeometry(120,70),new THREE.MeshLambertMaterial({color:0x245852}));bay2.rotation.x=-Math.PI/2;bay2.position.set(35*T,-0.55,22*T);scene.add(bay2);
- for(let i=0;i<36;i++){const x=rand(-10,80),z=rand(-55,-12),w=rand(8,20),d=rand(8,18),h=rand(5,26);const m=new THREE.Mesh(boxGeo,pick(bmats));m.scale.set(w,h,d);m.position.set(x,h/2,z);scene.add(m);}
- for(let i=0;i<16;i++){const x=rand(-4,24)*T,z=rand(16,36)*T,h=rand(12,24);box(.45,h,.45,0x3a2a1c,x,h/2,z,scene);box(rand(2.4,3.6),rand(3,5),rand(2.4,3.6),pick([0x1a3424,0x234432]),x,h-1.2,z,scene);}
+ const mud=new THREE.Mesh(new THREE.PlaneGeometry(1400,400),new THREE.MeshLambertMaterial({color:0x6d654c}));mud.rotation.x=-Math.PI/2;mud.position.set(200,-1.05,16);scene.add(mud);
+ const bay=new THREE.Mesh(new THREE.PlaneGeometry(1100,220),new THREE.MeshLambertMaterial({color:0x2c6864}));bay.rotation.x=-Math.PI/2;bay.position.set(220,-0.55,-30);scene.add(bay);
+ const bay2=new THREE.Mesh(new THREE.PlaneGeometry(1100,180),new THREE.MeshLambertMaterial({color:0x245852}));bay2.rotation.x=-Math.PI/2;bay2.position.set(220,-0.55,70);scene.add(bay2);
+ for(let i=0;i<48;i++){const x=rand(-10,420),z=rand(-80,-18),w=rand(8,22),d=rand(8,18),h=rand(5,28);const m=new THREE.Mesh(boxGeo,pick(bmats));m.scale.set(w,h,d);m.position.set(x,h/2,z);scene.add(m);}
+ for(let i=0;i<18;i++){const x=rand(40,140),z=rand(40,80),h=rand(14,26);box(.5,h,.5,0x3a2a1c,x,h/2,z,scene);box(rand(2.6,4),rand(3,5),rand(2.6,4),pick([0x1a3424,0x234432]),x,h-1.2,z,scene);}
  function stack(x,z,h){box(2.4,h,2.4,0x5c4034,x,h/2,z,scene);box(3,0.7,3,0x3a2a22,x,h+0.2,z,scene);window.__smokeStacks.push([x,h+0.8,z]);}
- stack(49*T,2.2*T,18);stack(51.2*T,11.2*T,24);
+ stack(192*T,3.2*T,18);stack(196*T,13.2*T,26);
  const gnd=new THREE.Mesh(new THREE.PlaneGeometry(2000,2000),new THREE.MeshLambertMaterial({color:0x1a2218}));gnd.rotation.x=-Math.PI/2;gnd.position.y=-2;scene.add(gnd);
 }
 
@@ -520,7 +570,7 @@ const WEAP={pistol:{name:'Pistol',mag:15,dmg:34,rate:.17,spread:.012,pellets:1,r
  shotgun:{name:'Pump Shotgun',mag:8,res:56,dmg:22,rate:.85,spread:.075,pellets:9,reload:2.1,auto:true},
  smg:{name:'SMG',mag:50,res:650,dmg:20,rate:.075,spread:.03,pellets:1,reload:2.0,auto:true}};
 const S={phase:'title',t:0,obj:0,kills:0,skills:0,heads:0,dmg:0,ff:0,shots:0,hits:0,alarmT:-1,elevT:-1,elevArrived:false,inElevT:0,riding:false,rideT:0,inLobby:false,lobbyHorde:false,biledT:0,healT:0,revT:0,revBot:null,shake:0,fade:0,god:false,dirOn:false,complete:false,lowHpT:0,intro:0,started:false,spotted:{}};
-const player={x:6.5*T,z:6.5*T,y:1.6,yaw:-Math.PI/2,pitch:0.02,hp:100,down:false,kit:false,inv:{primary:null,pistol:{type:'pistol',mag:15,res:Infinity}},slot:'pistol',fireCd:0,reloadT:0,shoveCd:0,lastShove:-9,trig:false,bob:0,vx:0,vz:0,pinnedBy:null,pulledBy:null,pinShoves:0,flash:false,spread:0,crumbs:[],crumbT:0,hurtT:0,burnT:0};
+const player={x:4.5*T,z:8.5*T,y:1.6,yaw:-Math.PI/2,pitch:0.02,hp:100,down:false,kit:false,inv:{primary:null,pistol:{type:'pistol',mag:15,res:Infinity}},slot:'pistol',fireCd:0,reloadT:0,shoveCd:0,lastShove:-9,trig:false,bob:0,vx:0,vz:0,pinnedBy:null,pulledBy:null,pinShoves:0,flash:false,spread:0,crumbs:[],crumbT:0,hurtT:0,burnT:0};
 const commons=[],specials=[],bots=[],items=[];
 let ENTID=0;
 const MAXC=42,MAXI=90;
@@ -534,7 +584,7 @@ function feed(html,color){feedLines.push({html:(color?`<span style="color:${colo
 function renderFeed(){feedEl.innerHTML=feedLines.map(l=>`<div style="opacity:${Math.min(1,l.t)}">${l.html}</div>`).join('');}
 const barkCd={};
 function bark(bot,text,key,cd=6){if(!bot){bot=bots.find(b=>!b.down);if(!bot)return;}const k=key||text;if(barkCd[k]&&S.t<barkCd[k])return;barkCd[k]=S.t+cd;feed(`<b style="color:${bot.col}">${bot.name}:</b> ${text}`);SFX.bark();}
-const OBJ=['Grab the guns off the truck','Cross Eureka. The main street is wrecked','Force the Samoa bridge gate','Cross the bridge','Push through the mill yard','Climb the pulp mill and call the chopper','Hold the roof until the helicopter lands','Get on the pad'];
+const OBJ=['Grab the guns on Trinity Street','Safe room: Redwood Acres','Through the redwoods to the zoo','Safe room: Rentor, 3109 H St','Safe room: Carson Mansion','Cross the Samoa bridge','Force the Samoa bridge gate','Safe room: Samoa Cookhouse','Get to the pulp mill roof','Call the helicopter','Hold the roof until the helicopter lands','Get on the pad'];
 function setObj(i){if(S.obj===i)return;S.obj=i;$('obj').textContent=OBJ[i];}
 let flashT=0;function hurtFlash(a){flashT=Math.max(flashT,a);}
 
@@ -544,15 +594,17 @@ function addItem(type,x,y,z){const g=new THREE.Group();g.position.set(x,y,z);sce
  else if(type==='kit'){box(.42,.28,.16,0xb3201a,0,.14,0,g);box(.16,.05,.17,0xffffff,0,.14,0,g);box(.05,.16,.17,0xffffff,0,.14,0,g);}
  else if(type==='ammo'){for(let i=0;i<5;i++)box(.3,.22,.2,0x4a5a2a,rand(-.25,.25),.11+(i>2?.22:0),rand(-.15,.15),g);box(.5,.04,.4,0x3a2a1a,0,.02,0,g);}
  items.push({type,x,z,y,g,taken:false});}
-addItem('shotgun',5.5*T,0.9,6.3*T);addItem('smg',6.6*T,0.9,6.3*T);addItem('kit',7.6*T,0.9,6.3*T);
-addItem('ammo',20.5*T,0.45,2.5*T);addItem('kit',23.5*T,0.45,2.5*T);
-addItem('ammo',36.5*T,0.45,6.5*T);addItem('kit',44.5*T,0.45,7.5*T);
-addItem('ammo',49.5*T,0.45,6.5*T);addItem('kit',58.5*T,10.5,6.5*T);
+addItem('shotgun',5.5*T,0.9,8.5*T);addItem('smg',6.5*T,0.9,8.5*T);addItem('kit',7.5*T,0.9,8.5*T);
+addItem('ammo',30.5*T,0.45,8.5*T);addItem('kit',46.5*T,0.45,8.5*T);
+addItem('ammo',76.5*T,0.45,8.5*T);addItem('kit',100.5*T,0.45,8.5*T);
+addItem('ammo',120.5*T,0.45,8.5*T);addItem('kit',140.5*T,0.45,8.5*T);
+addItem('ammo',152.5*T,0.45,8.5*T);addItem('kit',178.5*T,0.45,8.5*T);
+addItem('ammo',191.5*T,0.45,8.5*T);addItem('kit',200.5*T,10.5,8.5*T);
 
 /* ---- bots ---- */
 BOTDEF.forEach((d,i)=>{const m=makeHuman(d);const gun=gunModel(d.w,m.b);gun.position.set(.12,1.22,.42);gun.rotation.y=Math.PI;m.armR.rotation.x=-1.35;m.armL.rotation.x=-1.25;m.armL.rotation.z=-.35;
  const tag=nameSprite(d.name,d.col);tag.position.y=2.25;m.g.add(tag);scene.add(m.g);
- const sp=[[4.6,6.8],[5.4,7.6],[7.4,7.4]][i];
+ const sp=[[3.4,7.6],[3.8,9.2],[4.8,7.4]][i];
  bots.push(Object.assign({},d,{x:sp[0]*T,z:sp[1]*T,y:8,yaw:Math.PI,hp:100,down:false,kit:true,cd:rand(0,.5),mag:d.w==='shotgun'?8:50,reloadT:0,heal:0,mesh:m,tag,gun,shownW:d.w,botName:d.name,botCol:d.col,botW:d.w,phase:0,tgt:null,scanT:0,slot:i,isBot:true,moveSpd:0,lastSeen:0,net:false,peerId:null,pitch:0,vx:0,vz:0,fireCd:0,wep:'primary'}));});
 
 /* ---- commons ---- */
@@ -665,19 +717,25 @@ function releaseTongue(s){const vic=s.vic||player;if(vic&&vic.pulledBy===s)vic.p
 function useTargets(ent){const self=ent||player;const out=[];const yaw=self.yaw||0;const fx=-Math.sin(yaw),fz=-Math.cos(yaw);
  const add=(x,z,range,label,act)=>{const d=Math.hypot(x-self.x,z-self.z);if(d>range)return;const dot=d>0.01?((x-self.x)*fx+(z-self.z)*fz)/d:1;if(d>1.3&&dot<0.2)return;out.push({d:d-dot*.6,label,act});};
  for(const it of items){if(it.taken||Math.abs(it.y-groundAt(self.x,self.z))>2.5)continue;
-  if(it.type==='shotgun'||it.type==='smg'){if(self.inv.primary&&self.inv.primary.type===it.type)add(it.x,it.z,2.6,'Take ammo for '+WEAP[it.type].name,()=>{self.inv.primary.res=WEAP[it.type].res;SFX.pickup();});else add(it.x,it.z,2.6,'Pick up '+WEAP[it.type].name,()=>{self.inv.primary={type:it.type,mag:WEAP[it.type].mag,res:WEAP[it.type].res};self.reloadT=0;if(self===player)self.slot='primary';else{self.wep='primary';setGun(self,it.type);}SFX.pickup();if(S.obj===0){setObj(1);if(self===player)bark(null,'Good. Through town, over the bridge, up the mill.','go1',99);}});}
+  if(it.type==='shotgun'||it.type==='smg'){if(self.inv.primary&&self.inv.primary.type===it.type)add(it.x,it.z,2.6,'Take ammo for '+WEAP[it.type].name,()=>{self.inv.primary.res=WEAP[it.type].res;SFX.pickup();});else add(it.x,it.z,2.6,'Pick up '+WEAP[it.type].name,()=>{self.inv.primary={type:it.type,mag:WEAP[it.type].mag,res:WEAP[it.type].res};self.reloadT=0;if(self===player)self.slot='primary';else{self.wep='primary';setGun(self,it.type);}SFX.pickup();if(S.obj===0){setObj(1);if(self===player)bark(null,'Good. Redwood Acres first, then the zoo, H Street, the mansion, the cookhouse.','go1',99);}});}
   if(it.type==='kit')add(it.x,it.z,2.4,self.kit?'(Already carrying a first aid kit)':'Pick up First Aid Kit',()=>{if(self.kit)return;self.kit=true;it.taken=true;it.g.visible=false;SFX.pickup();});
   if(it.type==='ammo')add(it.x,it.z,2.4,'Refill ammo',()=>{if(self.inv.primary){self.inv.primary.res=WEAP[self.inv.primary.type].res;SFX.reload();feed('Ammo refilled.');}});}
- if(!doors.A)add(29.5*T,6.5*T,3.6,'Force the bridge gate',openGate);
- if(S.elevT<0)add(59.5*T,6.5*T,3.6,'Call the helicopter',callHeli);
+ for(const id of DOOR_IDS){if(doors[id]||!DOOR_LABEL[id])continue;let sx=0,sz=0,n=0;for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(doorId(x,z)===id){sx+=x;sz+=z;n++;}if(!n)continue;add((sx/n+.5)*T,(sz/n+.5)*T,3.6,DOOR_LABEL[id],()=>tryOpen(id));}
+ const here=SAFES[safeIndex];if(here&&self===player&&inSafe(self,here))out.push({d:-2,label:'Close the safe room door',act:closeSafe});
+ if(S.elevT<0)add(FIN.callX,FIN.callZ,3.6,'Call the helicopter',callHeli);
  if(S.elevArrived&&charAt(Math.floor(self.x/T),Math.floor(self.z/T))==='R')out.push({d:0,label:'Board the helicopter',act:boardHeli});
  if(self!==player&&player.down){const d=Math.hypot(player.x-self.x,player.z-self.z);if(d<2.2)out.push({d:-1,label:'Hold E to revive '+ (NET.name||'them'),act:null,revive:player});}
  for(const b of bots)if(b!==self&&b.down){const d=Math.hypot(b.x-self.x,b.z-self.z);if(d<2.2)out.push({d:-1,label:'Hold E to revive '+b.name,act:null,revive:b});}
  out.sort((a,b)=>a.d-b.d);return out[0]||null;}
 function useAction(){const u=useTargets();if(u&&u.act)u.act();}
-function openGate(){if(doors.A)return;doors.A=true;flowDirty=true;S.alarmT=S.t;SFX.door(29.5*T,6.5*T);SFX.alarm(14);setObj(3);feed('<b>The gate gives.</b> Everything on the bridge heard it.','#f66');bark(null,'So much for quiet. Cross and do not stop!','gate',99);
+function tryOpen(id){if(doors[id])return;if(id==='gate'){openGate();return;}if(!DOOR_LABEL[id])return;doors[id]=true;flowDirty=true;SFX.door();feed(DOOR_LABEL[id].replace('Open the ','The ')+' is open.','#fd8');S.dirOn=true;DIR.waves.push({t:S.t+1,n:6});}
+function inSafe(ent,s){const tx=Math.floor(ent.x/T),tz=Math.floor(ent.z/T);return tx>=s.x0&&tx<=s.x1&&tz>=s.z0&&tz<=s.z1&&charAt(tx,tz)==='K';}
+function closeSafe(){const s=SAFES[safeIndex];if(!s)return;if(NET.role==='off'){if(!inSafe(player,s))return;}else{const living=livingHumans();if(!living.length||!living.every(h=>inSafe(h,s))){feed('The whole team has to be in the safe room.','#fd8');return;}}
+ doors[s.inn]=false;doors[s.out]=true;flowDirty=true;safeIndex++;recomputeRoute();player.hp=100;for(const b of bots){if(b.down){b.down=false;b.hp=40;}else b.hp=Math.max(b.hp,80);}for(const c of commons)if(!c.dead&&inSafe(c,s))killCommon(c,false,false);
+ DIR.relaxUntil=S.t+12;DIR.mode='RELAX';setObj(s.nextObj);feed('<b>SAFE ROOM</b> — '+s.name,'#9f9');bark(null,s.line,'safe'+s.name,99);SFX.door();}
+function openGate(){if(doors.gate)return;doors.gate=true;flowDirty=true;S.alarmT=S.t;SFX.door(FIN.gateX,FIN.gateZ);SFX.alarm(14);setObj(7);feed('<b>The gate gives.</b> Everything on the bridge heard it.','#f66');bark(null,'So much for quiet. Cookhouse is on the other side.','gate',99);
  S.dirOn=true;DIR.waves.push({t:S.t+1,n:8},{t:S.t+7,n:10},{t:S.t+14,n:8},{t:S.t+6,special:'hunter'});DIR.relaxUntil=0;DIR.mode='PEAK';}
-function callHeli(){if(S.elevT>=0)return;S.elevT=S.t;setObj(6);doorMeshes.btn.material=mat(0x22ff44,{emissive:0x116622});SFX.ding(59.5*T,6.5*T);feed('Mayday received. The chopper is <b>30 seconds</b> out. Hold the roof.','#fd8');bark(null,'I hear rotors! Keep them off the stairs!','heli',99);
+function callHeli(){if(S.elevT>=0)return;S.elevT=S.t;setObj(10);doorMeshes.btn.material=mat(0x22ff44,{emissive:0x116622});SFX.ding(FIN.callX,FIN.callZ);feed('Mayday received. The chopper is <b>30 seconds</b> out. Hold the roof.','#fd8');bark(null,'I hear rotors! Keep them off the stairs!','heli',99);
  DIR.waves.push({t:S.t+2,n:8},{t:S.t+10,n:10},{t:S.t+18,n:9},{t:S.t+24,n:8},{t:S.t+8,special:'smoker'});}
 function survivorsInside(){if(NET.role==='off')return chAt(player)==='R';const living=livingHumans();return living.length>0&&living.every(h=>chAt(h)==='R');}
 function boardHeli(){if(!S.elevArrived||chAt(player)!=='R')return;if(!survivorsInside()){feed('The whole team has to be on the pad.','#fd8');return;}completeChapter();}
@@ -822,7 +880,7 @@ function poseSpecial(s,dt,spd){const m=s.mesh;s.phase+=dt*(2+spd*1.5);const sw=M
 /* ================= MAIN UPDATE ================= */
 let vmKick=0,vmShove=0,muzzleT=0,keys={},mouseDown=false;
 const AP={on:false,mv:[0,0],fire:false,useCd:0,log:[]};
-function region(){const c=chAt(player);if(MILL.has(c))return 'hotel';if(c==='S'||ROOF.has(c)||c==='d')return 'roof';return 'roof';}
+function region(){const tx=Math.floor(player.x/T),tz=Math.floor(player.z/T);const c=charAt(tx,tz);const zn=zoneAt[tz*W+tx]||0;if(c==='m'||c==='K')return 'hotel';if(c==='S'||ROOF.has(c)||doorId(tx,tz)==='roof')return 'roof';if(zn===2)return 'forest';return 'roof';}
 function update(dt){S.t+=dt;
  // ----- player -----
  const pinned=!!player.pinnedBy,pulled=!!player.pulledBy;
@@ -861,14 +919,14 @@ function update(dt){S.t+=dt;
  if(!S.riding)for(const b of bots)updateBot(b,dt);
  // ----- triggers / objectives -----
  const reg=region();
- if(S.obj===1&&!S.dirOn&&player.x>13*T){player.flash=true;S.dirOn=true;DIR.nextSpecial=S.t+24;DIR.nextHorde=S.t+55;bark(null,'Town is packed. If the street is jammed, the market is on the left.','town',99);}
- if(!S.dirOn&&S.t>40&&player.x>13*T)S.dirOn=true;
- if(S.obj<2&&player.x>26*T&&!doors.A){setObj(2);bark(null,'Bridge gate is chained. We force it. They will hear.','gatetalk',99);}
- if(S.obj<=3&&doors.A&&player.x>41*T){setObj(4);bark(null,'Mill yard. Tanks on the left, hall straight ahead.','yard',99);}
- if(S.obj<=4&&player.x>47*T){setObj(5);bark(null,'Inside. Stairs are at the far end. Watch the slurry fire.','mill',99);}
- if(S.elevT>=0&&!S.elevArrived&&S.t-S.elevT>=30){S.elevArrived=true;doors.d=true;flowDirty=true;SFX.ding(60.5*T,6.5*T);setObj(7);bark(null,'Skids are down! Everybody on the pad!','land',99);}
- if(S.obj===6)$('obj').textContent=OBJ[6]+'  ('+Math.max(0,Math.ceil(30-(S.t-S.elevT)))+'s)';
- if(S.elevArrived&&ptc==='R'&&S.obj<7)setObj(7);
+ if(S.obj===1&&!S.dirOn&&player.x>16*T){player.flash=true;S.dirOn=true;DIR.nextSpecial=S.t+24;DIR.nextHorde=S.t+55;bark(null,'Trinity is behind us. First safe room is Redwood Acres.','town',99);}
+ if(!S.dirOn&&S.t>40&&player.x>16*T)S.dirOn=true;
+ if(zoneAt[Math.floor(player.z/T)*W+Math.floor(player.x/T)]===2)bark(null,'Redwoods. Stay on the path.','trees',99);
+ if(player.x>140*T&&!doors.gate&&S.obj<6){setObj(6);bark(null,'Bridge gate is chained. Forcing it brings the horde.','gatetalk',99);}
+ if(player.x>188*T&&S.obj<9){setObj(9);bark(null,'Inside the mill. Stairs at the far end. Call the chopper on the roof.','mill',99);}
+ if(S.elevT>=0&&!S.elevArrived&&S.t-S.elevT>=30){S.elevArrived=true;doors.roof=true;flowDirty=true;SFX.ding(FIN.padX,FIN.padZ);setObj(11);bark(null,'Skids are down! Everybody on the pad!','land',99);}
+ if(S.obj===10)$('obj').textContent=OBJ[10]+'  ('+Math.max(0,Math.ceil(30-(S.t-S.elevT)))+'s)';
+ if(S.elevArrived&&ptc==='R'&&S.obj<11)setObj(11);
  // ----- world fx -----
  updateFx(dt,reg);}
 
@@ -886,7 +944,7 @@ function endRide(){S.riding=false;S.inLobby=true;S.shake=0;
  DIR.nextSpecial=S.t+15;DIR.queue=['boomer','hunter'];DIR.nextHorde=S.t+80;}
 function completeChapter(){if(S.complete)return;S.complete=true;S.phase='done';
  const inside=bots.filter(b=>!b.down&&Math.hypot(b.x-player.x,b.z-player.z)<30);
- inside.forEach((b,i)=>{b.x=61.4*T;b.z=(5.4+i*.7)*T;b.y=10;placeBot(b);});
+ inside.forEach((b,i)=>{b.x=FIN.padX;b.z=FIN.padZ+(i-1)*1.2;b.y=10;placeBot(b);});
  const acc=S.shots?Math.round(100*S.hits/S.shots):0;const t=Math.floor(S.t);
  $('donestats').innerHTML=`<table class="stats"><tr><td>Time</td><td>${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}</td></tr><tr><td>Common infected killed</td><td>${S.kills}</td></tr><tr><td>Special infected killed</td><td>${S.skills}</td></tr><tr><td>Headshots</td><td>${S.heads}</td></tr><tr><td>Accuracy</td><td>${acc}%</td></tr><tr><td>Damage taken</td><td>${Math.round(S.dmg)}</td></tr><tr><td>Friendly fire</td><td>${S.ff}</td></tr><tr><td>Survivors who made it</td><td>${1+inside.length} / 4</td></tr></table>`;
  $('done').classList.remove('hidden');$('hud').classList.add('hidden');if(document.pointerLockElement)document.exitPointerLock();
@@ -911,27 +969,27 @@ function updateFx(dt,reg){
   else if(reg==='hotel'){for(let i=0;i<2;i++)PSmoke.emit(player.x+rand(-14,14),player.y+1.2+rand(0,.8),player.z+rand(-14,14),rand(-.3,.3),rand(-.05,.1),rand(-.3,.3),rand(4,7),2,5,.2,.18,.17,.18,0);}}
  PFire.update(dt);PSmoke.update(dt);PBlood.update(dt);PSpark.update(dt);
  for(const tr of tracers){if(tr.t>0){tr.t-=dt;tr.l.material.opacity=Math.max(0,tr.t/.07)*.8;}else tr.l.material.opacity=0;}
- for(const k of ['A','d','g','r'])doorMeshes[k].update(doors[k],dt);
+ for(const k of DOOR_IDS)doorMeshes[k].update(doors[k],dt);
  for(const it of items)if(!it.taken){it.g.rotation.y+=dt*.8;}
  flickMat.color.setScalar(Math.random()<.08?.15:1);
  // helicopter — parked over the bay until the roof calls it in
  const ht=S.t;heli.rotor.rotation.y+=dt*(S.elevArrived?14:28);heli.trotor.rotation.x+=dt*35;heli.beacon.visible=Math.floor(performance.now()/400)%2===0;
- const padX=61.5*T,padY=12.4,padZ=6.6*T,farX=34*T,farY=26,farZ=-24;
+ const padX=FIN.padX,padY=12.4,padZ=FIN.padZ,farX=FIN.gateX,farY=26,farZ=-24;
  let hx=farX,hy=farY,hz=farZ,approach=0;
  if(S.phase==='title'){hx=padX;hy=padY+Math.sin(performance.now()/500)*.25;hz=padZ;approach=1;}
  else if(S.elevT>=0){approach=clamp((S.t-S.elevT)/30,0,1);const e=approach*approach*(3-2*approach);hx=lerp(farX,padX,e);hy=lerp(farY,S.elevArrived?11.15:padY,e)+Math.sin(ht*2)*(1-approach)*.4;hz=lerp(farZ,padZ,e);}
  heli.position.set(hx,hy,hz);heli.rotation.set(-0.08*(1-approach),-0.6+approach*0.4,Math.sin(ht)*.02);heli.visible=true;
  // environment by region
- const tgtFog=reg==='hotel'?[0x3a342c,.05]:[0x8a9288,.011];
+ const tgtFog=reg==='hotel'?[0x3a342c,.05]:reg==='forest'?[0x1a2820,.03]:[0x8a9288,.009];
  scene.fog.color.lerp(new THREE.Color(tgtFog[0]),1-Math.exp(-dt*2));scene.fog.density=lerp(scene.fog.density,tgtFog[1],1-Math.exp(-dt*2));scene.background.copy(scene.fog.color);
- hemi.intensity=lerp(hemi.intensity,reg==='roof'?1.15:reg==='lobby'?1.0:.85,1-Math.exp(-dt*2));sun.intensity=lerp(sun.intensity,reg==='roof'?1.6:.25,1-Math.exp(-dt*2));
- window.__sky.visible=reg==='roof'||reg==='stairs';vmHemi.intensity=reg==='roof'?1.2:.8;
+ hemi.intensity=lerp(hemi.intensity,reg==='forest'?.6:reg==='roof'?1.15:.85,1-Math.exp(-dt*2));sun.intensity=lerp(sun.intensity,reg==='forest'?.4:reg==='roof'?1.6:.25,1-Math.exp(-dt*2));
+ window.__sky.visible=reg!=='hotel';vmHemi.intensity=reg==='hotel'?.8:1.2;
  flashlight.intensity=player.flash?70:0;
  muzzleT-=dt;muzzleLight.intensity=muzzleT>0?40:0;vmFlash.intensity=muzzleT>0?6:0;vmFlashSprite.visible=muzzleT>0;
  // audio beds
  if(AU.ctx){const now=AU.ctx.currentTime;let fd=99;for(const [d] of near){fd=d;break;}
   AU.fire.gain.setTargetAtTime(AU.muted?0:clamp(.5/(1+fd*.4),0,.35),now,.2);AU.roar.gain.setTargetAtTime(AU.muted?0:(reg==='hotel'?.12:.03),now,.5);
-  AU.wind.gain.setTargetAtTime(AU.muted?0:(reg==='roof'?.18:.02),now,.5);
+  AU.wind.gain.setTargetAtTime(AU.muted?0:(reg==='hotel'?.02:reg==='forest'?.1:.16),now,.5);
   const hd=heli.position.distanceTo(camera.position);AU.heli.gain.setTargetAtTime(AU.muted||!heli.visible?0:clamp(9/(hd+6),0,.8),now,.2);
   const tense=(S.t-DIR.peakT<14)||(S.alarmT>0&&S.t-S.alarmT<22)||(S.elevT>0&&!S.elevArrived);AU.drone.gain.setTargetAtTime(AU.muted?0:(tense?.12:.02),now,1.2);}}
 
@@ -975,7 +1033,7 @@ const canvas=renderer.domElement;
 function lock(){if(AUTOTEST||COOPTEST||wantTouch())return;try{const p=canvas.requestPointerLock();if(p&&p.catch)p.catch(()=>{});}catch(e){}}
 function coopPause(){$('pause').classList.remove('hidden');mouseDown=false;keys={};NET.paused=true;syncTouch();}
 function startGame(){initAudio();if(AU.ctx&&AU.ctx.state==='suspended')AU.ctx.resume();$('title').classList.add('hidden');$('hud').classList.remove('hidden');S.phase='play';S.started=true;if(COOPTEST)S.god=true;setObj(0);$('obj').textContent=OBJ[0];
- if(NET.role!=='client'){feed('<i>The neighborhood is quiet in the wrong way.</i>','#ccc');setTimeout(()=>bark(bots[0],'Guns are in the truck. We go through town, over the bridge, up the mill.','plan',99),900);setTimeout(()=>bark(bots[1],'Chopper is on the pulp mill roof. Nothing else is flying.','plan2',99),3800);}
+ if(NET.role!=='client'){feed('<i>Trinity Street is quiet in the wrong way.</i>','#ccc');setTimeout(()=>bark(bots[0],'Guns are in the truck. Redwood Acres, the zoo, H Street, the mansion, the cookhouse.','plan',99),900);setTimeout(()=>bark(bots[1],'Chopper is on the pulp mill roof. Nothing else is flying.','plan2',99),3800);}
  player.yaw=-Math.PI/2;player.pitch=0.04;syncTouch();lock();if(NET.role!=='off')$('netbadge').classList.remove('hidden');}
 function backToTitle(){if(NET.role==='off'){location.reload();return;}const u=new URL(location.href);u.search='';location.href=u.pathname;}
 $('playbtn').onclick=startGame;
@@ -1055,13 +1113,13 @@ syncTouch();
 
 /* ================= LOOP ================= */
 // infected already in town, on the bridge, and in the yard. The driveway stays clear.
-for(const [x,z] of [[16,6],[19,2],[23,2],[25,6],[27,5],[32,6],[34,7],[37,6],[43,6],[44,9],[48,6],[49,9]])spawnCommon((x+.5)*T+rand(-.3,.3),(z+.5)*T+rand(-.3,.3),false);
+for(const [x,z] of [[30,8],[32,5],[50,8],[56,6],[66,8],[74,8],[96,8],[118,8],[150,8],[156,8],[180,8],[186,8],[191,8]])spawnCommon((x+.5)*T,(z+.5)*T,false);
 function render(){renderer.clear();renderer.render(scene,camera);renderer.clearDepth();if(S.phase!=='title')renderer.render(vmScene,vmCam);}
 const clock=new THREE.Clock();
 function frame(){requestAnimationFrame(frame);const dt=Math.min(.05,clock.getDelta());
  if(S.phase==='play'&&!AUTOTEST){if(NET.role==='client')clientUpdate(dt);else update(dt);}
  if(NET.role==='host'&&(S.phase==='play'||S.phase==='done'||S.phase==='dead'))NET.flush();
- if(S.phase==='title'){const t=performance.now()/1000;camera.position.set(61.5*T+Math.sin(t*.1)*3,8.2,11.2*T);camera.lookAt(61.5*T,16,5.2*T);updateFx(dt,'roof');}
+ if(S.phase==='title'){const t=performance.now()/1000;camera.position.set(FIN.padX+14+Math.sin(t*.08)*2,26,FIN.padZ+16);camera.lookAt(FIN.padX,11,FIN.padZ);updateFx(dt,'roof');}
  else{updateCamera(dt);}
  drawCommons();if(S.phase==='play'||AUTOTEST)updateHud(dt);for(const b of bots)if(S.phase==='title')placeBot(b);
  render();}
@@ -1131,7 +1189,7 @@ function slotPack(ent,slot){const w=ent===player?curW():(ent.net?entW(ent):{type
 function buildSnap(){const slots=[slotPack(player,0)];bots.forEach((b,i)=>slots.push(slotPack(b,i+1)));
  const c=[];for(const z of commons){if(z.dead&&z.deathT>1.5)continue;c.push([z.id,nq(z.x),nq(z.z),nq(z.yaw),Math.round(z.hp),z.dead?1:0,z.state==='rush'?1:0,nq(z.fall||0),z.shirt,z.pants,z.skin]);}
  const s=[];for(const sp of specials){let vs=-1;if(sp.vic===player)vs=0;else if(sp.vic){const i=bots.indexOf(sp.vic);if(i>=0)vs=i+1;}s.push([sp.id,sp.type,nq(sp.x),nq(sp.z),nq(sp.y),nq(sp.yaw),Math.round(sp.hp),sp.dead?1:0,sp.state,vs]);}
- return {t:'snap',seq:++NET.seq,slots,c,s,doors:[doors.A?1:0,doors.d?1:0,doors.g?1:0,doors.r?1:0],items:items.map(i=>i.taken?'1':'0').join(''),
+ return {t:'snap',seq:++NET.seq,slots,c,s,doors:DOOR_IDS.map(id=>doors[id]?1:0),safe:safeIndex,items:items.map(i=>i.taken?'1':'0').join(''),
   obj:S.obj,objT:$('obj').textContent||'',phase:S.phase,riding:S.riding?1:0,lobby:S.inLobby?1:0,elev:S.elevT<0?-1:Math.max(0,Math.ceil(30-(S.t-S.elevT))),elevA:S.elevArrived?1:0,
   dir:S.dirOn?DIR.mode:'WAITING',inten:Math.round(DIR.intensity),ev:NET.events.splice(0,NET.events.length),end:S.endPack||null};}
 function syncInvFrom(me){if(me.w==='pistol'||!WEAP[me.w]){player.slot='pistol';player.inv.pistol.mag=me.mag|0;return;}
@@ -1156,8 +1214,9 @@ function clockStr(t){t=Math.floor(t||0);return Math.floor(t/60)+':'+String(t%60)
 function showNetDone(e){S.complete=true;S.phase='done';$('donestats').innerHTML=`<table class="stats"><tr><td>Time</td><td>${clockStr(e.t)}</td></tr><tr><td>Common infected killed</td><td>${e.kills}</td></tr><tr><td>Special infected killed</td><td>${e.skills}</td></tr><tr><td>Headshots</td><td>${e.heads}</td></tr><tr><td>Accuracy</td><td>${e.acc}%</td></tr><tr><td>Damage taken</td><td>${e.dmg}</td></tr><tr><td>Friendly fire</td><td>${e.ff}</td></tr><tr><td>Survivors who made it</td><td>${e.alive} / 4</td></tr></table>`;$('done').classList.remove('hidden');$('hud').classList.add('hidden');if(document.pointerLockElement)document.exitPointerLock();}
 function showNetDead(e){S.phase='dead';$('deadsub').textContent='THE WHOLE TEAM IS DOWN';$('deadstats').innerHTML=`<table class="stats"><tr><td>Survived</td><td>${clockStr(e.t)}</td></tr><tr><td>Infected killed</td><td>${e.kills}</td></tr><tr><td>Damage taken</td><td>${e.dmg}</td></tr></table>`;$('dead').classList.remove('hidden');$('hud').classList.add('hidden');if(document.pointerLockElement)document.exitPointerLock();}
 function applySnap(m){NET.snap=m;NET.snaps++;
- const prev={A:doors.A,d:doors.d,g:doors.g,r:doors.r};['A','d','g','r'].forEach((k,i)=>{doors[k]=!!m.doors[i];});
- if(!prev.A&&doors.A){SFX.door(41*T,14.5*T);SFX.alarm(20);}else if(prev.d!==doors.d||prev.g!==doors.g||prev.r!==doors.r)SFX.door();
+ const prevGate=!!doors.gate;let opened=false;DOOR_IDS.forEach((k,i)=>{const next=!!(m.doors&&m.doors[i]);if(!doors[k]&&next)opened=true;doors[k]=next;});
+ if(!prevGate&&doors.gate){SFX.door(FIN.gateX,FIN.gateZ);SFX.alarm(14);}else if(opened)SFX.door();
+ if(m.safe!=null&&m.safe!==safeIndex){safeIndex=m.safe|0;recomputeRoute();}
  if(m.elev>=0&&doorMeshes.btn)doorMeshes.btn.material=mat(0x22ff44,{emissive:0x116622});
  for(let i=0;i<items.length&&i<m.items.length;i++)if(m.items[i]==='1'&&!items[i].taken){items[i].taken=true;items[i].g.visible=false;}
  if(m.objT)$('obj').textContent=m.objT;S.obj=m.obj;S.inLobby=!!m.lobby;S.riding=!!m.riding;S.elevArrived=!!m.elevA;
@@ -1300,7 +1359,7 @@ window.__net={get ready(){return !!NET.ready;},get room(){return NET.room;},get 
   bots:bots.map(b=>({name:b.name,net:!!b.net,x:+b.x.toFixed(2),z:+b.z.toFixed(2),hp:Math.round(b.hp),down:!!b.down,w:b.shownW,tx:b.tx!=null?+b.tx.toFixed(2):null,tz:b.tz!=null?+b.tz.toFixed(2):null})),
   commons:commons.filter(c=>!c.dead).map(c=>({id:c.id,x:+c.x.toFixed(2),z:+c.z.toFixed(2),hp:Math.round(c.hp),state:c.state})),
   specials:specials.filter(s=>!s.dead).map(s=>({id:s.id,type:s.type,state:s.state,x:+s.x.toFixed(2),z:+s.z.toFixed(2),hp:Math.round(s.hp)})),
-  doors:{A:!!doors.A,d:!!doors.d,g:!!doors.g,r:!!doors.r},obj:S.obj,items:items.map(i=>i.taken?1:0)};},
+  doors:Object.fromEntries(DOOR_IDS.map(id=>[id,!!doors[id]])),safe:safeIndex,obj:S.obj,items:items.map(i=>i.taken?1:0)};},
  drive(mx,mz,yaw,pitch){NET.force={mx,mz,yaw,pitch,sprint:1};},stop(){NET.force=null;NET.forceFire=false;},fire(on){NET.forceFire=!!on;},
  enableVoice(){return ensureMic().then(s=>({ok:!!s,tracks:s?s.getAudioTracks().length:0})).catch(err=>({ok:false,err:String(err&&err.name||err)}));},
  ptt(on){setPtt(!!on);},
@@ -1320,18 +1379,18 @@ function autopilot(dt){AP.mv=[0,0];AP.fire=false;AP.revive=false;AP.useCd-=dt;if
  const down=bots.find(b=>b.down&&Math.hypot(b.x-player.x,b.z-player.z)<2);if(down&&!tgt){AP.revive=true;return;}
  let goal=null;
  if(!player.inv.primary){const it=items[0];goal=[it.x,it.z+1.2];if(Math.hypot(goal[0]-player.x,goal[1]-player.z)<.8){player.yaw=Math.atan2(-(it.x-player.x),-(it.z-player.z));if(AP.useCd<=0){AP.useCd=.5;useAction();}}}
+ else if(c==='K'&&SAFES[safeIndex]&&inSafe(player,SAFES[safeIndex])){if(AP.useCd<=0){AP.useCd=.8;useAction();}return;}
  else if(c==='R'){if(S.elevArrived&&AP.useCd<=0){AP.useCd=1;useAction();}return;}
- else{let best=route[tz*W+tx],bx=0,bz=0;for(const [ax,az] of [[1,0],[-1,0],[0,1],[0,-1]]){const n=charAt(tx+ax,tz+az);if(!(WALK.has(n)||DOORC.has(n)))continue;const v=route[(tz+az)*W+tx+ax];if(v<best){best=v;bx=ax;bz=az;}}
-  const nc=charAt(tx+bx,tz+bz);
-  if(nc==='A'&&!doors.A){goal=[28.6*T,6.5*T];if(Math.hypot(goal[0]-player.x,goal[1]-player.z)<1.3&&AP.useCd<=0){AP.useCd=.8;player.yaw=-Math.PI/2;useAction();}}
-  else if(nc==='d'&&!doors.d){goal=[59.5*T,6.5*T];if(S.elevT<0&&Math.hypot(goal[0]-player.x,goal[1]-player.z)<1.4&&AP.useCd<=0){AP.useCd=.8;player.yaw=-Math.PI/2;useAction();}}
-  else{goal=[(tx+bx+.5)*T,(tz+bz+.5)*T];}}
+ else{let best=route[tz*W+tx],bx=0,bz=0;for(const [ax,az] of [[1,0],[-1,0],[0,1],[0,-1]]){const n=charAt(tx+ax,tz+az);if(!(WALK.has(n)||n==='D'))continue;const v=route[(tz+az)*W+tx+ax];if(v<best){best=v;bx=ax;bz=az;}}
+  const nx=tx+bx,nz=tz+bz,nc=charAt(nx,nz),nid=doorId(nx,nz);
+  if(nc==='D'&&nid&&!doors[nid]){goal=[(tx+.5+bx*.35)*T,(tz+.5+bz*.35)*T];if(nid==='roof'&&S.elevT<0)goal=[FIN.callX,FIN.callZ];if(Math.hypot(goal[0]-player.x,goal[1]-player.z)<1.5&&AP.useCd<=0){AP.useCd=.8;player.yaw=Math.atan2(-(nx+.5)*T+player.x,-(nz+.5)*T+player.z);useAction();}}
+  else{goal=[(nx+.5)*T,(nz+.5)*T];}}
  if(goal){const dx=goal[0]-player.x,dz=goal[1]-player.z,d=Math.hypot(dx,dz);if(d>.15)AP.mv=[dx/d,dz/d];if(!tgt&&d>.3){player.yaw=Math.atan2(-dx,-dz);player.pitch=0;}}}
 window.__game={autopilot,update,updateCamera,fire,AP,useTargets,moveEnt,collide,isWalk,flowStep,S,player,bots,commons,specials,doors,route,G,T,W,
  start(){startGame();},
  setAuto(on,god){AP.on=on;S.god=!!god;},
  simulate(sec){const dt=1/30,n=Math.round(sec*30);for(let i=0;i<n&&S.phase==='play';i++){if(AP.on)autopilot(dt);updateCamera(dt);update(dt);}updateCamera(1/30);updateHud(1);
-  return {t:+S.t.toFixed(1),phase:S.phase,obj:S.obj,objText:OBJ[S.obj],hp:Math.round(player.hp),pos:[+(player.x/T).toFixed(1),+(player.z/T).toFixed(1)],tile:chAt(player),kills:S.kills,skills:S.skills,commons:aliveCommons(),specials:specials.filter(s=>!s.dead).map(s=>s.type+':'+s.state),bots:bots.map(b=>b.name+':'+Math.round(b.hp)+(b.down?'D':'')),dmg:Math.round(S.dmg),ff:S.ff,dir:DIR.mode};},
+  return {t:+S.t.toFixed(1),phase:S.phase,obj:S.obj,objText:OBJ[S.obj],safe:safeIndex,hp:Math.round(player.hp),pos:[+(player.x/T).toFixed(1),+(player.z/T).toFixed(1)],tile:chAt(player),kills:S.kills,skills:S.skills,commons:aliveCommons(),specials:specials.filter(s=>!s.dead).map(s=>s.type+':'+s.state),bots:bots.map(b=>b.name+':'+Math.round(b.hp)+(b.down?'D':'')),dmg:Math.round(S.dmg),ff:S.ff,dir:DIR.mode};},
  lookAt(x,y,z){const dx=x-player.x,dz=z-player.z;player.yaw=Math.atan2(-dx,-dz);player.pitch=Math.atan2(y-player.y,Math.hypot(dx,dz));updateCamera(1);},
  teleport(tx,tz){player.x=(tx+.5)*T;player.z=(tz+.5)*T;player.y=groundAt(player.x,player.z)+1.6;updateCamera(1);},
  spawnCommon,spawnSpecial,render,routeAtStart:route[tileOf(player)]};
