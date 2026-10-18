@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><link rel="icon" href="data:,"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en"><head><meta charset="utf-8"><link rel="icon" href="data:,"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>DEAD CENTER · Chapter 1: The Hotel — a Grok Bot sim</title>
 <style>
-html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;color:#eee;user-select:none}
+html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;color:#eee;user-select:none;overscroll-behavior:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 canvas{display:block}
 .hidden{display:none!important}
 #hud{position:fixed;inset:0;pointer-events:none}
@@ -61,6 +63,51 @@ table.stats{margin:14px auto;font-size:17px;border-collapse:collapse}
 table.stats td{padding:5px 18px;border-bottom:1px solid rgba(255,255,255,.15);text-align:left}
 table.stats td:last-child{text-align:right;font-weight:bold}
 #fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:5;transition:opacity .5s}
+#roomlink{word-break:break-all}
+.touchhelp{display:none}
+#touch{position:fixed;inset:0;z-index:6;pointer-events:none;touch-action:none}
+#stickzone,#lookpad{position:absolute;top:0;bottom:0;pointer-events:auto;touch-action:none}
+#stickzone{left:0;width:46%}
+#lookpad{left:46%;right:0}
+#stick{position:absolute;width:128px;height:128px;margin:-64px 0 0 -64px;border-radius:50%;border:2px solid rgba(255,255,255,.38);background:rgba(0,0,0,.22);pointer-events:none;display:none}
+#stick.on{display:block}
+#knob{position:absolute;left:40px;top:40px;width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.42)}
+#tbtns{position:absolute;right:calc(10px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none;z-index:2}
+#tbtns .trow{display:flex;gap:8px;pointer-events:none}
+#tbtns button{pointer-events:auto;touch-action:none;width:64px;height:64px;border-radius:50%;border:2px solid rgba(255,255,255,.5);background:rgba(0,0,0,.4);color:#fff;font:inherit;font-size:11px;letter-spacing:.5px;padding:0}
+#tbtns button.fire{width:92px;height:92px;background:rgba(170,24,24,.55);font-size:15px;font-weight:bold}
+#tbtns button.held{background:rgba(255,255,255,.28)}
+body.touching #ammo{top:calc(8px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right));bottom:auto;min-width:0;padding:6px 8px}
+body.touching #acount{font-size:22px}
+body.touching #team{top:calc(78px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));bottom:auto;width:min(44vw,190px)}
+body.touching #feed{top:calc(78px + env(safe-area-inset-top));left:auto;right:calc(8px + env(safe-area-inset-right));max-width:42vw;font-size:12px;text-align:right}
+body.touching #obj{top:calc(8px + env(safe-area-inset-top));max-width:54vw;white-space:normal;text-align:center;font-size:13px;padding:6px 10px}
+body.touching #dir{display:none}
+body.touching #netbadge{top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left))}
+body.touching #ptt{top:calc(36px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left))}
+body.touching #pinmsg{font-size:18px;padding:0 16px;box-sizing:border-box}
+@media (max-width:900px),(max-height:520px){
+ .screen{overflow:auto;align-items:flex-start;padding:12px 0 calc(16px + env(safe-area-inset-bottom))}
+ .card{padding:16px 14px;max-width:100%}
+ h1{font-size:40px;letter-spacing:2px}
+ h2{font-size:15px;letter-spacing:2px}
+ .kicker{letter-spacing:1px;font-size:10px}
+ .controls{grid-template-columns:1fr 1fr;gap:4px 10px;font-size:12px}
+ .sub{font-size:14px}
+ button.big{font-size:16px;letter-spacing:1px;padding:12px 16px}
+ #roomcode{font-size:32px;letter-spacing:4px}
+}
+#dead h1,#done h1{font-size:52px}
+@media (max-width:640px),(max-height:430px){
+ .controls{display:none}
+ .touchhelp{display:block;font-size:14px;line-height:1.4;margin:8px auto 12px;max-width:420px}
+ h1,#dead h1,#done h1{font-size:34px;letter-spacing:1px}
+}
+@media (max-height:430px){
+ #tbtns{gap:6px}
+ #tbtns button{width:48px;height:48px;font-size:10px}
+ #tbtns button.fire{width:72px;height:72px;font-size:13px}
+}
 </style></head><body>
 <div id="hud" class="hidden">
  <div id="dmg"></div><div id="burn"></div><div id="bile"></div><div id="lowhp"></div>
@@ -71,6 +118,28 @@ table.stats td:last-child{text-align:right;font-weight:bold}
  <div id="prompt" class="hidden"></div>
  <div id="bar" class="hidden"><div id="barfill"></div><div id="bartxt"></div></div>
  <div id="pinmsg"></div>
+</div>
+<div id="touch" class="hidden">
+ <div id="stickzone"></div>
+ <div id="lookpad"></div>
+ <div id="stick"><div id="knob"></div></div>
+ <div id="tbtns">
+  <div class="trow">
+   <button type="button" data-act="pause">PAUSE</button>
+   <button type="button" data-act="talk">TALK</button>
+   <button type="button" data-act="light">LIGHT</button>
+   <button type="button" data-act="heal">HEAL</button>
+  </div>
+  <div class="trow">
+   <button type="button" data-act="gun">GUN</button>
+   <button type="button" data-act="reload">RELOAD</button>
+  </div>
+  <div class="trow">
+   <button type="button" data-act="shove">SHOVE</button>
+   <button type="button" data-act="use">USE</button>
+  </div>
+  <button type="button" class="fire" data-act="fire">FIRE</button>
+ </div>
 </div>
 <div id="title" class="screen"><div class="card">
  <div class="kicker">AN ORIGINAL LOW-POLY TRIBUTE SIM · INSPIRED BY LEFT 4 DEAD 2's "DEAD CENTER"</div>
@@ -83,6 +152,7 @@ table.stats td:last-child{text-align:right;font-weight:bold}
   <div><b>SHIFT</b>Sprint</div><div><b>ESC / P</b>Pause</div><div><b>M</b>Mute</div>
   <div><b>V</b>Talk (hold)</div>
  </div>
+ <div class="touchhelp">Left side moves, right side looks. FIRE shoots, SHOVE pushes, USE grabs and revives. Hold TALK to speak in co-op.</div>
  <button class="big" id="playbtn">CLICK TO PLAY</button>
  <div class="cooprow">
   <input id="pname" maxlength="16" autocomplete="off" spellcheck="false" aria-label="Your name">
@@ -114,9 +184,9 @@ table.stats td:last-child{text-align:right;font-weight:bold}
  <div class="sub" id="discotxt"></div>
  <button class="big" id="discobtn" type="button">RETURN TO TITLE</button>
 </div></div>
-<div id="pause" class="screen hidden"><div class="card"><h2>PAUSED</h2><button class="big" id="resumebtn">RESUME</button><div class="tiny">Click to recapture the mouse</div></div></div>
-<div id="dead" class="screen hidden"><div class="card"><h1 style="font-size:54px">YOU DIED</h1><h2 id="deadsub">THE HOTEL CLAIMED ANOTHER ONE</h2><div id="deadstats"></div><button class="big" id="restartbtn">RESTART CHAPTER</button></div></div>
-<div id="done" class="screen hidden"><div class="card"><div class="kicker">SAFE ROOM REACHED</div><h1 style="font-size:52px">CHAPTER COMPLETE</h1><h2>DEAD CENTER · THE HOTEL</h2><div id="donestats"></div><button class="big" id="againbtn">PLAY AGAIN</button></div></div>
+<div id="pause" class="screen hidden"><div class="card"><h2>PAUSED</h2><button class="big" id="resumebtn">RESUME</button><div class="tiny" id="pausehint">Click to recapture the mouse</div></div></div>
+<div id="dead" class="screen hidden"><div class="card"><h1>YOU DIED</h1><h2 id="deadsub">THE HOTEL CLAIMED ANOTHER ONE</h2><div id="deadstats"></div><button class="big" id="restartbtn">RESTART CHAPTER</button></div></div>
+<div id="done" class="screen hidden"><div class="card"><div class="kicker">SAFE ROOM REACHED</div><h1>CHAPTER COMPLETE</h1><h2>DEAD CENTER · THE HOTEL</h2><div id="donestats"></div><button class="big" id="againbtn">PLAY AGAIN</button></div></div>
 <div id="fade"></div>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js"></script>
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}</script>
@@ -891,24 +961,24 @@ function updateHud(dt){flashT=Math.max(0,flashT-dt*1.6);$('dmg').style.opacity=f
  $('wname').textContent=def.name+(player.reloadT>0?' — reloading':'');$('acount').innerHTML=w.mag+' <small>/ '+(w.res===Infinity?'∞':w.res)+'</small>';
  $('slots').textContent=(player.inv.primary?'[1] '+WEAP[player.inv.primary.type].name+'  ':'[1] —  ')+'[2] Pistol'+(player.kit?'  [H] Heal':'')+'  [F] Light '+(player.flash?'on':'off');
  $('dir').innerHTML='AI Director: <b>'+(S.dirOn?DIR.mode:'WAITING')+'</b><br>intensity '+Math.round(DIR.intensity)+' · infected '+aliveCommons()+' · specials '+specials.filter(s=>!s.dead).length;
- const u=S.phase==='play'?useTargets():null;const pr=$('prompt');if(u&&!S.riding){pr.classList.remove('hidden');pr.innerHTML=(u.revive?'':'<b>[E]</b> ')+u.label;}else pr.classList.add('hidden');
+ const u=S.phase==='play'?useTargets():null;const pr=$('prompt');if(u&&!S.riding){pr.classList.remove('hidden');pr.innerHTML=(u.revive?'':'<b>'+(document.body.classList.contains('touching')?'[USE]':'[E]')+'</b> ')+u.label;}else pr.classList.add('hidden');
  const bar=$('bar');if(S.healT>0||S.revT>0){bar.classList.remove('hidden');const p=S.healT>0?1-S.healT/3:S.revT/2.5;$('barfill').style.width=(p*100)+'%';$('bartxt').textContent=S.healT>0?'Healing...':'Reviving '+S.revBot.name+'...';}else bar.classList.add('hidden');
- $('pinmsg').innerHTML=player.pinnedBy?'HUNTER! MASH RIGHT-CLICK TO SHOVE ('+player.pinShoves+'/5)':player.pulledBy?'SMOKER TONGUE! SHOOT IT!':(S.biledT>0?'<span style="color:#cf6">BILED — THE HORDE CAN SMELL YOU</span>':'');}
+ $('pinmsg').innerHTML=player.pinnedBy?(document.body.classList.contains('touching')?'HUNTER! MASH SHOVE (':'HUNTER! MASH RIGHT-CLICK TO SHOVE (')+player.pinShoves+'/5)':player.pulledBy?'SMOKER TONGUE! SHOOT IT!':(S.biledT>0?'<span style="color:#cf6">BILED — THE HORDE CAN SMELL YOU</span>':'');}
 
 /* ================= INPUT ================= */
 const canvas=renderer.domElement;
-function lock(){if(AUTOTEST||COOPTEST)return;try{const p=canvas.requestPointerLock();if(p&&p.catch)p.catch(()=>{});}catch(e){}}
-function coopPause(){$('pause').classList.remove('hidden');mouseDown=false;keys={};NET.paused=true;}
+function lock(){if(AUTOTEST||COOPTEST||wantTouch())return;try{const p=canvas.requestPointerLock();if(p&&p.catch)p.catch(()=>{});}catch(e){}}
+function coopPause(){$('pause').classList.remove('hidden');mouseDown=false;keys={};NET.paused=true;syncTouch();}
 function startGame(){initAudio();if(AU.ctx&&AU.ctx.state==='suspended')AU.ctx.resume();$('title').classList.add('hidden');$('hud').classList.remove('hidden');S.phase='play';S.started=true;if(COOPTEST)S.god=true;setObj(0);$('obj').textContent=OBJ[0];
  if(NET.role!=='client'){feed('<i>The chopper pulls away from the roof...</i>','#ccc');setTimeout(()=>bark(bots[0],'Hey! HEY! Come back here!','heli',99),1200);setTimeout(()=>bark(bots[1],'They left us. Grab some guns off that table, we\'re walking.','heli2',99),4200);}
- player.yaw=0;player.pitch=0.12;lock();if(NET.role!=='off')$('netbadge').classList.remove('hidden');}
+ player.yaw=0;player.pitch=0.12;syncTouch();lock();if(NET.role!=='off')$('netbadge').classList.remove('hidden');}
 function backToTitle(){if(NET.role==='off'){location.reload();return;}const u=new URL(location.href);u.search='';location.href=u.pathname;}
 $('playbtn').onclick=startGame;
-$('resumebtn').onclick=()=>{$('pause').classList.add('hidden');NET.paused=false;S.phase='play';lock();};
+$('resumebtn').onclick=()=>{$('pause').classList.add('hidden');NET.paused=false;S.phase='play';syncTouch();lock();};
 $('restartbtn').onclick=$('againbtn').onclick=backToTitle;
-document.addEventListener('pointerlockchange',()=>{if(!document.pointerLockElement&&S.phase==='play'&&!AUTOTEST&&!COOPTEST){if(NET.role!=='off'){coopPause();return;}S.phase='paused';$('pause').classList.remove('hidden');mouseDown=false;keys={};}});
+document.addEventListener('pointerlockchange',()=>{if(!document.pointerLockElement&&S.phase==='play'&&!AUTOTEST&&!COOPTEST&&!document.body.classList.contains('touching')){if(NET.role!=='off'){coopPause();return;}S.phase='paused';$('pause').classList.remove('hidden');mouseDown=false;keys={};syncTouch();}});
 document.addEventListener('mousemove',e=>{if(S.phase!=='play'||!document.pointerLockElement||NET.paused)return;const s=.0022;player.yaw-=e.movementX*s;player.pitch=clamp(player.pitch-e.movementY*s,-1.45,1.45);});
-canvas.addEventListener('mousedown',e=>{if(S.phase==='play'&&!document.pointerLockElement&&!AUTOTEST&&!COOPTEST){lock();}if(S.phase!=='play'||NET.paused)return;if(e.button===0)mouseDown=true;if(e.button===2){if(NET.role==='client')NET.edges.push('shove');else shove();}});
+canvas.addEventListener('mousedown',e=>{if(e.sourceCapabilities&&e.sourceCapabilities.firesTouchEvents)return;if(S.phase==='play'&&!document.pointerLockElement&&!AUTOTEST&&!COOPTEST){lock();}if(S.phase!=='play'||NET.paused)return;if(e.button===0)mouseDown=true;if(e.button===2){if(NET.role==='client')NET.edges.push('shove');else shove();}});
 document.addEventListener('mouseup',e=>{if(e.button===0)mouseDown=false;});
 document.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('keydown',e=>{keys[e.code]=true;
@@ -931,11 +1001,52 @@ document.addEventListener('keydown',e=>{keys[e.code]=true;
  if(e.code==='KeyE'&&!e.repeat)useAction();
  if(e.code==='KeyF'&&!e.repeat)player.flash=!player.flash;
  if(e.code==='KeyH'&&!e.repeat&&player.kit&&player.hp<100&&S.healT<=0&&!player.pinnedBy&&!player.pulledBy&&!player.down){S.healT=3;player.reloadT=0;}
- if(e.code==='KeyP'){if(document.pointerLockElement)document.exitPointerLock();if(NET.role==='host'){coopPause();return;}S.phase='paused';$('pause').classList.remove('hidden');mouseDown=false;}
- if(e.code==='Escape'&&!document.pointerLockElement){if(NET.role==='host'){coopPause();return;}S.phase='paused';$('pause').classList.remove('hidden');}});
+ if(e.code==='KeyP'){if(document.pointerLockElement)document.exitPointerLock();if(NET.role==='host'){coopPause();return;}S.phase='paused';$('pause').classList.remove('hidden');mouseDown=false;syncTouch();}
+ if(e.code==='Escape'&&!document.pointerLockElement){if(NET.role==='host'){coopPause();return;}S.phase='paused';$('pause').classList.remove('hidden');syncTouch();}});
 document.addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='KeyV')setPtt(false);});
 addEventListener('blur',()=>{if(VOICE.ptt)setPtt(false);});
-addEventListener('resize',()=>{camera.aspect=vmCam.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();vmCam.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);projScale=innerHeight/(2*Math.tan(THREE.MathUtils.degToRad(37.5)));});
+addEventListener('resize',()=>{camera.aspect=vmCam.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();vmCam.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);projScale=innerHeight/(2*Math.tan(THREE.MathUtils.degToRad(37.5)));syncTouch();});
+
+/* ---- touch controls. Left stick sets the same keys as WASD. Right drag looks. ---- */
+const STICK={id:null,cx:0,cy:0,keys:[]};
+const LOOK={id:null,x:0,y:0};
+function wantTouch(){return matchMedia('(pointer: coarse)').matches||innerWidth<=900;}
+function syncTouch(){const paused=!$('pause').classList.contains('hidden');const on=wantTouch()&&S.phase==='play'&&!paused;document.body.classList.toggle('touching',on);$('touch').classList.toggle('hidden',!on);if(!on){$('tbtns').querySelectorAll('button').forEach(b=>b.classList.remove('held'));}const hint=$('pausehint');if(hint)hint.textContent=wantTouch()?'Tap resume':'Click to recapture the mouse';if(S.phase==='title')$('playbtn').textContent=wantTouch()?'TAP TO PLAY':'CLICK TO PLAY';}
+function clearStick(){for(const k of STICK.keys)keys[k]=false;STICK.keys=[];STICK.id=null;const stick=$('stick');if(stick)stick.classList.remove('on');const knob=$('knob');if(knob)knob.style.transform='';}
+function applyStick(nx,ny){for(const k of STICK.keys)keys[k]=false;STICK.keys=[];const set=k=>{keys[k]=true;STICK.keys.push(k);};if(ny<-0.28)set('KeyW');if(ny>0.28)set('KeyS');if(nx>0.28)set('KeyD');if(nx<-0.28)set('KeyA');if(Math.hypot(nx,ny)>0.78)set('ShiftLeft');}
+function pressAction(name){
+ if(name==='mute'){AU.muted=!AU.muted;if(AU.master)AU.master.gain.value=AU.muted?0:.75;return;}
+ if(name==='pause'){if(S.phase!=='play')return;mouseDown=false;clearStick();LOOK.id=null;if(document.pointerLockElement)document.exitPointerLock();if(NET.role!=='off'){coopPause();return;}S.phase='paused';$('pause').classList.remove('hidden');keys={};syncTouch();return;}
+ if(S.phase!=='play'||NET.paused)return;
+ if(NET.role==='client'){if(name==='gun')NET.edges.push(player.slot==='primary'?'f2':'f1');else if(name==='reload')NET.edges.push('reload');else if(name==='use')NET.edges.push('use');else if(name==='flash')NET.edges.push('flash');else if(name==='heal')NET.edges.push('heal');else if(name==='shove')NET.edges.push('shove');return;}
+ if(name==='reload')startReload();
+ if(name==='gun'){if(player.slot==='primary'||!player.inv.primary){player.slot='pistol';}else player.slot='primary';player.reloadT=0;S.healT=0;}
+ if(name==='use')useAction();
+ if(name==='flash')player.flash=!player.flash;
+ if(name==='heal'&&player.kit&&player.hp<100&&S.healT<=0&&!player.pinnedBy&&!player.pulledBy&&!player.down){S.healT=3;player.reloadT=0;}
+ if(name==='shove')shove();
+}
+function endTouch(e){
+ if(e.pointerId===STICK.id)clearStick();
+ if(e.pointerId===LOOK.id)LOOK.id=null;
+ const btn=e.target&&e.target.closest&&e.target.closest('#tbtns button');
+ if(!btn)return;
+ btn.classList.remove('held');
+ if(btn.dataset.act==='fire')mouseDown=false;
+ if(btn.dataset.act==='talk')setPtt(false);
+ if(btn.dataset.act==='use')keys.KeyE=false;
+}
+$('stickzone').addEventListener('pointerdown',e=>{if(S.phase!=='play'||NET.paused)return;STICK.id=e.pointerId;STICK.cx=e.clientX;STICK.cy=e.clientY;const stick=$('stick');stick.style.left=e.clientX+'px';stick.style.top=e.clientY+'px';stick.classList.add('on');try{e.currentTarget.setPointerCapture(e.pointerId);}catch(err){}e.preventDefault();});
+$('stickzone').addEventListener('pointermove',e=>{if(e.pointerId!==STICK.id)return;const dx=e.clientX-STICK.cx,dy=e.clientY-STICK.cy,max=52,mag=Math.hypot(dx,dy)||1,cl=Math.min(max,mag);$('knob').style.transform='translate('+(dx/mag*cl)+'px,'+(dy/mag*cl)+'px)';applyStick(dx/mag*cl/max,dy/mag*cl/max);});
+$('lookpad').addEventListener('pointerdown',e=>{if(e.target.closest('#tbtns'))return;if(S.phase!=='play'||NET.paused)return;LOOK.id=e.pointerId;LOOK.x=e.clientX;LOOK.y=e.clientY;try{e.currentTarget.setPointerCapture(e.pointerId);}catch(err){}e.preventDefault();});
+$('lookpad').addEventListener('pointermove',e=>{if(e.pointerId!==LOOK.id||S.phase!=='play'||NET.paused)return;const dx=e.clientX-LOOK.x,dy=e.clientY-LOOK.y;LOOK.x=e.clientX;LOOK.y=e.clientY;const s=0.0048;player.yaw-=dx*s;player.pitch=clamp(player.pitch-dy*s,-1.45,1.45);});
+for(const btn of $('tbtns').querySelectorAll('button')){
+ btn.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();btn.classList.add('held');try{btn.setPointerCapture(e.pointerId);}catch(err){}const act=btn.dataset.act;if(act==='fire'){mouseDown=true;return;}if(act==='talk'){setPtt(true);ensureMic().catch(()=>{});return;}if(act==='use')keys.KeyE=true;pressAction(act);});
+ btn.addEventListener('pointerup',endTouch);btn.addEventListener('pointercancel',endTouch);
+}
+addEventListener('pointerup',e=>{if(e.pointerId===STICK.id)clearStick();if(e.pointerId===LOOK.id)LOOK.id=null;});
+addEventListener('pointercancel',e=>{if(e.pointerId===STICK.id)clearStick();if(e.pointerId===LOOK.id)LOOK.id=null;});
+syncTouch();
 
 /* ================= LOOP ================= */
 // opening wanderers in the stairwell / hotel
