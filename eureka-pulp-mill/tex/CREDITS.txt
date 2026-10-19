@@ -1,4 +1,4 @@
-Landmark photos used as textures. Each file keeps the license of its source.
+Landmark photos used as textures on the polygonal buildings, bridge, aviary, and redwoods. Each file keeps the license of its source.
 Redwood Acres, the forest path after it, and Myrtletown use photos provided for this game.
 
 Local file | Source | Creator | License | Page
