@@ -401,52 +401,182 @@ const fires=[]; // {x,y,z,r,big}
 const flickMat=scene.children[scene.children.length-1].material;
 box(1.8,0.62,3.3,0x243028,6.2*T,0.4,7.15*T,scene);
 box(1.45,0.55,1.25,0x1c2820,5.6*T,0.95,6.4*T,scene);
-box(2.2,1.1,8,0x6a3030,30*T,0.7,4.2*T,scene);
-box(6,2.2,3,0x4a4038,31*T,1.4,11.5*T,scene);
-box(4,16,4,0x7a5a3a,127*T,8,3.2*T,scene);box(5,1.6,5,0x2f6a45,127*T,16.4,3.2*T,scene);
 box(2.6,4.2,2.6,0x6a5438,191*T,2.1,11.2*T,scene);box(2.8,0.4,2.8,0x4a3a28,191*T,4.3,11.2*T,scene);
 {const roller=new THREE.Mesh(cylGeo,mat(0x4a4038));roller.rotation.z=Math.PI/2;roller.scale.set(.55,1.8,.55);roller.position.set(191.2*T,1.15,10.2*T);scene.add(roller);}
 function signTex(text,bg,fg,w=256,h=64){return canvasTex(w,h,(g,W2,H2)=>{g.fillStyle=bg;g.fillRect(0,0,W2,H2);g.fillStyle=fg;g.font='bold '+Math.floor(H2*0.42)+'px Arial';g.textAlign='center';g.textBaseline='middle';const lines=text.split('\n');lines.forEach((l,i)=>g.fillText(l,W2/2,H2/2+(i-(lines.length-1)/2)*H2*0.42));});}
 function sign(text,bg,fg,x,y,z,ry,w,h){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:signTex(text,bg,fg,512,Math.round(512*h/w)),transparent:true,side:THREE.DoubleSide}));m.position.set(x,y,z);m.rotation.y=ry;scene.add(m);return m;}
 const FACE=-Math.PI/2;
-sign('TRINITY ST','#2a241c','#f3ead4',8.2*T,2.5,6.2*T,FACE,2.2,0.42);
-sign('MYRTLETOWN','#2a241c','#f3ead4',10.2*T,3.1,6.2*T,FACE,2.4,0.42);
-sign('REDWOOD ACRES','#7a3030','#fff',33.2*T,3.2,6.2*T,FACE,3.2,0.5);
-sign('SEQUOIA PARK ZOO','#1d3a28','#e8f0d8',81.2*T,3.3,6.2*T,FACE,3.6,0.5);
+sign('TRINITY ST','#2a241c','#f3ead4',8.2*T,2.5,7.7*T,FACE,2.2,0.42);
+sign('MYRTLETOWN','#2a241c','#f3ead4',10.2*T,3.1,7.7*T,FACE,2.4,0.42);
+sign('REDWOOD ACRES','#7a3030','#fff',33.2*T,3.2,7.7*T,FACE,3.2,0.5);
+sign('SEQUOIA PARK ZOO','#1d3a28','#e8f0d8',81.2*T,3.3,7.7*T,FACE,3.6,0.5);
 sign('H STREET','#222','#f2efe8',96.5*T,2.8,4.2*T,0,1.8,0.4);
-sign('3109 H ST','#222','#f2efe8',103.2*T,3.1,6.2*T,FACE,2.2,0.42);
-sign('RENTOR','#6a1a1a','#fff',103.2*T,2.4,6.2*T,FACE,1.8,0.4);
-sign('CARSON MANSION','#c4a882','#2a1c10',123.2*T,4.2,6.2*T,FACE,3.4,0.5);
-sign('INGOMAR CLUB','#2a1c10','#f0e2c4',123.2*T,3.4,6.2*T,FACE,2.6,0.4);
-sign('SAMOA BRIDGE','#8a6a12','#1a1408',143.2*T,3.4,6.2*T,FACE,2.8,0.5);
-sign('SAMOA COOKHOUSE','#8a2e28','#fff',163.2*T,3.2,6.2*T,FACE,3.4,0.5);
-sign('EUREKA PULP MILL','#3a2418','#f0d7a4',188.2*T,3.6,6.2*T,FACE,3.4,0.55);
-sign('HELIPAD','#1c1c1c','#f4f4f4',201.2*T,12.2,6.2*T,FACE,1.6,0.4);
-const photoTex={};
-function photoPlane(file,x,y,z,w,h,ry){let tex=photoTex[file];if(!tex){tex=new THREE.TextureLoader().load('tex/'+file);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());photoTex[file]=tex;}
- const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshLambertMaterial({map:tex,side:THREE.DoubleSide}));m.position.set(x,y,z);m.rotation.y=ry;scene.add(m);return m;}
-const NZ=6.92*T,WZ=5.35*T;
-const AZ=5.05*T;
-photoPlane('myrtle-street.jpg',7.5*T,3.6,6.05*T,9,4.9,0);
-photoPlane('myrtle-street.jpg',12.6*T,3.5,5.0*T,7.2,3.93,FACE);
-photoPlane('myrtle-street.jpg',16*T,3.9,NZ,10,5.45,0);
-photoPlane('myrtle-air.jpg',20.2*T,3.8,NZ,8,5.33,0);
-photoPlane('acres-camp.jpg',24.5*T,3.6,NZ,9,6.75,0);
-photoPlane('acres-track.jpg',30.2*T,4.4,NZ,12,6.75,0);
-photoPlane('acres-fair.jpg',28.2*T,4.0,AZ,6.4,4.8,FACE);
-photoPlane('acres-hall.jpg',32.6*T,3.9,AZ,7.2,4.43,FACE);
-photoPlane('acres-hall.jpg',37.5*T,2.15,6.15*T,6.2,3.8,0);
-photoPlane('forest.jpg',45.2*T,4.2,5.0*T,7.2,5.4,FACE);
-photoPlane('forest.jpg',50*T,6.5,NZ,16,12,0);
-photoPlane('forest.jpg',56*T,5.6,3.7*T,12,9,0);
-photoPlane('forest.jpg',64*T,6.2,NZ,14,10.5,0);
-photoPlane('zoo.jpg',78*T,3.6,NZ,10,6,0);photoPlane('zoo.jpg',80.6*T,3.6,WZ,5,6,FACE);
-photoPlane('street.jpg',96.2*T,3.2,NZ,9,5,0);photoPlane('street.jpg',94.2*T,3.2,WZ,5,5,FACE);
-photoPlane('office.jpg',101.5*T,3.5,NZ,8,5.6,0);photoPlane('office.jpg',103.1*T,3.4,WZ,4.5,5.5,FACE);
-photoPlane('mansion.jpg',119.5*T,4.8,NZ,16,8.6,0);photoPlane('mansion.jpg',122.8*T,4.6,WZ,5.5,8,FACE);
-photoPlane('bridge.jpg',152*T,4,5.9*T,18,6.5,0);photoPlane('bridge.jpg',143.1*T,3.6,WZ,5,6,FACE);
-photoPlane('cookhouse.jpg',162.2*T,3.6,NZ,8,5.8,0);photoPlane('cookhouse.jpg',163.2*T,3.5,WZ,5,6,FACE);
-photoPlane('mill.jpg',180*T,4.6,NZ,12,8,0);photoPlane('mill.jpg',187*T,6,4.4*T,16,10,0);photoPlane('mill.jpg',187.6*T,4.8,WZ,6,8,FACE);
+sign('3109 H ST','#222','#f2efe8',103.2*T,3.1,7.7*T,FACE,2.2,0.42);
+sign('RENTOR','#6a1a1a','#fff',103.2*T,2.4,7.7*T,FACE,1.8,0.4);
+sign('CARSON MANSION','#c4a882','#2a1c10',123.2*T,4.2,7.7*T,FACE,3.4,0.5);
+sign('INGOMAR CLUB','#2a1c10','#f0e2c4',123.2*T,3.4,7.7*T,FACE,2.6,0.4);
+sign('SAMOA BRIDGE','#8a6a12','#1a1408',143.2*T,3.4,7.7*T,FACE,2.8,0.5);
+sign('SAMOA COOKHOUSE','#8a2e28','#fff',163.2*T,3.2,7.7*T,FACE,3.4,0.5);
+sign('EUREKA PULP MILL','#3a2418','#f0d7a4',188.2*T,3.6,7.7*T,FACE,3.4,0.55);
+sign('HELIPAD','#1c1c1c','#f4f4f4',201.2*T,12.2,8.2*T,FACE,1.6,0.4);
+/* Landmark masses sit on blocked tiles north of the road (world z < 14). Facades face +Z, toward the road. */
+const photoTex={},photoMats={};
+function loadPhoto(file){let tex=photoTex[file];if(!tex){tex=new THREE.TextureLoader().load('tex/'+file);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());photoTex[file]=tex;}return tex;}
+function photoMat(file,dbl){const k=file+(dbl?'|d':'');if(photoMats[k])return photoMats[k];return photoMats[k]=new THREE.MeshBasicMaterial({map:loadPhoto(file),side:dbl?THREE.DoubleSide:THREE.FrontSide});}
+function cropUVs(geo,u0,v0,u1,v1){const uv=geo.attributes.uv,a=uv.array;for(let i=0;i<uv.count;i++){a[i*2]=u0+(u1-u0)*a[i*2];a[i*2+1]=v0+(v1-v0)*a[i*2+1];}return geo;}
+function cropGeo(w,h,u0,v0,u1,v1){return cropUVs(new THREE.PlaneGeometry(w,h),u0,v0,u1,v1);}
+function grp(name,x,z,ry){const g=new THREE.Group();g.name=name;g.position.set(x,0,z);if(ry)g.rotation.y=ry;scene.add(g);return g;}
+function solid(parent,w,h,d,c,x,y,z){const m=new THREE.Mesh(boxGeo,mat(c));m.scale.set(w,h,d);m.position.set(x,y,z);parent.add(m);return m;}
+function facade(parent,file,u0,v0,u1,v1,w,h,x,y,z,ry,dbl){const m=new THREE.Mesh(cropGeo(w,h,u0,v0,u1,v1),photoMat(file,dbl));m.position.set(x,y,z);if(ry)m.rotation.y=ry;parent.add(m);return m;}
+function gable(parent,x,y,z,w,depth,rise,c){const slope=Math.hypot(depth/2,rise),pitch=Math.atan2(rise,depth/2),material=c&&c.isMaterial?c:mat(c);
+ const slab=(zOff,rot)=>{const m=new THREE.Mesh(boxGeo,material);m.scale.set(w,0.16,slope);m.position.set(x,y+rise/2,z+zOff);m.rotation.x=rot;parent.add(m);};slab(depth/4,pitch);slab(-depth/4,-pitch);}
+function column(parent,x,y,z,h,c){return solid(parent,0.16,h,0.16,c,x,y,z);}
+function coneMesh(parent,r,h,c,x,y,z){const m=new THREE.Mesh(new THREE.ConeGeometry(r,h,12),mat(c));m.position.set(x,y,z);parent.add(m);return m;}
+function cylMesh(parent,rt,rb,h,c,x,y,z,seg){const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg||8),mat(c));m.position.set(x,y,z);parent.add(m);return m;}
+const _zAx=new THREE.Vector3(0,0,1),_dir=new THREE.Vector3();
+function strut(parent,x0,y0,z0,x1,y1,z1,t,c){const dx=x1-x0,dy=y1-y0,dz=z1-z0,len=Math.hypot(dx,dy,dz)||0.001;const m=new THREE.Mesh(boxGeo,mat(c));m.scale.set(t,t,len);m.position.set((x0+x1)/2,(y0+y1)/2,(z0+z1)/2);_dir.set(dx/len,dy/len,dz/len);m.quaternion.setFromUnitVectors(_zAx,_dir);parent.add(m);return m;}
+const roofTex=loadPhoto('myrtle-air.jpg');roofTex.wrapS=roofTex.wrapT=THREE.RepeatWrapping;roofTex.repeat.set(0.42,0.32);roofTex.offset.set(0.08,0.18);
+const roofMat=new THREE.MeshBasicMaterial({map:roofTex});
+const barkTex=loadPhoto('forest.jpg');barkTex.wrapS=barkTex.wrapT=THREE.RepeatWrapping;barkTex.repeat.set(0.22,0.7);barkTex.offset.set(0.36,0.08);
+const barkMat=new THREE.MeshBasicMaterial({map:barkTex});
+const flagTex=canvasTex(64,40,(g,w,h)=>{g.fillStyle='#b22234';g.fillRect(0,0,w,h);g.fillStyle='#fff';for(let i=1;i<7;i+=2)g.fillRect(0,i*h/7,w,h/7);g.fillStyle='#3c3b6e';g.fillRect(0,0,w*0.4,h*0.54);});
+
+function house(parent,x,w,wallH,depth,u0,u1){
+ solid(parent,w,wallH,depth,0xcbbba4,x,wallH/2,0);
+ gable(parent,x,wallH-0.02,0,w+0.55,depth+0.8,Math.max(1.15,wallH*0.38),roofMat);
+ facade(parent,'myrtle-street.jpg',u0,0.16,u1,0.78,w*0.92,wallH*0.88,x,wallH*0.46,depth/2+0.04,0);
+ solid(parent,0.42,wallH*0.42+1.1,0.42,0x6a5044,x+w*0.32,wallH+0.35,-depth*0.12);
+}
+{const row=grp('lm-myrtle',15,9.2,0);
+ house(row,-6.6,5.0,3.5,6.0,0.12,0.34);
+ house(row,-1.3,5.4,4.3,6.2,0.32,0.54);
+ house(row,3.7,4.8,3.2,5.6,0.52,0.72);
+ house(row,8.0,4.2,2.7,5.4,0.70,0.90);
+}
+
+{const camp=grp('lm-camp',37,10.1,0);
+ const spots=[[-6.2,0.08,0.34,0xe4ddd4],[-0.2,0.30,0.55,0xc8b8b0],[5.8,0.52,0.78,0xd5d0c6]];
+ for(const [x,u0,u1,body] of spots){
+  solid(camp,6.2,2.15,2.3,body,x,1.4,0);
+  solid(camp,1.7,0.7,2.15,shade(body,0.82),x+2.15,2.55,0.05);
+  facade(camp,'acres-camp.jpg',u0,0.18,u1,0.62,5.7,1.85,x,1.35,1.18,0);
+  for(const wx of [-2.0,1.7]){const wh=new THREE.Mesh(cylGeo,mat(0x1a1a1a));wh.rotation.z=Math.PI/2;wh.scale.set(0.36,0.22,0.36);wh.position.set(x+wx,0.36,1.02);camp.add(wh);}
+ }
+}
+
+{const fair=grp('lm-fair',53.2,13.15,0);
+ const booths=[[-3.4,0.05,0.28,0xc4483a],[0,0.32,0.55,0xd8a03a],[3.4,0.58,0.82,0x3a6a48]];
+ for(const [x,u0,u1,awn] of booths){
+  solid(fair,3.0,2.35,2.1,0x6a5344,x,1.18,0);
+  const a=solid(fair,3.3,0.08,1.35,awn,x,2.45,0.85);a.rotation.x=0.28;
+  facade(fair,'acres-fair.jpg',u0,0.28,u1,0.78,2.75,2.05,x,1.2,1.08,0);
+  cylMesh(fair,0.04,0.04,3.4,0xeeeeee,x+1.35,1.7,0.3,5);
+ }
+}
+
+{const tr=grp('lm-track',63.5,8.7,0);
+ for(let i=0;i<5;i++)solid(tr,11.5,0.36,0.8,i%2?0x6a4030:0x5c564c,0,0.4+i*0.4,-0.6-i*0.75);
+ solid(tr,12.2,0.1,4.6,0x7a3030,0,2.55,-2.2);
+ const rail=new THREE.Mesh(new THREE.TorusGeometry(4.6,0.1,6,24),mat(0xd0d0d0));rail.rotation.x=Math.PI/2;rail.scale.set(1,0.48,1);rail.position.set(0,0.85,1.7);tr.add(rail);
+ const dirt=new THREE.Mesh(new THREE.TorusGeometry(4.6,0.62,4,24),mat(0x7a5a40));dirt.rotation.x=Math.PI/2;dirt.scale.set(1,0.48,1);dirt.position.set(0,0.1,1.7);tr.add(dirt);
+ const inf=new THREE.Mesh(cropUVs(new THREE.CircleGeometry(3.5,22),0.18,0.22,0.82,0.75),photoMat('acres-track.jpg'));inf.rotation.x=-Math.PI/2;inf.scale.set(1,0.48,1);inf.position.set(0,0.12,1.7);tr.add(inf);
+ for(let k=0;k<10;k++){const a=k/10*Math.PI*2;solid(tr,0.12,0.7,0.12,0xc8c8c8,Math.cos(a)*4.6,0.4,1.7+Math.sin(a)*2.2);}
+}
+facade(scene,'acres-hall.jpg',0.06,0.16,0.94,0.7,11.2,4.7,67.88,2.65,7.6,-Math.PI/2);
+gable(scene,71.2,5.2,7.6,7.2,6.2,1.7,0x5a3830);
+solid(scene,0.2,4.8,0.2,0xf2efe8,67.7,2.5,2.3);solid(scene,0.2,4.8,0.2,0xf2efe8,67.7,2.5,12.6);
+
+{const woods=grp('lm-forest',0,0,0);
+ const redwoods=[[49,6,20,1.15],[51,10,22,1.15],[55,3,21,1.1],[59,3,23,1.2],[64,6,21,1.15],[68,6,22,1.2],[62,11,18,1.05],[69,11,20,1.1]];
+ for(const [tx,tz,h,r] of redwoods){const x=(tx+.5)*T,z=(tz+.5)*T;
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(r*0.72,r,h,8),barkMat);trunk.position.set(x,h/2,z);woods.add(trunk);
+  const a=new THREE.Mesh(sphGeo,mat(0x1a3824));a.scale.set(r*4.4,h*0.2,r*4.4);a.position.set(x,h-0.8,z);woods.add(a);
+  const b=new THREE.Mesh(sphGeo,mat(0x244832));b.scale.set(r*3.1,h*0.15,r*3.1);b.position.set(x,h*0.68,z);woods.add(b);
+ }
+}
+
+{const zoo=grp('lm-zoo',154,9.0,0);
+ for(const x of [-4.2,-2.1,0,2.1,4.2]){const rib=new THREE.Mesh(new THREE.TorusGeometry(4.15,0.08,5,16,Math.PI),mat(0x242824));rib.rotation.y=Math.PI/2;rib.position.set(x,0,0);zoo.add(rib);}
+ facade(zoo,'zoo.jpg',0.16,0.08,0.84,0.9,8.4,6.4,0,3.5,-2.55,0);
+ solid(zoo,9.2,0.22,8.6,0x3a4030,0,0.1,0);
+ for(let i=-4;i<=4;i++)solid(zoo,0.07,5.2,0.07,0x1a1e1a,i*0.95,2.6,3.7);
+ column(zoo,-4.2,2.4,3.9,4.8,0x242824);column(zoo,4.2,2.4,3.9,4.8,0x242824);
+}
+
+{const st=grp('lm-street',183.2,11.85,0);
+ const shops=[[-2.6,5.2,4.6,0.02,0.34,0x6a3030],[2.7,4.6,5.4,0.36,0.68,0x2a3a48]];
+ for(const [x,w,h,u0,u1,awn] of shops){
+  solid(st,w,h,4.5,0x3e4450,x,h/2,0);
+  solid(st,w+0.25,0.55,4.8,0x2a2824,x,h+0.2,0);
+  facade(st,'street.jpg',u0,0.18,u1,0.86,w*0.94,h*0.9,x,h*0.46,2.28,0);
+  const a=solid(st,w*0.7,0.07,1.15,awn,x,h*0.36,2.75);a.rotation.x=0.32;
+ }
+}
+{const st2=grp('lm-street-e',201.5,11.85,0);
+ solid(st2,6.4,4.2,4.5,0x4a4538,0,2.1,0);
+ solid(st2,6.7,0.5,4.8,0x2c2a26,0,4.4,0);
+ facade(st2,'street.jpg',0.62,0.18,0.98,0.86,6.1,3.8,0,2.15,2.28,0);
+ const a=solid(st2,4.4,0.07,1.15,0x8a4030,0,1.7,2.75);a.rotation.x=0.32;
+}
+{const off=grp('lm-office',204,10.1,0);
+ solid(off,5.4,8.4,5.6,0xd4cfc4,0,4.2,0);
+ gable(off,0,8.4,0,5.9,6.2,2.5,0x5a4038);
+ solid(off,2.3,4.8,1.15,0xe4dfd4,0,3.4,3.15);
+ facade(off,'office.jpg',0.0,0.04,0.58,0.96,5.1,8.0,0,4.3,4.2,0);
+ solid(off,4.6,0.12,1.5,0x4a4038,0,1.15,3.9);
+ column(off,-2.15,1.35,4.45,2.5,0xf4f1ea);column(off,2.15,1.35,4.45,2.5,0xf4f1ea);
+ solid(off,0.55,1.8,0.55,0x6a4038,1.7,9.6,-0.8);
+}
+
+{const man=grp('lm-mansion',232,9.75,0);
+ solid(man,13.5,7.6,7.4,0xd9c7aa,1.4,3.8,0);
+ gable(man,1.4,7.6,0,14.1,8.2,3.1,0x3a2c32);
+ const cross=solid(man,4.6,0.16,4.4,0x3a2c32,1.6,9.5,2.1);cross.rotation.x=0.62;
+ cylMesh(man,1.7,1.85,11.2,0xd9c7aa,-6.2,5.6,3.5,14);
+ coneMesh(man,2.05,4.2,0x3a2c32,-6.2,13.3,3.5);
+ cylMesh(man,0.06,0.1,2.4,0x2a2428,-6.2,16.5,3.5,6);
+ solid(man,9.2,0.12,1.6,0x4a4038,1.6,2.45,4.35);
+ solid(man,9.6,0.14,1.7,0x3a2c32,1.6,1.15,4.45);
+ for(const x of [-2.2,0.2,2.6,5.0])column(man,x,1.25,5.05,2.4,0xf3ecdf);
+ facade(man,'mansion.jpg',0.12,0.08,0.72,0.9,11.6,7.2,1.8,4.3,4.55,0);
+ solid(man,0.7,2.4,0.7,0x6a4538,5.2,11.0,-1.4);
+ solid(man,0.55,1.7,0.55,0x6a4538,-0.4,11.3,-1.8);
+}
+
+{const br=grp('lm-bridge',0,0,0);const STEEL=0x3d6844;const x0=146*T,x1=159*T,zN=12.25,zS=20.55;
+ for(let x=x0;x<=x1+0.01;x+=4){
+  solid(br,0.32,6.5,0.32,STEEL,x,3.25,zN);solid(br,0.32,6.5,0.32,STEEL,x,3.25,zS);
+  solid(br,0.22,0.24,zS-zN,STEEL,x,6.35,(zN+zS)/2);
+  if(x+4<=x1+0.2){strut(br,x,0.45,zN,x+4,6.15,zN,0.12,STEEL);strut(br,x,6.15,zN,x+4,0.45,zN,0.12,STEEL);strut(br,x,0.45,zS,x+4,6.15,zS,0.12,STEEL);strut(br,x,6.15,zS,x+4,0.45,zS,0.12,STEEL);}
+ }
+ solid(br,x1-x0+0.6,0.32,0.36,STEEL,(x0+x1)/2,6.55,zN);solid(br,x1-x0+0.6,0.32,0.36,STEEL,(x0+x1)/2,6.55,zS);
+ solid(br,x1-x0+0.6,0.22,0.28,STEEL,(x0+x1)/2,0.4,zN);solid(br,x1-x0+0.6,0.22,0.28,STEEL,(x0+x1)/2,0.4,zS);
+ facade(br,'bridge.jpg',0.08,0.2,0.92,0.78,x1-x0,5.5,(x0+x1)/2,3.35,zN-0.35,Math.PI);
+ facade(br,'bridge.jpg',0.08,0.2,0.92,0.78,x1-x0,5.5,(x0+x1)/2,3.35,zS+0.35,0);
+}
+
+{const ck=grp('lm-cook',318,9.85,0);
+ solid(ck,12.2,5.3,6.2,0x8a2e28,0,2.65,0);
+ gable(ck,0,5.3,0,12.8,7.0,2.25,0x3a342e);
+ solid(ck,0.18,5.3,6.35,0xf4f1ea,-6.05,2.65,0);solid(ck,0.18,5.3,6.35,0xf4f1ea,6.05,2.65,0);
+ solid(ck,8.2,0.1,1.5,0xf4f1ea,-0.5,2.55,4.15);
+ column(ck,-4.2,1.25,4.7,2.5,0xf4f1ea);column(ck,3.2,1.25,4.7,2.5,0xf4f1ea);
+ facade(ck,'cookhouse.jpg',0.18,0.14,0.82,0.8,11.4,4.9,0,2.85,4.25,0);
+ cylMesh(ck,0.045,0.045,5.6,0xdedede,6.7,2.8,4.55,6);
+ const flag=new THREE.Mesh(new THREE.PlaneGeometry(1.25,0.72),new THREE.MeshLambertMaterial({map:flagTex,side:THREE.DoubleSide}));flag.position.set(7.45,4.85,4.55);ck.add(flag);
+}
+
+{const mill=grp('lm-mill',356,10.8,0);
+ solid(mill,18,6.4,6.6,0x4a4038,0,3.2,0);
+ gable(mill,0,6.4,0,18.8,7.4,2.5,0x6e6c64);
+ solid(mill,14.5,1.15,1.3,0x3a3834,0,7.5,0);
+ facade(mill,'mill.jpg',0.1,0.2,0.9,0.78,16.8,5.7,0,3.35,3.4,0);
+ cylMesh(mill,1.15,1.35,12,0x5c4538,8.2,6,-1.2,10);solid(mill,2.6,0.45,2.6,0x3a2a22,8.2,12.2,-1.2);
+}
+{const pond=grp('lm-pond',372,11.2,0);
+ const skin=new THREE.Mesh(cropGeo(11,5.2,0.08,0.0,0.9,0.24),photoMat('mill.jpg'));skin.rotation.x=-Math.PI/2;skin.position.set(0,0.05,0);pond.add(skin);
+ for(let i=0;i<5;i++){const log=new THREE.Mesh(cylGeo,mat(0x6a442c));log.rotation.z=Math.PI/2;log.scale.set(0.32,2.4,0.32);log.position.set(-4.4+i*2.2,0.38,0.2);pond.add(log);}
+}
 
 /* ---- doors. Every campaign door is a line across the road. ---- */
 const doorMeshes={};
