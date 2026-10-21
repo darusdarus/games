@@ -1,0 +1,3125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#b0ada6">
+<title>Adrian's Star Wars Oregon Trail</title>
+<link rel="icon" href="data:,">
+<style>
+@font-face{
+  font-family:"Patrick Hand";
+  src:url("fonts/PatrickHand-Regular.ttf") format("truetype");
+  font-display:swap;
+}
+html,body{margin:0;height:100%;overflow:hidden;background:#b0ada6;color:#241e1a;
+  font-family:"Patrick Hand","Comic Sans MS",cursive;user-select:none;-webkit-user-select:none}
+button,input{font-family:inherit;color:inherit}
+button{cursor:pointer;touch-action:manipulation}
+#view{position:fixed;inset:0;z-index:0;display:block;touch-action:none}
+#hud{
+  position:fixed;left:14px;right:14px;bottom:12px;z-index:4;
+  background:#fffaf0;border:3px solid #241e1a;border-radius:2px;
+  box-shadow:5px 5px 0 rgba(36,30,26,.28);
+  padding:8px 12px 10px;
+  background-image:radial-gradient(rgba(80,60,20,.05) .6px,transparent .7px);
+  background-size:7px 7px;
+}
+.hudtop,.stats,.hudbtns,.crewline{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.hudtop{justify-content:space-between;font-size:22px}
+#dayNum{font-size:28px}
+#dayNum.tick{animation:pop .28s ease}
+@keyframes pop{from{transform:scale(1.18)}to{transform:scale(1)}}
+.barwrap{height:10px;border:2px solid #241e1a;border-radius:99px;margin:4px 0;background:#fff}
+#progress{height:100%;width:0;background:#e5923f;border-radius:99px}
+.stats{font-size:18px}
+.crewline{font-size:18px;margin-top:2px}
+.pip{display:inline-block;width:12px;height:12px;border:2px solid #241e1a;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.who small{opacity:.75;margin-left:4px}
+.hudbtns{margin-top:6px}
+#hud button,#touch button,.choices button,.row button,.ghost,button.primary,button.plain{
+  background:#fff;border:3px solid #241e1a;border-radius:12px;
+  box-shadow:3px 3px 0 #241e1a;padding:6px 12px;font-size:20px;
+}
+#hud button:hover,.choices button:hover,button.primary:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 #241e1a}
+#hud button:active,.choices button:active,button.primary:active{transform:translate(2px,2px);box-shadow:0 0 0 #241e1a}
+button:disabled{opacity:.4;cursor:default;transform:none!important}
+#touch{position:fixed;right:16px;bottom:196px;z-index:7;display:flex;flex-direction:column;gap:8px}
+#touch button{width:96px;height:64px;font-size:24px;background:#fffaf0}
+#banner{
+  position:fixed;top:18px;left:50%;transform:translateX(-50%) rotate(-1deg);z-index:6;
+  max-width:min(560px,calc(100% - 36px));background:#fffaf0;border:3px solid #241e1a;
+  box-shadow:4px 4px 0 #241e1a;padding:8px 14px;font-size:22px;text-align:center;pointer-events:none
+}
+#stage{position:fixed;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;pointer-events:none}
+#stage.modal{pointer-events:auto;background:rgba(40,38,32,.16)}
+.card{
+  pointer-events:auto;width:min(640px,calc(100vw - 28px));
+  max-height:calc(100vh - 22px);overflow:auto;
+  background:#fffaf0;border-radius:2px;padding:16px 18px 18px;
+  box-shadow:7px 9px 0 rgba(36,30,26,.22),0 18px 40px rgba(0,0,0,.18);
+  transform:rotate(-.4deg);
+  background-image:radial-gradient(rgba(80,60,20,.045) .6px,transparent .7px);
+  background-size:7px 7px;
+}
+.card.wide{width:min(860px,calc(100vw - 24px))}
+.tape{height:22px;width:92px;margin:0 0 8px;background:repeating-linear-gradient(100deg,#b6d46a,#b6d46a 7px,#cfe68a 7px,#cfe68a 12px);transform:rotate(-2deg);box-shadow:0 1px 0 rgba(0,0,0,.15)}
+.kicker{font-size:22px;margin-bottom:2px}
+h1{font-size:clamp(42px,7vw,68px);line-height:.92;margin:4px 0;font-weight:400}
+h1 .small{display:block;font-size:.48em}
+h1 .mid{display:block;font-size:.62em}
+h2{font-size:clamp(32px,6vw,52px);line-height:.95;margin:4px 0;font-weight:400}
+.subhead{font-size:26px;margin-top:-2px}
+.body{font-size:22px;line-height:1.28;margin:8px 0}
+.fine{font-size:16px;opacity:.75;margin-top:8px}
+.choices{display:flex;flex-direction:column;gap:8px;margin-top:12px;position:sticky;bottom:0;background:#fffaf0;padding-top:8px}
+.choices button{text-align:left;display:flex;flex-direction:column;align-items:flex-start;gap:1px}
+.choices button small,.row button small{font-size:16px;opacity:.75}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row button{flex:1;min-width:90px}
+button.on{background:#f6d98a}
+.doodle{width:100%;height:auto;aspect-ratio:8/3;display:block;margin:4px 0 8px}
+canvas.mini{width:100%;height:auto;aspect-ratio:4/3;display:block}
+.jobs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.job{border:3px solid #241e1a;border-radius:12px;background:#fff;box-shadow:3px 3px 0 #241e1a;padding:6px;text-align:left}
+.job.on{background:#f6d98a}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.presets button{font-size:18px;padding:4px 8px}
+.seat{margin:6px 0}
+.item{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:7px 0;border-bottom:2px dashed rgba(36,30,26,.25)}
+.stepper{display:flex;align-items:center;gap:6px}
+.stepper b{min-width:1.6em;text-align:center;font-size:22px}
+.bill{font-size:24px;margin:8px 0}
+.picks{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.pick{border:3px solid #241e1a;border-radius:12px;background:#fff;box-shadow:3px 3px 0 #241e1a;padding:8px 6px;font-size:18px;text-align:left}
+.pick.on{background:#f6d98a}
+.score{font-size:42px;margin:0}
+@media(max-width:720px){
+  .jobs,.picks{grid-template-columns:1fr 1fr}
+  #hud{left:8px;right:8px;bottom:8px;padding:6px 8px}
+  .hudtop{font-size:16px}
+  #dayNum{font-size:20px}
+  .stats,.crewline{font-size:15px;gap:3px 8px}
+  #hud button{font-size:16px;padding:4px 8px}
+  #touch{bottom:150px}
+  #touch button{width:74px;height:48px;font-size:18px}
+  h2{font-size:36px}
+}
+</style>
+</head>
+<body>
+<canvas id="view" aria-label="The Bright Lark crossing the galaxy"></canvas>
+<div id="hud" hidden>
+  <div class="hudtop"><div><span id="dayNum">Day 1</span> · <span id="weather"></span></div><div id="nextStop"></div></div>
+  <div class="barwrap" title="Progress to the next stop"><div id="progress"></div></div>
+  <div class="stats">
+    <span id="statFood"></span><span id="statFuel"></span><span id="statCred"></span>
+    <span id="statBlast"></span><span id="statMed"></span><span id="statPace"></span><span id="statParts"></span>
+  </div>
+  <div class="crewline" id="crewLine"></div>
+  <div class="hudbtns">
+    <button id="btnMenu" type="button">Menu</button>
+    <button id="btnHunt" type="button">Hunt</button>
+    <button id="btnRest" type="button">Rest</button>
+    <button id="btnMap" type="button">Map</button>
+    <button id="btnSound" type="button">Sound on</button>
+  </div>
+</div>
+<div id="touch" hidden>
+  <button id="btnUp" type="button">Up</button>
+  <button id="btnDown" type="button">Down</button>
+  <button id="btnFire" type="button">Fire</button>
+  <button id="btnDone" type="button">Done</button>
+</div>
+<div id="banner" hidden></div>
+<div id="stage"></div>
+<script>
+const SAVE = "adrian-sw-trail-v1";
+const INK = "#241e1a";
+const PX = 6.4;
+const PACE = {
+  crawl: { speed: 14, fuel: 0.03, heal: 1, day: 2.15, label: "Crawl" },
+  cruise: { speed: 24, fuel: 0.05, heal: 0, day: 1.65, label: "Cruise" },
+  burn: { speed: 38, fuel: 0.1, heal: -3, day: 1.12, label: "Full burn" }
+};
+const RATIONS = {
+  feast: { eat: 3, heal: 3, label: "Feast" },
+  square: { eat: 2, heal: 0, label: "Square meals" },
+  scraps: { eat: 1, heal: -2, label: "Scraps" }
+};
+const JOBS = {
+  senator: { credits: 1200, title: "Senator", blurb: "1,200 credits. Patrols notice a senator." },
+  mechanic: { credits: 720, title: "Mechanic", blurb: "720 credits. You tinker broken parts back to life." },
+  farmer: { credits: 420, title: "Moisture farmer", blurb: "420 credits. Meals stretch, and hunts come home heavier." }
+};
+const PART_NAME = { motivator: "hyperdrive motivator", coil: "shield coil", strut: "landing strut" };
+const ITEMS = [
+  { id: "food", label: "Ration crates", detail: "20 meals", price: 4 },
+  { id: "fuel", label: "Fuel drums", detail: "keeps the Lark moving", price: 20 },
+  { id: "blaster", label: "Blaster packs", detail: "10 shots", price: 8 },
+  { id: "medpac", label: "Medpacs", detail: "clears a sickness", price: 20 },
+  { id: "motivator", label: "Hyperdrive motivator", detail: "spare", price: 55 },
+  { id: "coil", label: "Shield coil", detail: "spare", price: 35 },
+  { id: "strut", label: "Landing strut", detail: "spare", price: 20 }
+];
+const PRESETS = [
+  ["Adrian", "Lucky finds"], ["Luke", "Better hunts"], ["Leia", "Cheaper ports"],
+  ["Han", "Faster cruise"], ["Chewie", "Fuel lasts"], ["Rey", "Salvages parts"],
+  ["Finn", "Calms the crew"], ["Poe", "Tighter flying"], ["R2-D2", "Fewer breakdowns"],
+  ["C-3PO", "Spots trouble"], ["Obi-Wan", "Less sickness"], ["Grogu", "Eats more, saves once"],
+  ["Ahsoka", "Rest heals more"], ["Padmé", "Extra medpac"], ["Din", "Leaves jawas be"]
+];
+const ILL = ["hyperspace fever", "coolant cough", "ration rot", "ion shakes", "vacuum bruise", "carbon chill"];
+const LEGS = [
+  { id: "tatooine", name: "Tatooine", sub: "Mos Eisley", biome: "tatooine", dist: 0, kind: "start" },
+  { id: "naboo", name: "Naboo", sub: "Theed", biome: "naboo", dist: 280, kind: "port" },
+  { id: "kamino", name: "Kamino", sub: "Tipoca City", biome: "kamino", dist: 320, kind: "kamino" },
+  { id: "belt", name: "Asteroid Belt", sub: "The rocks", biome: "belt", dist: 240, kind: "belt" },
+  { id: "hoth", name: "Hoth", sub: "Ice fields", biome: "hoth", dist: 360, kind: "hoth" },
+  { id: "bespin", name: "Bespin", sub: "Cloud City", biome: "bespin", dist: 300, kind: "bespin" },
+  { id: "endor", name: "Endor", sub: "Forest moon", biome: "endor", dist: 320, kind: "endor" },
+  { id: "blockade", name: "Imperial Blockade", sub: "Red triangles", biome: "blockade", dist: 260, kind: "blockade" },
+  { id: "coruscant", name: "Coruscant", sub: "Jedi Temple", biome: "coruscant", dist: 300, kind: "end" }
+];
+const BIOMES = {
+  tatooine: { sky: "#f3ddb0", ground: "#e0a84e", deep: "#c4843a" },
+  naboo: { sky: "#d5ecf5", ground: "#7fba6a", deep: "#3d8fbf" },
+  kamino: { sky: "#d5e4f2", ground: "#3f86c8", deep: "#1d4f86" },
+  belt: { sky: "#e7e2d8", ground: "#8d8478", deep: "#5c564e" },
+  hoth: { sky: "#e7f1f7", ground: "#f7fbfe", deep: "#b9d4e6" },
+  bespin: { sky: "#f8e0c8", ground: "#f0b06a", deep: "#e07a68" },
+  endor: { sky: "#e4f2d4", ground: "#3f8f45", deep: "#1d5a28" },
+  blockade: { sky: "#e6d9d4", ground: "#6a6568", deep: "#3a3638" },
+  coruscant: { sky: "#f6d7b8", ground: "#e08a45", deep: "#b85a30" }
+};
+const PIPS = ["#3aa88a", "#3a6fbf", "#c45a8a", "#2a2a2a", "#8a5a32", "#e2b33a", "#7dae4a", "#e07a32", "#4aa0e0", "#d64532"];
+
+let atCursor = 0;
+const LANDMARKS = LEGS.map((leg) => {
+  atCursor += leg.dist;
+  return { ...leg, at: atCursor };
+});
+const TOTAL = LANDMARKS[LANDMARKS.length - 1].at;
+
+function emptyCart() {
+  return { food: 0, fuel: 0, blaster: 0, medpac: 0, motivator: 0, coil: 0, strut: 0 };
+}
+const state = {
+  screen: "title",
+  launched: false,
+  paused: true,
+  mode: "travel",
+  job: null,
+  cycle: "quiet",
+  crew: [],
+  food: 0,
+  fuel: 0,
+  credits: 0,
+  blasters: 0,
+  medpacs: 0,
+  parts: { motivator: 0, coil: 0, strut: 0 },
+  broken: { motivator: false, coil: false, strut: false },
+  cart: emptyCart(),
+  shop: "tatooine",
+  pace: "cruise",
+  rations: "square",
+  day: 1,
+  parsecs: 0,
+  dayFrac: 0,
+  viewParsecs: 480,
+  demo: 0,
+  cleared: [],
+  busy: null,
+  log: [],
+  banner: null,
+  tombQueue: [],
+  afterQueue: null,
+  maybeReturn: [],
+  eventCd: 2,
+  groguSave: true,
+  mute: localStorage.getItem("adrian-sw-trail-mute") === "1",
+  action: null,
+  coins: 0,
+  shake: 0,
+  seat: 0
+};
+const keys = {};
+const control = { up: false, down: false, fire: false, pointer: null };
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const errors = [];
+let audioCtx = null;
+let dpr = 1;
+let lastRect = { x: 0, y: 0, w: 300, h: 200 };
+let hudCrewSig = "";
+let lastDayShown = -1;
+const view = document.getElementById("view");
+const ctx = view.getContext("2d");
+let grainPat = null;
+
+function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
+function hash(n) {
+  const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function normKey(s) {
+  return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+}
+function landmarkById(id) { return LANDMARKS.find((l) => l.id === id); }
+function living() { return state.crew.filter((c) => c.alive && !c.missing); }
+function leader() { return state.crew[0]; }
+function crewNamed(key) { return living().some((c) => normKey(c.name) === key); }
+function nextLandmark() {
+  return LANDMARKS.find((l) => l.kind !== "start" && !state.cleared.includes(l.id)) || null;
+}
+function previousAt() {
+  let n = 0;
+  for (const l of LANDMARKS) if (state.cleared.includes(l.id)) n = Math.max(n, l.at);
+  return n;
+}
+function placeName() {
+  if (state.busy) {
+    const b = landmarkById(state.busy);
+    if (b) return b.name;
+  }
+  let name = "open space";
+  let best = -1;
+  for (const l of LANDMARKS) {
+    if (state.cleared.includes(l.id) && l.at >= best) { best = l.at; name = l.name; }
+  }
+  return name;
+}
+function terrainOffset(p) {
+  return Math.sin(p * 0.11) * 16 + Math.sin(p * 0.037 + 2) * 10;
+}
+function visualsAt(p) {
+  let i = 0;
+  for (let k = 0; k < LANDMARKS.length - 1; k++) if (p >= LANDMARKS[k].at) i = k;
+  const a = LANDMARKS[i];
+  const b = LANDMARKS[Math.min(LANDMARKS.length - 1, i + 1)];
+  const span = Math.max(1, b.at - a.at);
+  const t = a === b ? 1 : clamp((p - a.at) / span, 0, 1);
+  const biome = t > 0.58 ? b.biome : a.biome;
+  return { biome, next: b, from: a, t };
+}
+function weatherFor(p) {
+  const b = visualsAt(p).biome;
+  switch (b) {
+    case "tatooine": return "Twin suns";
+    case "naboo": return "Soft rain";
+    case "kamino": return "Endless rain";
+    case "belt": return "Rock fog";
+    case "hoth": return "Whiteout";
+    case "bespin": return "Orange clouds";
+    case "endor": return "Tree light";
+    case "blockade": return "Turbolaser haze";
+    case "coruscant": return "City glow";
+    default: throw new Error("biome " + b);
+  }
+}
+function paceStats() {
+  const base = state.broken.motivator ? PACE.crawl : PACE[state.pace];
+  const p = { ...base };
+  if (crewNamed("han") && !state.broken.motivator && state.pace !== "crawl") p.speed = Math.round(p.speed * 1.12);
+  if (crewNamed("chewie") || crewNamed("chewbacca")) p.fuel *= 0.8;
+  return p;
+}
+function mealsNeeded() {
+  const people = living();
+  if (!people.length) return 0;
+  let n = people.length * RATIONS[state.rations].eat;
+  if (crewNamed("grogu")) n += 1;
+  if (state.job === "farmer") n = Math.max(1, Math.round(n * 0.85));
+  return n;
+}
+function shopItems() {
+  if (state.shop === "endor") return ITEMS.filter((i) => i.id === "food" || i.id === "medpac" || i.id === "blaster");
+  return ITEMS;
+}
+function unitPrice(item) {
+  let m = 1;
+  if (state.cycle === "storm") m *= 0.9;
+  if (state.cycle === "war") m *= 0.8;
+  if (crewNamed("leia") || crewNamed("padme")) m *= 0.9;
+  if (state.shop === "bespin") m *= 1.35;
+  if (state.shop === "endor") m *= 0.8;
+  return Math.max(1, Math.round(item.price * m));
+}
+function bill() {
+  let n = 0;
+  for (const item of shopItems()) n += (state.cart[item.id] || 0) * unitPrice(item);
+  return n;
+}
+function pipColor(name) {
+  const k = normKey(name);
+  const known = {
+    adrian: "#3aa88a", luke: "#3a6fbf", leia: "#f4f0e4", han: "#2a2a2a", chewie: "#8a5a32",
+    chewbacca: "#8a5a32", rey: "#d8c39a", finn: "#3d3a34", poe: "#d64532", r2d2: "#4aa0e0",
+    c3po: "#e2b33a", obiwan: "#d8d0c0", grogu: "#7dae4a", ahsoka: "#e07a32", padme: "#c45a8a", din: "#8a9298", dindjarin: "#8a9298"
+  };
+  if (known[k]) return known[k];
+  let h = 0;
+  for (let i = 0; i < k.length; i++) h = (h + k.charCodeAt(i) * (i + 3)) % PIPS.length;
+  return PIPS[h];
+}
+function condition(c) {
+  if (!c.alive && c.lost) return "left";
+  if (!c.alive) return "lost";
+  if (c.missing) return "missing";
+  if (c.health <= 0) return "down";
+  if (c.sick) return c.sick;
+  if (c.spooked) return "spooked";
+  if (c.health >= 80) return "good";
+  if (c.health >= 55) return "fair";
+  if (c.health >= 30) return "poor";
+  return "very poor";
+}
+function makeCrew(name) {
+  return { name, health: 100, alive: true, sick: null, spooked: false, missing: false, lost: false, cause: "" };
+}
+function note(text, banner) {
+  state.log.unshift(text);
+  if (state.log.length > 48) state.log.pop();
+  if (banner) state.banner = { text, until: performance.now() + 4600 };
+}
+function tone(freq, dur, type, gain, slide) {
+  if (state.mute) return;
+  try {
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type || "triangle";
+    o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(48, freq + slide), audioCtx.currentTime + dur);
+    g.gain.setValueAtTime(gain || 0.04, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start();
+    o.stop(audioCtx.currentTime + dur + 0.02);
+  } catch (err) { /* sound is optional */ }
+}
+function healCrew(amount) {
+  if (!amount || amount < 0) return;
+  for (const c of living()) c.health = clamp(c.health + amount, 1, 100);
+}
+function hurtCrew(amount, cause) {
+  if (!amount || amount < 0) return;
+  for (const c of living()) {
+    c.health -= amount;
+    if (cause) c.cause = cause;
+  }
+}
+function applyPaceHealth(pace) {
+  const total = pace.heal + RATIONS[state.rations].heal;
+  if (total >= 0) healCrew(total);
+  else hurtCrew(-total, "exhaustion");
+}
+function tinkerChance() {
+  let c = state.job === "mechanic" ? 0.8 : 0.38;
+  if (crewNamed("r2d2")) c += 0.12;
+  if (crewNamed("rey")) c += 0.08;
+  return Math.min(0.92, c);
+}
+function spareCount() {
+  return state.parts.motivator + state.parts.coil + state.parts.strut;
+}
+
+function ensureGrain() {
+  if (grainPat) return;
+  const g = document.createElement("canvas");
+  g.width = 160; g.height = 160;
+  const gx = g.getContext("2d");
+  for (let i = 0; i < 900; i++) {
+    const v = 150 + ((i * 17) % 80);
+    gx.fillStyle = "rgba(" + v + "," + (v - 12) + "," + (v - 28) + ",.16)";
+    gx.fillRect((i * 47) % 160, (i * 91) % 160, 1.3, 1.3);
+  }
+  grainPat = ctx.createPattern(g, "repeat");
+}
+function pen(c, color, w) {
+  c.strokeStyle = color || INK;
+  c.lineWidth = w || 2.5;
+  c.lineCap = "round";
+  c.lineJoin = "round";
+}
+function wobbleCircle(c, x, y, r, width) {
+  c.beginPath();
+  const steps = 26;
+  for (let i = 0; i <= steps; i++) {
+    const a = (i / steps) * Math.PI * 2;
+    const n = 1 + Math.sin(a * 5 + r * 0.2) * 0.018;
+    const px = x + Math.cos(a) * r * n;
+    const py = y + Math.sin(a) * r * n;
+    if (i === 0) c.moveTo(px, py); else c.lineTo(px, py);
+  }
+  pen(c, INK, width || 3);
+  c.stroke();
+}
+function drawRock(c, x, y, r, seed) {
+  c.beginPath();
+  const n = 7;
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 - 0.2;
+    const rr = r * (0.72 + hash(seed + i * 3) * 0.5);
+    const px = x + Math.cos(a) * rr;
+    const py = y + Math.sin(a) * rr * 0.82;
+    if (i === 0) c.moveTo(px, py); else c.lineTo(px, py);
+  }
+  c.closePath();
+  c.fillStyle = hash(seed + 1) > 0.5 ? "#b7a48c" : "#8d7b66";
+  c.fill();
+  pen(c, INK, 2);
+  c.stroke();
+  c.beginPath();
+  c.arc(x - r * 0.15, y - r * 0.05, Math.max(2, r * 0.18), 0, Math.PI * 2);
+  c.stroke();
+}
+function drawDestroyer(c, x, y, s, dir) {
+  c.save();
+  c.translate(x, y);
+  c.scale(dir < 0 ? -1 : 1, 1);
+  c.beginPath();
+  c.moveTo(46 * s, 2 * s);
+  c.lineTo(-34 * s, -16 * s);
+  c.lineTo(-24 * s, 2 * s);
+  c.lineTo(-36 * s, 20 * s);
+  c.closePath();
+  c.fillStyle = "#e23b32";
+  c.fill();
+  c.beginPath();
+  c.moveTo(8 * s, -2 * s);
+  c.lineTo(-8 * s, -16 * s);
+  c.lineTo(-16 * s, -2 * s);
+  c.closePath();
+  c.fillStyle = "#b32028";
+  c.fill();
+  pen(c, INK, Math.max(1.5, 2 * s));
+  c.beginPath();
+  c.moveTo(46 * s, 2 * s);
+  c.lineTo(-34 * s, -16 * s);
+  c.lineTo(-24 * s, 2 * s);
+  c.lineTo(-36 * s, 20 * s);
+  c.closePath();
+  c.stroke();
+  c.fillStyle = "#3a6fbf";
+  for (let i = 0; i < 3; i++) {
+    c.beginPath();
+    c.arc(-18 * s + i * 8 * s, 11 * s, 2.1 * s, 0, Math.PI * 2);
+    c.fill();
+  }
+  c.restore();
+}
+function drawCoruscant(c, x, y, r) {
+  c.save();
+  c.beginPath();
+  c.arc(x, y, r, 0, Math.PI * 2);
+  c.fillStyle = "#e5923f";
+  c.fill();
+  c.clip();
+  c.strokeStyle = "#6a3a22";
+  c.lineWidth = Math.max(1.4, r / 26);
+  for (let i = -3; i <= 3; i++) {
+    c.beginPath();
+    c.ellipse(x, y + i * r * 0.22, r * 1.08, r * 0.16, 0, 0, Math.PI * 2);
+    c.stroke();
+    c.beginPath();
+    c.ellipse(x + i * r * 0.28, y, r * 0.2, r * 1.05, 0, 0, Math.PI * 2);
+    c.stroke();
+  }
+  c.fillStyle = "#c46a32";
+  for (let i = 0; i < 8; i++) {
+    const bx = x - r * 0.55 + hash(i + 4) * r * 1.1;
+    const by = y - r * 0.4 + hash(i + 12) * r * 0.8;
+    c.fillRect(bx, by, r * 0.08, r * (0.05 + hash(i) * 0.1));
+  }
+  c.restore();
+  wobbleCircle(c, x, y, r, Math.max(2, r / 18));
+}
+function drawShip(c, x, y, s, time) {
+  c.save();
+  c.translate(x, y);
+  c.scale(s, s);
+  const tilt = Math.sin(time * 1.4) * 0.04;
+  c.rotate(tilt);
+  c.fillStyle = "rgba(36,30,26,.13)";
+  c.beginPath();
+  c.ellipse(10, 46, 54, 8, 0, 0, Math.PI * 2);
+  c.fill();
+  c.beginPath();
+  c.moveTo(-68, 8);
+  c.quadraticCurveTo(-74, -18, -20, -22);
+  c.lineTo(34, -20);
+  c.quadraticCurveTo(78, -16, 84, 2);
+  c.quadraticCurveTo(70, 26, 10, 28);
+  c.quadraticCurveTo(-60, 30, -68, 8);
+  c.closePath();
+  c.fillStyle = "#f7f1e4";
+  c.fill();
+  pen(c, INK, 3);
+  c.stroke();
+  c.fillStyle = "#b7d36a";
+  c.fillRect(-46, -2, 78, 8);
+  pen(c, INK, 2);
+  c.strokeRect(-46, -2, 78, 8);
+  c.beginPath();
+  c.ellipse(18, -24, 22, 16, 0, Math.PI, 0);
+  c.fillStyle = "#8ec6ea";
+  c.fill();
+  pen(c, INK, 2.5);
+  c.stroke();
+  c.fillStyle = "#f0c84a";
+  c.fillRect(8, -6, 8, 8);
+  pen(c, INK, 1.5);
+  c.strokeRect(8, -6, 8, 8);
+  c.fillStyle = "#d0d4da";
+  c.beginPath(); c.arc(-62, -6, 11, 0, Math.PI * 2); c.fill(); c.stroke();
+  c.beginPath(); c.arc(-62, 14, 9, 0, Math.PI * 2); c.fill(); c.stroke();
+  const flame = 10 + Math.sin(time * 28) * 6;
+  c.fillStyle = "#f0a040";
+  c.beginPath();
+  c.moveTo(-72, -6);
+  c.lineTo(-72 - flame, -1);
+  c.lineTo(-72, 2);
+  c.fill();
+  c.beginPath();
+  c.moveTo(-70, 14);
+  c.lineTo(-70 - flame * 0.8, 18);
+  c.lineTo(-70, 20);
+  c.fill();
+  c.fillStyle = INK;
+  c.font = "12px Patrick Hand, cursive";
+  c.textAlign = "center";
+  c.fillText("LARK", 8, 16);
+  c.beginPath();
+  c.moveTo(24, -38);
+  c.lineTo(24, -48);
+  c.stroke();
+  c.restore();
+}
+function drawKaminoScene(c, x, y, s) {
+  c.fillStyle = "rgba(36,120,196,.9)";
+  c.fillRect(x - 160 * s, y, 320 * s, 40 * s);
+  pen(c, INK, 2);
+  c.strokeRect(x - 160 * s, y, 320 * s, 40 * s);
+  for (let i = 0; i < 5; i++) {
+    const px = x + (i - 2) * 58 * s;
+    const h = (78 + (i % 2) * 36) * s;
+    c.fillStyle = "#d5dde6";
+    c.fillRect(px - 4 * s, y - h, 8 * s, h);
+    pen(c, INK, 2);
+    c.strokeRect(px - 4 * s, y - h, 8 * s, h);
+    c.fillStyle = "#f4f7fb";
+    c.fillRect(px - 24 * s, y - h - 16 * s, 48 * s, 18 * s);
+    c.strokeRect(px - 24 * s, y - h - 16 * s, 48 * s, 18 * s);
+    c.fillStyle = "#4a5560";
+    c.beginPath();
+    c.ellipse(px, y - h - 16 * s, 16 * s, 11 * s, 0, Math.PI, 0);
+    c.fill();
+    pen(c, INK, 2);
+    c.stroke();
+  }
+}
+function drawTemple(c, x, y, s) {
+  c.fillStyle = "#e7c99a";
+  const steps = [120, 92, 66, 44];
+  steps.forEach((w, i) => {
+    const ww = w * s;
+    const yy = y - i * 18 * s;
+    c.fillRect(x - ww / 2, yy - 18 * s, ww, 20 * s);
+    pen(c, INK, 2);
+    c.strokeRect(x - ww / 2, yy - 18 * s, ww, 20 * s);
+  });
+  c.fillStyle = "#f3e2c4";
+  c.fillRect(x - 8 * s, y - 110 * s, 16 * s, 40 * s);
+  c.strokeRect(x - 8 * s, y - 110 * s, 16 * s, 40 * s);
+}
+function drawBantha(c, x, y, s, flip) {
+  c.save();
+  c.translate(x, y);
+  c.scale((flip ? -1 : 1) * s, s);
+  c.fillStyle = "#b8895a";
+  c.beginPath();
+  c.ellipse(0, -18, 28, 14, 0, 0, Math.PI * 2);
+  c.fill();
+  pen(c, INK, 2);
+  c.stroke();
+  c.beginPath();
+  c.ellipse(30, -28, 10, 8, 0.4, 0, Math.PI * 2);
+  c.fill(); c.stroke();
+  c.beginPath();
+  c.moveTo(34, -34); c.lineTo(40, -46); c.lineTo(28, -32);
+  c.stroke();
+  for (const lx of [-16, -6, 8, 16]) {
+    c.beginPath(); c.moveTo(lx, -8); c.lineTo(lx - 2, 8); c.stroke();
+  }
+  c.restore();
+}
+function drawTree(c, x, y, s) {
+  c.fillStyle = "#6b442c";
+  c.fillRect(x - 3 * s, y - 28 * s, 6 * s, 28 * s);
+  c.fillStyle = "#3f8f45";
+  c.beginPath();
+  c.arc(x, y - 36 * s, 16 * s, 0, Math.PI * 2);
+  c.fill();
+  pen(c, INK, 2);
+  c.stroke();
+}
+function drawJawa(c, x, y, s) {
+  c.fillStyle = "#8a5a2a";
+  c.beginPath();
+  c.moveTo(x, y - 28 * s);
+  c.lineTo(x + 12 * s, y);
+  c.lineTo(x - 12 * s, y);
+  c.closePath();
+  c.fill();
+  pen(c, INK, 2);
+  c.stroke();
+  c.fillStyle = "#f0c84a";
+  c.beginPath(); c.arc(x - 3 * s, y - 16 * s, 1.6 * s, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.arc(x + 3 * s, y - 16 * s, 1.6 * s, 0, Math.PI * 2); c.fill();
+}
+function drawAnimal(c, kind, x, y, s) {
+  if (kind === "jawa") { drawJawa(c, x, y, s); return; }
+  if (kind === "bantha") { drawBantha(c, x, y, s * 0.9, true); return; }
+  if (kind === "mynock") {
+    c.fillStyle = "#c46a48";
+    c.beginPath();
+    c.ellipse(x, y, 16 * s, 7 * s, 0, 0, Math.PI * 2);
+    c.fill();
+    pen(c, INK, 2); c.stroke();
+    c.beginPath();
+    c.moveTo(x - 6 * s, y); c.lineTo(x - 20 * s, y - 12 * s); c.lineTo(x - 4 * s, y + 2);
+    c.fillStyle = "#a85040"; c.fill(); c.stroke();
+    return;
+  }
+  const w = kind === "nerf" ? 34 : 18;
+  const h = kind === "nerf" ? 16 : 10;
+  c.fillStyle = kind === "nerf" ? "#d8c4a0" : "#c4a07a";
+  c.beginPath();
+  c.ellipse(x, y - h, w, h, 0, 0, Math.PI * 2);
+  c.fill();
+  pen(c, INK, 2); c.stroke();
+  c.beginPath();
+  c.arc(x + w * 0.7, y - h * 1.4, h * 0.7, 0, Math.PI * 2);
+  c.fill(); c.stroke();
+  if (kind === "nerf") {
+    c.beginPath();
+    c.moveTo(x + w * 0.75, y - h * 2); c.lineTo(x + w, y - h * 3.1); c.stroke();
+  }
+}
+function paintDoodle(canvas, kind) {
+  const w = canvas.width;
+  const h = canvas.height;
+  const c = canvas.getContext("2d");
+  c.clearRect(0, 0, w, h);
+  const mid = h * 0.62;
+  switch (kind) {
+    case "coruscant":
+      drawCoruscant(c, w * 0.62, h * 0.48, h * 0.36);
+      drawTemple(c, w * 0.28, h * 0.78, 0.7);
+      break;
+    case "kamino":
+      drawKaminoScene(c, w * 0.5, h * 0.72, 0.85);
+      break;
+    case "naboo":
+      c.fillStyle = "#7fba6a";
+      c.beginPath(); c.ellipse(w * 0.5, h * 0.58, 150, 70, 0, 0, Math.PI * 2); c.fill();
+      pen(c, INK, 3); c.stroke();
+      c.strokeStyle = "#3d8fbf"; c.lineWidth = 8;
+      c.beginPath(); c.moveTo(w * 0.5, h * 0.28); c.lineTo(w * 0.5, h * 0.7); c.stroke();
+      c.fillStyle = "#f4f0e4";
+      c.fillRect(w * 0.42, h * 0.34, 50, 28);
+      pen(c, INK, 2); c.strokeRect(w * 0.42, h * 0.34, 50, 28);
+      break;
+    case "hoth":
+      c.fillStyle = "#f7fbfe";
+      c.beginPath(); c.ellipse(w * 0.55, h * 0.5, 160, 80, 0, 0, Math.PI * 2); c.fill();
+      wobbleCircle(c, w * 0.55, h * 0.5, 90, 3);
+      c.fillStyle = "#d5e6f2";
+      c.beginPath(); c.arc(w * 0.38, mid, 50, Math.PI, 0); c.fill();
+      pen(c, INK, 2); c.stroke();
+      break;
+    case "bespin":
+      c.fillStyle = "#f0b06a";
+      c.beginPath(); c.ellipse(w * 0.58, h * 0.5, 170, 78, 0, 0, Math.PI * 2); c.fill();
+      wobbleCircle(c, w * 0.58, h * 0.5, 100, 3);
+      c.fillStyle = "#f7f1e4";
+      c.fillRect(w * 0.22, h * 0.42, 90, 16);
+      pen(c, INK, 2); c.strokeRect(w * 0.22, h * 0.42, 90, 16);
+      c.beginPath(); c.arc(w * 0.4, h * 0.42, 18, Math.PI, 0); c.stroke();
+      break;
+    case "endor":
+      drawTree(c, w * 0.3, mid + 20, 1.4);
+      drawTree(c, w * 0.46, mid + 10, 1.8);
+      drawTree(c, w * 0.62, mid + 24, 1.3);
+      c.fillStyle = "#c9b48a";
+      c.beginPath(); c.arc(w * 0.78, h * 0.34, 36, 0, Math.PI * 2); c.fill();
+      wobbleCircle(c, w * 0.78, h * 0.34, 36, 2);
+      break;
+    case "belt":
+      drawRock(c, w * 0.3, h * 0.48, 46, 2);
+      drawRock(c, w * 0.52, h * 0.4, 32, 5);
+      drawRock(c, w * 0.68, h * 0.58, 40, 9);
+      break;
+    case "blockade":
+    case "destroyer":
+      drawDestroyer(c, w * 0.32, h * 0.42, 1.15, -1);
+      drawDestroyer(c, w * 0.58, h * 0.62, 0.9, -1);
+      drawDestroyer(c, w * 0.74, h * 0.34, 0.7, -1);
+      break;
+    case "ship":
+      drawShip(c, w * 0.46, h * 0.52, 1.15, 1);
+      break;
+    case "sick":
+      c.fillStyle = "#f2c9a0";
+      c.beginPath(); c.arc(w * 0.5, h * 0.46, 46, 0, Math.PI * 2); c.fill();
+      wobbleCircle(c, w * 0.5, h * 0.46, 46, 3);
+      c.fillStyle = INK;
+      c.beginPath(); c.arc(w * 0.42, h * 0.42, 4, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.arc(w * 0.58, h * 0.42, 4, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = "#3f8f45"; c.lineWidth = 4;
+      c.beginPath(); c.arc(w * 0.5, h * 0.52, 16, 0.2, Math.PI - 0.2); c.stroke();
+      break;
+    case "part":
+      c.strokeStyle = INK; c.lineWidth = 8; c.lineCap = "round";
+      c.beginPath(); c.arc(w * 0.48, h * 0.5, 40, 0.4, 5.4); c.stroke();
+      c.fillStyle = "#d64532";
+      c.fillRect(w * 0.62, h * 0.34, 18, 18);
+      break;
+    case "pod":
+      c.fillStyle = "#d9dde2";
+      c.beginPath(); c.ellipse(w * 0.5, h * 0.5, 70, 36, -0.4, 0, Math.PI * 2); c.fill();
+      pen(c, INK, 3); c.stroke();
+      c.fillStyle = "#8ec6ea";
+      c.beginPath(); c.ellipse(w * 0.62, h * 0.42, 16, 12, 0, 0, Math.PI * 2); c.fill(); c.stroke();
+      break;
+    case "trader":
+      drawShip(c, w * 0.32, h * 0.55, 0.7, 1);
+      drawShip(c, w * 0.7, h * 0.48, 0.55, 2);
+      break;
+    case "bantha":
+      drawBantha(c, w * 0.5, h * 0.62, 1.6, false);
+      break;
+    case "coins":
+      for (let i = 0; i < 2; i++) {
+        c.fillStyle = "#f0c84a";
+        c.beginPath(); c.arc(w * 0.4 + i * 70, h * 0.5, 36, 0, Math.PI * 2); c.fill();
+        wobbleCircle(c, w * 0.4 + i * 70, h * 0.5, 36, 3);
+        c.fillStyle = INK; c.font = "28px Patrick Hand, cursive"; c.textAlign = "center";
+        c.fillText("S", w * 0.4 + i * 70, h * 0.54);
+      }
+      break;
+    case "tomb":
+      c.fillStyle = "#d9d3c8";
+      c.beginPath(); c.moveTo(w * 0.38, h * 0.75); c.lineTo(w * 0.42, h * 0.28); c.lineTo(w * 0.62, h * 0.28); c.lineTo(w * 0.66, h * 0.75); c.closePath();
+      c.fill(); pen(c, INK, 3); c.stroke();
+      break;
+    case "holocron":
+      c.fillStyle = "#f0c84a";
+      c.save(); c.translate(w * 0.5, h * 0.5); c.rotate(0.2);
+      c.fillRect(-34, -34, 68, 68); pen(c, INK, 3); c.strokeRect(-34, -34, 68, 68);
+      c.strokeRect(-16, -16, 32, 32); c.restore();
+      break;
+    case "jawa":
+      drawJawa(c, w * 0.5, h * 0.7, 2.4);
+      break;
+    case "ion":
+      c.strokeStyle = "#e2b33a"; c.lineWidth = 5; c.lineJoin = "round";
+      c.beginPath(); c.moveTo(w * 0.3, h * 0.2); c.lineTo(w * 0.42, h * 0.45); c.lineTo(w * 0.36, h * 0.45); c.lineTo(w * 0.55, h * 0.8); c.stroke();
+      c.beginPath(); c.moveTo(w * 0.58, h * 0.18); c.lineTo(w * 0.7, h * 0.42); c.lineTo(w * 0.64, h * 0.42); c.lineTo(w * 0.78, h * 0.7); c.stroke();
+      break;
+    case "lost":
+      c.strokeStyle = INK; c.lineWidth = 3;
+      c.beginPath(); c.arc(w * 0.46, h * 0.55, 28, 0, Math.PI * 2); c.stroke();
+      c.font = "48px Patrick Hand, cursive"; c.fillStyle = INK; c.textAlign = "center";
+      c.fillText("?", w * 0.46, h * 0.62);
+      break;
+    case "distress":
+      c.fillStyle = "#e23b32";
+      c.beginPath(); c.arc(w * 0.5, h * 0.48, 18, 0, Math.PI * 2); c.fill();
+      wobbleCircle(c, w * 0.5, h * 0.48, 40, 2);
+      wobbleCircle(c, w * 0.5, h * 0.48, 62, 2);
+      break;
+    case "vaporator":
+      c.fillStyle = "#cfd6dc";
+      c.fillRect(w * 0.48, h * 0.22, 16, h * 0.5);
+      pen(c, INK, 2); c.strokeRect(w * 0.48, h * 0.22, 16, h * 0.5);
+      c.fillStyle = "#8ec6ea";
+      c.fillRect(w * 0.4, h * 0.22, 70, 28); c.strokeRect(w * 0.4, h * 0.22, 70, 28);
+      break;
+    case "wrench":
+      c.strokeStyle = INK; c.lineWidth = 8; c.lineCap = "round";
+      c.beginPath(); c.moveTo(w * 0.32, h * 0.7); c.lineTo(w * 0.62, h * 0.28); c.stroke();
+      c.beginPath(); c.arc(w * 0.66, h * 0.24, 16, 0.2, 2.4); c.stroke();
+      break;
+    case "cloak":
+      c.fillStyle = "#6a5038";
+      c.beginPath(); c.moveTo(w * 0.5, h * 0.22); c.lineTo(w * 0.72, h * 0.78); c.lineTo(w * 0.28, h * 0.78); c.closePath();
+      c.fill(); pen(c, INK, 3); c.stroke();
+      c.fillStyle = "#f2c9a0";
+      c.beginPath(); c.arc(w * 0.5, h * 0.28, 16, 0, Math.PI * 2); c.fill(); c.stroke();
+      break;
+    case "temple":
+      drawCoruscant(c, w * 0.72, h * 0.42, 70);
+      drawTemple(c, w * 0.34, h * 0.8, 0.85);
+      break;
+    case "mynock":
+      drawAnimal(c, "mynock", w * 0.35, h * 0.5, 2);
+      drawAnimal(c, "mynock", w * 0.55, h * 0.38, 1.6);
+      drawAnimal(c, "mynock", w * 0.68, h * 0.58, 1.3);
+      break;
+    case "crate":
+      c.fillStyle = "#e0b15a";
+      c.fillRect(w * 0.34, h * 0.28, 160, 110);
+      pen(c, INK, 3); c.strokeRect(w * 0.34, h * 0.28, 160, 110);
+      c.beginPath(); c.moveTo(w * 0.34, h * 0.28); c.lineTo(w * 0.5, h * 0.7); c.lineTo(w * 0.34 + 160, h * 0.28); c.stroke();
+      break;
+    case "map":
+      drawMap(c, w, h);
+      break;
+    default:
+      throw new Error("doodle " + kind);
+  }
+}
+function drawMap(c, w, h) {
+  const left = 36;
+  const right = w - 36;
+  const y = h * 0.48;
+  pen(c, INK, 3);
+  c.beginPath(); c.moveTo(left, y); c.lineTo(right, y); c.stroke();
+  LANDMARKS.forEach((lm, i) => {
+    const x = left + (lm.at / TOTAL) * (right - left);
+    const here = state.cleared.includes(lm.id);
+    const next = nextLandmark() && nextLandmark().id === lm.id;
+    c.beginPath();
+    c.arc(x, y, next ? 8 : 6, 0, Math.PI * 2);
+    c.fillStyle = here ? "#e5923f" : "#fffaf0";
+    c.fill();
+    pen(c, INK, 2); c.stroke();
+    c.fillStyle = INK;
+    c.font = "16px Patrick Hand, cursive";
+    c.textAlign = "center";
+    c.fillText(lm.name, x, i % 2 === 0 ? y - 16 : y + 28);
+  });
+  const sx = left + (clamp(state.viewParsecs, 0, TOTAL) / TOTAL) * (right - left);
+  drawShip(c, sx, y - 36, 0.28, performance.now() / 1000);
+}
+
+function showCard(opts) {
+  state.paused = true;
+  state.menuOpen = false;
+  const stage = document.getElementById("stage");
+  stage.className = "modal";
+  stage.innerHTML = "";
+  const card = document.createElement("article");
+  card.className = "card" + (opts.wide ? " wide" : "");
+  const bits = ['<div class="tape"></div>'];
+  if (opts.kicker) bits.push('<div class="kicker">' + esc(opts.kicker) + "</div>");
+  if (opts.doodle) bits.push('<canvas class="doodle" width="960" height="360"></canvas>');
+  if (opts.title) bits.push("<h2>" + esc(opts.title) + "</h2>");
+  if (opts.sub) bits.push('<div class="subhead">' + esc(opts.sub) + "</div>");
+  if (opts.body) bits.push('<p class="body">' + esc(opts.body).replace(/\n/g, "<br>") + "</p>");
+  bits.push('<div class="choices"></div>');
+  card.innerHTML = bits.join("");
+  stage.appendChild(card);
+  if (opts.doodle) paintDoodle(card.querySelector("canvas"), opts.doodle);
+  const box = card.querySelector(".choices");
+  (opts.choices || []).forEach((ch) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.innerHTML = "<span>" + esc(ch.label) + "</span>" + (ch.detail ? "<small>" + esc(ch.detail) + "</small>" : "");
+    if (ch.disabled) b.disabled = true;
+    if (ch.primary) b.className = "primary";
+    b.addEventListener("click", () => {
+      tone(560, 0.05, "triangle", 0.035);
+      ch.go();
+    });
+    box.appendChild(b);
+  });
+  if (opts.foot) {
+    const p = document.createElement("p");
+    p.className = "fine";
+    p.textContent = opts.foot;
+    card.appendChild(p);
+  }
+  if (opts.after) opts.after(card);
+  const first = box.querySelector("button:not(:disabled)");
+  if (first) first.focus();
+  return card;
+}
+function clearStage() {
+  const stage = document.getElementById("stage");
+  stage.className = "";
+  stage.innerHTML = "";
+}
+function resume() {
+  if (state.screen === "end") return;
+  state.paused = false;
+  state.menuOpen = false;
+  state.mode = "travel";
+  state.action = null;
+  clearStage();
+  setTouch(false);
+  if (state.launched) {
+    state.screen = "travel";
+    setHud(true);
+    persist(false);
+  }
+}
+function setHud(on) {
+  document.getElementById("hud").hidden = !on;
+}
+function setTouch(mode) {
+  const el = document.getElementById("touch");
+  const show = mode === "asteroid" || mode === "imperial" || mode === "hunt";
+  el.hidden = !show;
+  document.getElementById("btnFire").hidden = mode === "asteroid";
+  document.getElementById("btnUp").hidden = mode === "hunt";
+  document.getElementById("btnDown").hidden = mode === "hunt";
+}
+function showTombOr(after) {
+  state.afterQueue = after || null;
+  if (state.tombQueue.length) showNextTomb();
+  else finishQueue();
+}
+function showNextTomb() {
+  const c = state.tombQueue.shift();
+  if (!c) { finishQueue(); return; }
+  const left = !!c.lost;
+  showCard({
+    doodle: left ? "pod" : "tomb",
+    kicker: left ? "A seat is empty" : "Here rests",
+    title: c.name,
+    body: (left
+      ? c.name + " left the crossing near " + placeName() + "."
+      : cap(c.cause || "the crossing") + " took " + c.name + " near " + placeName() + ".") + "\nDay " + state.day + ".",
+    choices: [{ label: "Continue", primary: true, go: showNextTomb }]
+  });
+}
+function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ""; }
+function finishQueue() {
+  if (!state.crew.length || !leader().alive || living().length === 0) {
+    state.afterQueue = null;
+    defeat();
+    return;
+  }
+  const fn = state.afterQueue;
+  state.afterQueue = null;
+  if (fn) fn();
+  else resume();
+}
+function reap() {
+  let saved = false;
+  for (const c of state.crew) {
+    if (!c.alive || c.missing) continue;
+    if (c.health > 0) continue;
+    if (!saved && state.groguSave && crewNamed("grogu")) {
+      c.health = 16;
+      saved = true;
+      state.groguSave = false;
+      note("Grogu reaches out and hauls " + c.name + " back aboard.", true);
+      continue;
+    }
+    c.alive = false;
+    c.health = 0;
+    if (!c.cause) c.cause = "the crossing";
+    state.tombQueue.push(c);
+  }
+}
+
+function passDays(n, opt) {
+  const rest = opt && opt.rest;
+  for (let i = 0; i < n; i++) {
+    state.day += 1;
+    const need = mealsNeeded();
+    if (need > 0 && state.food >= need) {
+      state.food -= need;
+      const bonus = rest ? 12 + (crewNamed("ahsoka") ? 5 : 0) : 0;
+      healCrew(bonus + Math.max(0, RATIONS[state.rations].heal));
+      if (RATIONS[state.rations].heal < 0) hurtCrew(-RATIONS[state.rations].heal, "thin rations");
+    } else if (need > 0) {
+      state.food = 0;
+      hurtCrew(14, "hunger");
+    }
+    for (const c of living()) {
+      if (!c.sick) continue;
+      c.health -= rest ? 3 : 5;
+      c.cause = c.sick;
+      if (rest && c.health > 58 && Math.random() < 0.45) {
+        c.sick = null;
+        note(c.name + " steadies while the ship rests.", true);
+      }
+    }
+    if (rest && Math.random() < 0.08 && state.food > 40) {
+      state.food -= 40;
+      note("Someone rifles the galley during the stop. −40 meals.", true);
+    }
+    reap();
+  }
+}
+
+function openTitle() {
+  state.screen = "title";
+  state.paused = true;
+  setHud(false);
+  const stage = document.getElementById("stage");
+  stage.className = "";
+  stage.innerHTML = "";
+  const card = document.createElement("article");
+  card.className = "card";
+  const saved = !!localStorage.getItem(SAVE);
+  card.innerHTML = '<div class="tape"></div>'
+    + '<canvas class="doodle" id="titleLive" width="960" height="360"></canvas>'
+    + "<h1><span class=\"small\">Adrian's</span><span class=\"mid\">Star Wars</span>Oregon Trail</h1>"
+    + '<p class="body">Fly the Bright Lark from Tatooine to the Coruscant Jedi Temple. Asteroid belts instead of rivers. Keep the crew fed and the drums full.</p>'
+    + '<div class="choices"></div>'
+    + '<p class="fine">Fan-made. Drawn like pencil-and-marker cards. Star Wars belongs to its owners. Patrick Hand font © Patrick Wagesreiter, SIL Open Font License.</p>';
+  stage.appendChild(card);
+  const box = card.querySelector(".choices");
+  const add = (label, primary, go) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = label;
+    if (primary) b.className = "primary";
+    b.addEventListener("click", go);
+    box.appendChild(b);
+  };
+  add("Start the crossing", true, () => { tone(640, 0.08, "triangle", 0.04); openJob(); });
+  if (saved) add("Continue the crossing", false, () => { tone(520, 0.06, "triangle", 0.04); loadGame(); });
+  add("How to fly", false, openHow);
+}
+function openHow() {
+  showCard({
+    doodle: "ship",
+    kicker: "How to fly",
+    title: "A short chart",
+    body: "The Lark scrolls on her own. Each day spends meals and fuel.\nMenu sets pace and rations. A feast heals. Scraps save food and wear the crew down. Full burn is fast and hard on the hull. A crawl is gentle.\nHunt in the side lanes when the galley runs low. Shots spend blaster packs. Leave the jawas walking.\nAsteroid belts ask you to steer. Pointer, arrows, or the Up and Down buttons.\nRed triangles are Imperial ships.\nThe far side of the lane is the Jedi Temple on Coruscant.",
+    choices: [{ label: "Back", primary: true, go: openTitle }]
+  });
+}
+function openJob() {
+  state.screen = "job";
+  const stage = document.getElementById("stage");
+  stage.className = "";
+  stage.innerHTML = "";
+  const card = document.createElement("article");
+  card.className = "card wide";
+  card.innerHTML = '<div class="tape"></div><div class="kicker">Who is flying?</div><h2>Pick a life</h2><div class="jobs" id="jobs"></div><div class="choices"></div>';
+  stage.appendChild(card);
+  const jobs = card.querySelector("#jobs");
+  const meta = [
+    ["senator", "cloak", "Senator", JOBS.senator.blurb],
+    ["mechanic", "wrench", "Mechanic", JOBS.mechanic.blurb],
+    ["farmer", "vaporator", "Moisture farmer", JOBS.farmer.blurb]
+  ];
+  meta.forEach(([id, doodle, label, blurb]) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "job" + (state.job === id ? " on" : "");
+    b.innerHTML = '<canvas class="mini" width="320" height="240"></canvas><strong>' + label + "</strong><div>" + esc(blurb) + "</div>";
+    paintDoodle(b.querySelector("canvas"), doodle);
+    b.addEventListener("click", () => { state.job = id; openJob(); });
+    jobs.appendChild(b);
+  });
+  const go = document.createElement("button");
+  go.type = "button";
+  go.className = "primary";
+  go.textContent = "Continue";
+  go.disabled = !state.job;
+  go.addEventListener("click", openCrew);
+  const back = document.createElement("button");
+  back.type = "button";
+  back.textContent = "Back";
+  back.addEventListener("click", openTitle);
+  const choices = card.querySelector(".choices");
+  choices.appendChild(go);
+  choices.appendChild(back);
+}
+function openCrew() {
+  state.screen = "crew";
+  const stage = document.getElementById("stage");
+  stage.className = "";
+  stage.innerHTML = "";
+  const card = document.createElement("article");
+  card.className = "card wide";
+  card.innerHTML = '<div class="tape"></div><div class="kicker">Five seats</div><h2>Name the crew</h2>'
+    + '<p class="body">Tap a name to fill the highlighted seat. Some names bring a talent.</p>'
+    + '<div class="presets" id="presets"></div><div id="seats"></div><div class="choices"></div>';
+  stage.appendChild(card);
+  const defaults = ["Adrian", "Luke", "Leia", "Han", "Chewie"];
+  const seats = card.querySelector("#seats");
+  const inputs = [];
+  for (let i = 0; i < 5; i++) {
+    const wrap = document.createElement("label");
+    wrap.className = "seat";
+    wrap.textContent = "Seat " + (i + 1);
+    const input = document.createElement("input");
+    input.type = "text";
+    input.maxLength = 18;
+    input.value = defaults[i];
+    input.addEventListener("focus", () => { state.seat = i; });
+    wrap.appendChild(input);
+    seats.appendChild(wrap);
+    inputs.push(input);
+  }
+  inputs[0].focus();
+  const presets = card.querySelector("#presets");
+  PRESETS.forEach(([name, perk]) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.innerHTML = esc(name) + "<small> · " + esc(perk) + "</small>";
+    b.addEventListener("click", () => {
+      inputs[state.seat].value = name;
+      inputs[state.seat].focus();
+    });
+    presets.appendChild(b);
+  });
+  const go = document.createElement("button");
+  go.type = "button";
+  go.className = "primary";
+  go.textContent = "Continue";
+  go.addEventListener("click", () => {
+    const names = inputs.map((el) => el.value.trim()).filter(Boolean).slice(0, 5);
+    if (!names.length) names.push("Adrian");
+    state.crew = names.map(makeCrew);
+    state.seat = 0;
+    openCycle();
+  });
+  const back = document.createElement("button");
+  back.type = "button";
+  back.textContent = "Back";
+  back.addEventListener("click", openJob);
+  const choices = card.querySelector(".choices");
+  choices.appendChild(go);
+  choices.appendChild(back);
+}
+function openCycle() {
+  state.screen = "cycle";
+  showCard({
+    kicker: "When do you leave Mos Eisley?",
+    title: "Pick a season",
+    doodle: "ship",
+    choices: [
+      { label: "Quiet cycle", detail: "Fewer patrols. Ordinary prices.", go: () => { state.cycle = "quiet"; openStore("tatooine", true); } },
+      { label: "Storm cycle", detail: "Ion weather, loose parts, richer hunts, easier prices.", go: () => { state.cycle = "storm"; openStore("tatooine", true); } },
+      { label: "War cycle", detail: "Destroyers in the lanes. Low prices. The crew spooks easier.", go: () => { state.cycle = "war"; openStore("tatooine", true); } },
+      { label: "Back", go: openCrew }
+    ]
+  });
+}
+function openStore(shop, fresh) {
+  state.shop = shop;
+  state.screen = state.launched ? "travel" : "store";
+  state.paused = true;
+  if (!state.launched && shop === "tatooine" && state.job) state.credits = JOBS[state.job].credits;
+  if (fresh) state.cart = emptyCart();
+  const stage = document.getElementById("stage");
+  stage.className = "modal";
+  stage.innerHTML = "";
+  const card = document.createElement("article");
+  card.className = "card wide";
+  const port = shop === "tatooine" ? "Mos Eisley outfitter" : shop === "bespin" ? "Cloud City market" : shop === "endor" ? "Ewok trade" : "Theed market";
+  card.innerHTML = '<div class="tape"></div><div class="kicker" id="shopKicker"></div><h2>' + esc(port) + '</h2>'
+    + '<p class="body" id="shopHint"></p><div id="shopItems"></div><div class="bill" id="shopBill"></div><div class="choices" id="shopChoices"></div>';
+  stage.appendChild(card);
+  const list = card.querySelector("#shopItems");
+  shopItems().forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "item";
+    row.innerHTML = "<div><strong>" + esc(item.label) + "</strong><div class=\"fine\">" + esc(item.detail) + " · <span class=\"price\"></span></div></div>"
+      + '<div class="stepper"><button type="button" data-d="-5">−5</button><button type="button" data-d="-1">−</button><b data-v>0</b><button type="button" data-d="1">+</button><button type="button" data-d="5">+5</button></div>';
+    row.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => addCart(item.id, Number(b.dataset.d))));
+    row.dataset.id = item.id;
+    list.appendChild(row);
+  });
+  const choices = card.querySelector("#shopChoices");
+  const fill = document.createElement("button");
+  fill.type = "button";
+  fill.textContent = "Fill the hold";
+  fill.addEventListener("click", fillHold);
+  const leave = document.createElement("button");
+  leave.type = "button";
+  leave.className = "primary";
+  leave.id = "leaveShop";
+  leave.textContent = shop === "tatooine" && !state.launched ? "Leave Mos Eisley" : "Load the hold and return";
+  leave.addEventListener("click", () => {
+    if ((state.fuel + state.cart.fuel) < 1) return;
+    checkout();
+    if (!state.launched) launch();
+    else {
+      const lm = landmarkById(state.busy);
+      if (lm) openLandmark(lm);
+      else resume();
+    }
+  });
+  const back = document.createElement("button");
+  back.type = "button";
+  back.textContent = state.launched ? "Return without buying" : "Back";
+  back.addEventListener("click", () => {
+    state.cart = emptyCart();
+    if (!state.launched) openCycle();
+    else {
+      const lm = landmarkById(state.busy);
+      if (lm) openLandmark(lm);
+      else resume();
+    }
+  });
+  choices.appendChild(fill);
+  choices.appendChild(leave);
+  choices.appendChild(back);
+  refreshStore();
+}
+function refreshStore() {
+  const card = document.querySelector("#stage .card");
+  if (!card) return;
+  const days = Math.ceil(TOTAL / PACE.cruise.speed);
+  const hint = document.getElementById("shopHint");
+  if (hint) {
+    hint.textContent = "Credits on hand: " + state.credits + ". A cruise with square meals eats about "
+      + (Math.max(1, living().length) * 2) + " meals a day and burns " + PACE.cruise.fuel + " fuel. The Temple is "
+      + TOTAL + " parsecs out, about " + days + " steady days before detours.";
+  }
+  card.querySelectorAll(".item").forEach((row) => {
+    const item = ITEMS.find((i) => i.id === row.dataset.id);
+    row.querySelector(".price").textContent = unitPrice(item) + " cr";
+    row.querySelector("[data-v]").textContent = String(state.cart[item.id] || 0);
+  });
+  const cost = bill();
+  const left = state.credits - cost;
+  const billEl = document.getElementById("shopBill");
+  if (billEl) billEl.textContent = "This load: " + cost + " cr · " + left + " cr still in the pouch";
+  const leave = document.getElementById("leaveShop");
+  if (leave) {
+    const fuel = state.fuel + state.cart.fuel;
+    leave.disabled = fuel < 1 || cost > state.credits;
+  }
+}
+function addCart(id, d) {
+  const step = d > 0 ? 1 : -1;
+  for (let i = 0; i < Math.abs(d); i++) {
+    const prev = state.cart[id] || 0;
+    state.cart[id] = Math.max(0, prev + step);
+    if (bill() > state.credits) { state.cart[id] = prev; break; }
+  }
+  refreshStore();
+}
+function fillHold() {
+  state.cart = emptyCart();
+  let budget = state.credits;
+  const buy = (id, qty) => {
+    if (qty <= 0) return;
+    if (!shopItems().some((s) => s.id === id)) return;
+    const item = ITEMS.find((i) => i.id === id);
+    const p = unitPrice(item);
+    let n = 0;
+    while (n < qty && budget >= p) { n += 1; budget -= p; }
+    state.cart[id] += n;
+  };
+  buy("fuel", Math.max(0, 6 - state.fuel));
+  buy("food", Math.max(0, Math.ceil((700 - state.food) / 20)));
+  buy("blaster", Math.max(0, Math.ceil((20 - state.blasters) / 10)));
+  if (state.parts.strut < 1) buy("strut", 1);
+  buy("fuel", Math.max(0, 10 - state.fuel - state.cart.fuel));
+  buy("food", Math.max(0, Math.ceil((1200 - state.food) / 20) - state.cart.food));
+  buy("medpac", Math.max(0, (state.job === "senator" ? 3 : 1) - state.medpacs));
+  if (state.parts.coil < 1) buy("coil", 1);
+  if (state.parts.motivator < 1) buy("motivator", 1);
+  buy("blaster", 2);
+  buy("food", 15);
+  refreshStore();
+}
+function checkout() {
+  if (bill() > state.credits) return;
+  state.credits -= bill();
+  state.food += state.cart.food * 20;
+  state.fuel += state.cart.fuel;
+  state.blasters += state.cart.blaster * 10;
+  state.medpacs += state.cart.medpac;
+  state.parts.motivator += state.cart.motivator;
+  state.parts.coil += state.cart.coil;
+  state.parts.strut += state.cart.strut;
+  state.cart = emptyCart();
+}
+function launch() {
+  state.launched = true;
+  state.cleared = ["tatooine"];
+  state.busy = null;
+  state.screen = "travel";
+  state.day = 1;
+  state.parsecs = 0;
+  state.dayFrac = 0;
+  state.viewParsecs = 0;
+  state.groguSave = true;
+  if (crewNamed("padme")) {
+    state.medpacs += 1;
+    note("Padmé packed an extra medpac.");
+  }
+  note("The Bright Lark leaves Mos Eisley with the holocron aboard.");
+  setHud(true);
+  showCard({
+    doodle: "holocron",
+    kicker: "Day 1 · Tatooine",
+    title: "The crossing begins",
+    body: "The Bright Lark flies on her own. Each day eats meals and fuel.\nMenu sets pace and rations. Hunt when the galley runs low.\nSteer through the asteroid belts. Red triangles are Imperial ships.\nGet the holocron to the Jedi Temple on Coruscant.",
+    choices: [{ label: "Fly", primary: true, go: () => { persist(true); resume(); } }]
+  });
+}
+
+function updateHud() {
+  const hud = document.getElementById("hud");
+  if (hud.hidden) return;
+  const nx = nextLandmark();
+  const dist = nx ? Math.max(0, Math.ceil(nx.at - (state.viewParsecs || 0))) : 0;
+  document.getElementById("nextStop").textContent = nx ? ("Next: " + nx.name + " · " + dist + " parsecs") : "Coruscant";
+  const prev = previousAt();
+  const span = nx ? Math.max(1, nx.at - prev) : 1;
+  const t = nx ? clamp(((state.viewParsecs || 0) - prev) / span, 0, 1) : 1;
+  document.getElementById("progress").style.width = (t * 100) + "%";
+  const dayEl = document.getElementById("dayNum");
+  dayEl.textContent = "Day " + state.day;
+  if (state.day !== lastDayShown) {
+    lastDayShown = state.day;
+    dayEl.classList.remove("tick");
+    void dayEl.offsetWidth;
+    dayEl.classList.add("tick");
+  }
+  document.getElementById("weather").textContent = state.launched ? weatherFor(state.viewParsecs || 0) : "";
+  const need = Math.max(1, mealsNeeded());
+  const pace = paceStats();
+  const foodDays = state.food <= 0 ? 0 : Math.floor(state.food / need);
+  const fuelDays = pace.fuel > 0 ? Math.floor(state.fuel / pace.fuel) : 0;
+  document.getElementById("statFood").textContent = "Meals " + Math.floor(state.food) + " (" + foodDays + " days)";
+  document.getElementById("statFuel").textContent = "Fuel " + trimNum(state.fuel) + " (" + fuelDays + " days)";
+  document.getElementById("statCred").textContent = "Credits " + state.credits;
+  document.getElementById("statBlast").textContent = "Shots " + state.blasters;
+  document.getElementById("statMed").textContent = "Medpacs " + state.medpacs;
+  document.getElementById("statPace").textContent = paceStats().label + " · " + RATIONS[state.rations].label;
+  const broken = Object.keys(PART_NAME).filter((p) => state.broken[p]).map((p) => PART_NAME[p]);
+  document.getElementById("statParts").textContent = broken.length ? ("Broken: " + broken.join(", ")) : "Ship whole";
+  const sig = state.crew.map((c) => c.name + condition(c) + Math.round(c.health)).join("|");
+  if (sig !== hudCrewSig) {
+    hudCrewSig = sig;
+    document.getElementById("crewLine").innerHTML = state.crew.map((c) => {
+      return '<span class="who"><i class="pip" style="background:' + pipColor(c.name) + '"></i>' + esc(c.name) + "<small>" + esc(condition(c)) + "</small></span>";
+    }).join("");
+  }
+  const lock = state.mode !== "travel";
+  document.getElementById("btnMenu").disabled = lock;
+  document.getElementById("btnHunt").disabled = lock;
+  document.getElementById("btnRest").disabled = lock;
+  document.getElementById("btnMap").disabled = lock;
+  document.getElementById("btnSound").textContent = state.mute ? "Sound off" : "Sound on";
+}
+function trimNum(n) {
+  const x = Math.round(n * 10) / 10;
+  return Number.isInteger(x) ? String(x) : x.toFixed(1);
+}
+function updateBanner() {
+  const el = document.getElementById("banner");
+  if (state.banner && performance.now() < state.banner.until && state.mode === "travel") {
+    el.hidden = false;
+    el.textContent = state.banner.text;
+  } else el.hidden = true;
+}
+
+function openMenu() {
+  if (state.mode !== "travel" || state.screen !== "travel") return;
+  const spooked = living().some((c) => c.spooked);
+  const choices = [
+    { label: "Keep flying", primary: true, go: resume },
+    { label: "Change pace", detail: paceStats().label + " right now", go: openPace },
+    { label: "Change rations", detail: RATIONS[state.rations].label + " · " + mealsNeeded() + " meals a day", go: openRations },
+    { label: "Stop to rest", go: openRest },
+    { label: "Check supplies", go: openSupplies },
+    { label: "Look at the map", go: () => openMap(openMenu) },
+    { label: "Read the log", go: openLog },
+    { label: "Hail for a trade", detail: "Sometimes a ship answers.", go: hailTrade },
+    { label: "How to fly", go: () => showCard({ doodle: "ship", title: "Still the same chart", body: "Keep meals and fuel aboard. Steer in the belts. Red triangles mean an Imperial threat.", choices: [{ label: "Back to the menu", go: openMenu }] }) }
+  ];
+  if (spooked) {
+    choices.splice(4, 0, { label: "Talk the crew down", detail: "1 day. One spooked crewmate stays.", go: () => {
+      passDays(1);
+      const s = living().find((c) => c.spooked);
+      if (s) { s.spooked = false; note(s.name + " decides to stay.", true); }
+      showTombOr(() => showCard({ title: "A quieter cabin", body: s ? s.name + " stays aboard." : "The talk still mattered.", choices: [{ label: "Fly", go: resume }] }));
+    } });
+  }
+  showCard({ kicker: "The Lark holds position", title: "Menu", doodle: "ship", choices });
+  state.menuOpen = true;
+}
+function openPace() {
+  showCard({
+    title: "Pace",
+    doodle: "ship",
+    body: state.broken.motivator ? "The hyperdrive motivator is dead. The Lark can crawl." : "Full burn covers more parsecs and spends the crew. A crawl lets them mend.",
+    choices: [
+      { label: "Crawl", detail: PACE.crawl.speed + " parsecs a day · gentle", disabled: false, go: () => setPace("crawl") },
+      { label: "Cruise", detail: PACE.cruise.speed + " parsecs a day", disabled: !!state.broken.motivator, go: () => setPace("cruise") },
+      { label: "Full burn", detail: PACE.burn.speed + " parsecs a day · hard on the hull", disabled: !!state.broken.motivator, go: () => setPace("burn") },
+      { label: "Back", go: openMenu }
+    ]
+  });
+}
+function setPace(id) {
+  state.pace = id;
+  note("Pace set to " + PACE[id].label + ".", true);
+  resume();
+}
+function openRations() {
+  showCard({
+    title: "Rations",
+    doodle: "crate",
+    body: "The crew is " + living().length + " aboard" + (crewNamed("grogu") ? ", and Grogu eats one meal extra." : "."),
+    choices: [
+      { label: "Feast", detail: "3 meals each · the crew mends", go: () => setRations("feast") },
+      { label: "Square meals", detail: "2 meals each · steady", go: () => setRations("square") },
+      { label: "Scraps", detail: "1 meal each · they wear down", go: () => setRations("scraps") },
+      { label: "Back", go: openMenu }
+    ]
+  });
+}
+function setRations(id) {
+  state.rations = id;
+  note("Rations set to " + RATIONS[id].label + ".", true);
+  resume();
+}
+function openRest() {
+  const choices = [1, 2, 3, 5, 8].map((n) => ({
+    label: "Rest " + n + (n === 1 ? " day" : " days"),
+    detail: "Heals, spends meals, the Temple stays put",
+    go: () => {
+      passDays(n, { rest: true });
+      note("The crew rests " + n + " day" + (n > 1 ? "s" : "") + ".");
+      showTombOr(() => showCard({
+        doodle: "ship",
+        title: "Rest done",
+        body: "Day " + state.day + ". The Lark is quiet.",
+        choices: [{ label: "Back to the lane", primary: true, go: resume }]
+      }));
+    }
+  }));
+  choices.push({ label: "Back", go: openMenu });
+  showCard({ title: "Stop to rest", doodle: "ship", kicker: placeName(), choices });
+}
+function openSupplies() {
+  const lines = [
+    "Day " + state.day + " · " + Math.floor(state.parsecs) + " parsecs flown",
+    JOBS[state.job].title + " · " + state.cycle + " cycle",
+    "Meals " + Math.floor(state.food),
+    "Fuel " + trimNum(state.fuel),
+    "Credits " + state.credits,
+    "Blaster shots " + state.blasters,
+    "Medpacs " + state.medpacs,
+    "Motivators " + state.parts.motivator + (state.broken.motivator ? " (broken)" : ""),
+    "Shield coils " + state.parts.coil + (state.broken.coil ? " (broken)" : ""),
+    "Landing struts " + state.parts.strut + (state.broken.strut ? " (broken)" : ""),
+    ""
+  ].concat(state.crew.map((c) => c.name + " — " + condition(c) + (c.alive && !c.missing ? " (" + Math.max(0, Math.round(c.health)) + ")" : "")));
+  showCard({
+    doodle: "crate",
+    title: "Supplies",
+    body: lines.join("\n"),
+    choices: [{ label: "Back", primary: true, go: openMenu }]
+  });
+}
+function openMap(back) {
+  showCard({
+    doodle: "map",
+    wide: true,
+    kicker: Math.floor(state.parsecs) + " parsecs flown",
+    title: "The lane",
+    choices: [{ label: "Back", primary: true, go: back || resume }]
+  });
+}
+function openLog() {
+  showCard({
+    title: "Ship's log",
+    body: state.log.length ? state.log.slice(0, 14).join("\n") : "The log is still blank.",
+    choices: [{ label: "Back", primary: true, go: openMenu }]
+  });
+}
+function hailTrade() {
+  if (Math.random() > 0.62) {
+    showCard({
+      doodle: "trader",
+      title: "Static",
+      body: "The lane is empty. Nobody answers the hailing frequency.",
+      choices: [{ label: "Fly on", primary: true, go: resume }]
+    });
+    return;
+  }
+  offerTrade();
+}
+function offerTrade() {
+  const offers = [];
+  if (state.food >= 160) offers.push({ label: "Trade 160 meals for 2 fuel", go: () => { state.food -= 160; state.fuel += 2; } });
+  if (state.fuel >= 2) offers.push({ label: "Trade 2 fuel for 180 meals", go: () => { state.fuel -= 2; state.food += 180; } });
+  if (state.credits >= 40) offers.push({ label: "Buy a medpac for 40 credits", go: () => { state.credits -= 40; state.medpacs += 1; } });
+  if (state.blasters >= 20) offers.push({ label: "Trade 20 shots for 120 meals", go: () => { state.blasters -= 20; state.food += 120; } });
+  if (state.parts.strut >= 1) offers.push({ label: "Trade a strut for 2 fuel", go: () => { state.parts.strut -= 1; state.fuel += 2; } });
+  if (!offers.length) offers.push({ label: "Accept a crate of 40 meals", go: () => { state.food += 40; } });
+  const deal = offers[Math.floor(Math.random() * offers.length)];
+  showCard({
+    doodle: "trader",
+    kicker: "A freighter pulls alongside",
+    title: "Trade",
+    body: "The captain blinks the running lights and waits.",
+    choices: [
+      { label: deal.label, primary: true, go: () => { deal.go(); note("A trade on the lane.", true); resume(); } },
+      { label: "Wave them off", go: resume }
+    ]
+  });
+}
+
+function resolveDay() {
+  const pace = paceStats();
+  state.day += 1;
+  state.fuel = Math.max(0, Math.round((state.fuel - pace.fuel) * 100) / 100);
+  const need = mealsNeeded();
+  if (need > 0 && state.food >= need) {
+    state.food -= need;
+    applyPaceHealth(pace);
+  } else if (need > 0) {
+    state.food = 0;
+    hurtCrew(14, "hunger");
+    if (pace.heal < 0) hurtCrew(-pace.heal, "exhaustion");
+    note("The galley is empty.", true);
+  }
+  for (const c of living()) {
+    if (!c.sick) continue;
+    c.health -= 7;
+    c.cause = c.sick;
+    if (c.health > 55 && state.rations !== "scraps" && Math.random() < 0.18) {
+      const was = c.sick;
+      c.sick = null;
+      note(c.name + " shakes off " + was + ".", true);
+    }
+  }
+  for (const c of living()) {
+    if (c === leader() || !c.spooked) continue;
+    const leave = crewNamed("finn") ? 0.07 : 0.12;
+    if (Math.random() < leave) {
+      c.alive = false;
+      c.lost = true;
+      c.cause = "left in an escape pod";
+      state.tombQueue.push(c);
+      note(c.name + " takes a pod and leaves the crossing.", true);
+    }
+  }
+  if (state.day % 11 === 0 && crewNamed("adrian")) {
+    state.food += 30;
+    note("Adrian spots a drifting crate. +30 meals.", true);
+  }
+  if (Math.random() < (state.cycle === "war" ? 0.06 : 0.025)) spookSomeone();
+  reap();
+  const after = () => {
+    if (state.fuel <= 0) strandedCard();
+    else maybeEvent();
+  };
+  if (state.tombQueue.length) showTombOr(after);
+  else after();
+}
+function spookSomeone() {
+  const pool = living().filter((c) => c !== leader() && !c.spooked);
+  if (!pool.length) return;
+  if (crewNamed("finn") && Math.random() < 0.5) return;
+  const c = pool[Math.floor(Math.random() * pool.length)];
+  c.spooked = true;
+  note(c.name + " wants off this ship.", true);
+}
+function maybeEvent() {
+  if (state.screen !== "travel" || state.mode !== "travel") return;
+  if (state.eventCd > 0) { state.eventCd -= 1; persist(false); return; }
+  if (Math.random() > 0.36) { persist(false); return; }
+  state.eventCd = 2;
+  fireEvent(pickEvent(), 0);
+}
+function pickEvent() {
+  const bag = [];
+  const add = (id, w) => { for (let i = 0; i < w; i++) bag.push(id); };
+  add("ion", state.cycle === "storm" ? 6 : 3);
+  add("threat", (state.cycle === "war" ? 7 : 3) + (state.job === "senator" ? 2 : 0));
+  add("sick", 5);
+  add("trader", 4);
+  add("shortcut", 2);
+  add("lost", 2);
+  add("mynock", 3);
+  add("distress", 2);
+  add("part", crewNamed("r2d2") ? 1 : (state.cycle === "storm" ? 5 : 3));
+  add("pod", 3);
+  return bag[Math.floor(Math.random() * bag.length)];
+}
+function fireEvent(id, depth) {
+  if (depth > 4) { resume(); return; }
+  if ((id === "threat" || id === "ion" || id === "mynock") && crewNamed("c3po") && Math.random() < 0.22) {
+    note("C-3PO flags the danger and you plot around it.", true);
+    resume();
+    return;
+  }
+  if (id === "sick" && crewNamed("obiwan") && Math.random() < 0.5) {
+    note("Obi-Wan steadies the crew. The sickness passes the ship by.", true);
+    resume();
+    return;
+  }
+  switch (id) {
+    case "ion":
+      showCard({
+        doodle: "ion",
+        kicker: "Weather",
+        title: "Ion storm",
+        body: "Yellow sheets crawl over the hull. The instruments argue.",
+        choices: [
+          { label: "Wait it out", detail: "2 quiet days", primary: true, go: () => { passDays(2); showTombOr(() => resume()); } },
+          { label: "Push through", detail: "The hull and the crew take the weather", go: () => {
+            let broke = null;
+            if (Math.random() < 0.5) broke = silentBreak();
+            hurtCrew(6, "ion shakes");
+            reap();
+            const extra = broke ? " The " + PART_NAME[broke] + " burns out." : "";
+            showTombOr(() => showCard({
+              title: "Through the sheet",
+              body: "The storm is behind you." + extra,
+              choices: [{ label: "Fly on", primary: true, go: resume }]
+            }));
+          } }
+        ]
+      });
+      break;
+    case "threat":
+      showCard({
+        doodle: "blockade",
+        kicker: "Threat detected",
+        title: "Red triangles",
+        body: "Imperial destroyers drop into the lane. Their cannons are already warm.",
+        choices: [
+          { label: "Flee", detail: "Spend fuel and fall back", go: fleeThreat },
+          { label: "Fight", detail: state.blasters > 0 ? "Dodge and shoot" : "No shots left. Dodge only.", primary: true, go: () => startAction("imperial", false) },
+          { label: "Dump cargo", detail: "80 meals and 30 credits", disabled: state.food < 80 || state.credits < 30, go: () => {
+            state.food -= 80; state.credits -= 30;
+            note("Cargo spills. The destroyers let you pass.", true);
+            resume();
+          } }
+        ]
+      });
+      break;
+    case "sick": {
+      const pool = living().filter((c) => !c.sick);
+      if (!pool.length) { fireEvent("pod", depth + 1); return; }
+      const who = pool[Math.floor(Math.random() * pool.length)];
+      const biome = visualsAt(state.parsecs).biome;
+      who.sick = biome === "hoth" ? "carbon chill" : ILL[Math.floor(Math.random() * ILL.length)];
+      who.cause = who.sick;
+      showCard({
+        doodle: "sick",
+        kicker: "Sickbay",
+        title: who.name + " is sick",
+        body: who.name + " has " + who.sick + ".",
+        choices: [
+          { label: "Use a medpac", detail: state.medpacs + " aboard", disabled: state.medpacs < 1, primary: true, go: () => {
+            state.medpacs -= 1; who.sick = null; who.health = clamp(who.health + 25, 1, 100);
+            note(who.name + " takes a medpac.", true); resume();
+          } },
+          { label: "Rest three days", go: () => {
+            passDays(3, { rest: true });
+            if (who.alive && !who.missing && who.sick && who.health > 60 && Math.random() < 0.7) who.sick = null;
+            showTombOr(() => resume());
+          } },
+          { label: "Keep flying", go: resume }
+        ]
+      });
+      break;
+    }
+    case "trader":
+      offerTrade();
+      break;
+    case "shortcut":
+      showCard({
+        doodle: "belt",
+        kicker: "A gap in the chart",
+        title: "Smuggler lane",
+        body: "A rough shortcut could skip a stretch of open space.",
+        choices: [
+          { label: "Take the lane", detail: "Gain ground. The rocks may scrape.", go: () => {
+            const scrape = Math.random() < (state.broken.coil ? 0.62 : 0.3);
+            if (scrape) hurtCrew(10, "the rocks");
+            reap();
+            const hit = addParsecs(80);
+            note(scrape ? "The shortcut scrapes the hull." : "The lane is clear. You leap ahead.", true);
+            showTombOr(() => { if (hit) arrive(hit); else resume(); });
+          } },
+          { label: "Stay on the charted lane", primary: true, go: resume }
+        ]
+      });
+      break;
+    case "lost": {
+      const pool = living().filter((c) => c !== leader());
+      if (!pool.length || state.maybeReturn.length) { fireEvent("pod", depth + 1); return; }
+      const who = pool[Math.floor(Math.random() * pool.length)];
+      who.missing = true;
+      showCard({
+        doodle: "lost",
+        title: who.name + " is missing",
+        body: who.name + " stepped out to check a sensor and the hatch cycled shut.",
+        choices: [
+          { label: "Search", detail: "2 days. A good chance to find them.", primary: true, go: () => {
+            passDays(2);
+            const found = Math.random() < 0.78;
+            if (found && who.missing) {
+              who.missing = false;
+              who.health = clamp(who.health - 8, 8, 100);
+            } else if (who.missing) {
+              who.missing = false;
+              who.alive = false;
+              who.lost = true;
+              who.cause = "lost on a sensor walk";
+              state.tombQueue.push(who);
+            }
+            showTombOr(() => showCard({
+              title: found ? "Found" : "Still gone",
+              body: found ? who.name + " is back aboard, dusty and glad." : "The search comes home light.",
+              choices: [{ label: "Fly on", go: resume }]
+            }));
+          } },
+          { label: "Fly on", detail: "They might be waiting at the next landing", go: () => {
+            state.maybeReturn.push(who.name);
+            resume();
+          } }
+        ]
+      });
+      break;
+    }
+    case "mynock":
+      showCard({
+        doodle: "mynock",
+        title: "Mynocks on the cable",
+        body: "Wings chew at the power line. The lights brown out.",
+        choices: [
+          { label: "Burn them off", detail: "5 blaster shots", disabled: state.blasters < 5, primary: true, go: () => {
+            state.blasters -= 5; note("The mynocks scatter.", true); resume();
+          } },
+          { label: "Shake the hull", detail: "Lose 1 fuel", go: () => {
+            state.fuel = Math.max(0, state.fuel - 1);
+            note("A fuel drum bleeds into the dark.", true);
+            resume();
+          } }
+        ]
+      });
+      break;
+    case "distress":
+      showCard({
+        doodle: "distress",
+        title: "Distress call",
+        body: "A weak beacon asks for a tow. Beacons also bait.",
+        choices: [
+          { label: "Answer", detail: "1 day", primary: true, go: () => {
+            passDays(1);
+            const good = Math.random() < 0.58;
+            if (good) { state.fuel += 1.5; state.food += 70; }
+            else { hurtCrew(10, "an ambush"); spookSomeone(); }
+            reap();
+            showTombOr(() => showCard({
+              doodle: good ? "crate" : "blockade",
+              title: good ? "Grateful pilots" : "Ambush",
+              body: good ? "They hand over fuel and meals." : "The beacon was bait. The hull rings.",
+              choices: [{ label: "Fly on", go: resume }]
+            }));
+          } },
+          { label: "Stay on course", go: resume }
+        ]
+      });
+      break;
+    case "part": {
+      const intact = ["motivator", "coil", "strut"].filter((p) => !state.broken[p]);
+      if (!intact.length) { fireEvent("pod", depth + 1); return; }
+      const part = intact[Math.floor(Math.random() * intact.length)];
+      if (crewNamed("rey") && Math.random() < 0.32) {
+        note("Rey already had a fitting in her bag. The " + PART_NAME[part] + " holds.", true);
+        resume();
+        return;
+      }
+      state.broken[part] = true;
+      if (part === "motivator") state.pace = "crawl";
+      partCard(part);
+      break;
+    }
+    case "pod":
+      showCard({
+        doodle: "pod",
+        kicker: "A lucky ping",
+        title: "Empty escape pod",
+        body: "The pod is cold and the locker is full.",
+        choices: [
+          { label: "Take the locker", detail: "+70 meals and a medpac", primary: true, go: () => {
+            state.food += 70; state.medpacs += 1; note("The pod's locker is aboard.", true); resume();
+          } },
+          { label: "Leave it drifting", go: () => { healCrew(4); resume(); } }
+        ]
+      });
+      break;
+    default:
+      throw new Error("event " + id);
+  }
+}
+function silentBreak() {
+  const intact = ["motivator", "coil", "strut"].filter((p) => !state.broken[p]);
+  if (!intact.length) return null;
+  const part = intact[Math.floor(Math.random() * intact.length)];
+  if (crewNamed("rey") && Math.random() < 0.32) return null;
+  state.broken[part] = true;
+  if (part === "motivator") state.pace = "crawl";
+  return part;
+}
+function partCard(part) {
+  const name = PART_NAME[part];
+  showCard({
+    doodle: "part",
+    kicker: "Clunk",
+    title: "The " + name + " fails",
+    body: part === "motivator" ? "The Lark drops to a crawl until the hyperdrive is whole again." : "The ship still flies. The crossing gets rougher.",
+    choices: [
+      { label: "Use a spare", detail: state.parts[part] + " aboard", disabled: state.parts[part] < 1, primary: true, go: () => {
+        state.parts[part] -= 1; state.broken[part] = false;
+        note("The spare " + name + " is in.", true); resume();
+      } },
+      { label: "Tinker", detail: Math.round(tinkerChance() * 100) + "% chance · 1 day", go: () => {
+        passDays(1);
+        const ok = Math.random() < tinkerChance();
+        if (ok) state.broken[part] = false;
+        showTombOr(() => showCard({
+          title: ok ? "It holds" : "The wrench slips",
+          body: ok ? "The " + name + " runs again." : "The " + name + " is still broken.",
+          choices: [{ label: "Fly on", primary: true, go: resume }]
+        }));
+      } },
+      { label: "Limp on", go: resume }
+    ]
+  });
+}
+function fleeThreat() {
+  state.fuel = Math.max(0, Math.round((state.fuel - 0.8) * 100) / 100);
+  const floor = previousAt() + 0.5;
+  state.parsecs = Math.max(floor, state.parsecs - 22);
+  state.dayFrac = 0;
+  state.viewParsecs = state.parsecs;
+  if (Math.random() < 0.4) spookSomeone();
+  showCard({
+    doodle: "ship",
+    title: "You fall back",
+    body: "The destroyers lose interest. The drums are lighter and the Temple is a little farther.",
+    choices: [{ label: "Ease back into the lane", primary: true, go: resume }]
+  });
+}
+function addParsecs(n) {
+  const nx = nextLandmark();
+  if (!nx) { state.parsecs += n; state.viewParsecs = state.parsecs; return null; }
+  const dest = Math.min(nx.at, state.parsecs + n);
+  const hit = dest >= nx.at - 0.01;
+  state.parsecs = dest;
+  state.dayFrac = 0;
+  state.viewParsecs = dest;
+  return hit ? nx : null;
+}
+function strandedCard() {
+  showCard({
+    doodle: "ship",
+    kicker: "Tanks dry",
+    title: "The Lark is drifting",
+    body: "The fuel drums are empty. The Temple is still ahead.",
+    choices: [
+      { label: "Break down a spare for fuel", detail: "Any spare becomes 2 fuel", disabled: spareCount() < 1, primary: true, go: () => {
+        const part = ["motivator", "coil", "strut"].find((p) => state.parts[p] > 0);
+        state.parts[part] -= 1;
+        state.fuel += 2;
+        note("A spare part becomes fuel.", true);
+        resume();
+      } },
+      { label: "Hail a hauler", detail: "3 days. Often they spare 2 fuel.", go: () => {
+        passDays(3);
+        const found = Math.random() < 0.72;
+        if (found) state.fuel += 2;
+        showTombOr(() => showCard({
+          title: found ? "A hauler answers" : "Only static",
+          body: found ? "They spare 2 fuel drums and a nod." : "Nobody comes. The tanks are still dry.",
+          choices: [{ label: "Continue", primary: true, go: () => { if (state.fuel <= 0) strandedCard(); else resume(); } }]
+        }));
+      } },
+      { label: "Keep drifting", detail: "The crew gets weaker", go: () => {
+        passDays(2);
+        hurtCrew(8, "drifting");
+        showTombOr(() => { if (leader().alive && state.fuel <= 0) strandedCard(); else resume(); });
+      } }
+    ]
+  });
+}
+
+function resolveMissing() {
+  const names = state.maybeReturn.slice();
+  state.maybeReturn = [];
+  names.forEach((name) => {
+    const c = state.crew.find((x) => x.name === name && x.missing);
+    if (!c) return;
+    if (Math.random() < 0.55) {
+      c.missing = false;
+      c.alive = true;
+      c.health = Math.max(c.health, 42);
+      note(c.name + " is waiting at the landing pad.", true);
+    } else {
+      c.missing = false;
+      c.alive = false;
+      c.lost = true;
+      c.cause = "never came back";
+      state.tombQueue.push(c);
+    }
+  });
+}
+function arrive(lm) {
+  if (!lm || state.cleared.includes(lm.id) || state.busy === lm.id) return;
+  state.busy = lm.id;
+  state.parsecs = lm.at;
+  state.dayFrac = 0;
+  state.viewParsecs = lm.at;
+  state.paused = true;
+  resolveMissing();
+  if (state.broken.strut && lm.kind !== "belt" && lm.kind !== "blockade" && lm.kind !== "end") {
+    hurtCrew(10, "a hard landing");
+    note("The broken strut slams the landing.");
+  }
+  reap();
+  note("Arrived at " + lm.name + ".");
+  showTombOr(() => openLandmark(lm));
+}
+function finishLandmark(lm) {
+  if (lm && !state.cleared.includes(lm.id)) state.cleared.push(lm.id);
+  state.busy = null;
+  state.parsecs = lm ? lm.at : state.parsecs;
+  state.viewParsecs = state.parsecs;
+  state.dayFrac = 0;
+  resume();
+}
+function openLandmark(lm) {
+  state.busy = lm.id;
+  state.paused = true;
+  switch (lm.kind) {
+    case "port":
+      showCard({
+        doodle: "naboo",
+        kicker: "You have arrived at",
+        title: "NABOO",
+        sub: "Theed hangar",
+        body: "Waterfalls thunder under the landing pad. The market is open and the crew can breathe wet air.",
+        choices: [
+          { label: "Rest by the falls", go: () => restHere(lm) },
+          { label: "Visit the market", primary: true, go: () => openStore("naboo", true) },
+          { label: "Back to the lane", go: () => finishLandmark(lm) }
+        ]
+      });
+      break;
+    case "kamino":
+      showCard({
+        doodle: "kamino",
+        kicker: "You have arrived at",
+        title: "KAMINO",
+        sub: "Select 2 supply cards  or  remove 2 runaway cards",
+        body: "Rain needles the stilts. The cloners' docks will either fill the hold or calm the cabin.",
+        choices: [
+          { label: "Select 2 supply cards", primary: true, go: () => kaminoSupplies(lm) },
+          { label: "Remove 2 runaway cards", detail: "Clear spooked crew, sickness, or a broken part", go: () => kaminoCalm(lm) },
+          { label: "Leave the stilts", go: () => finishLandmark(lm) }
+        ]
+      });
+      break;
+    case "belt":
+      showCard({
+        doodle: "belt",
+        kicker: "The lane breaks apart",
+        title: "Asteroid belt",
+        body: "Rocks tumble where a river would have been. Pick a way through.",
+        choices: [
+          { label: "Dodge through", detail: "Steer the Lark", primary: true, go: () => startAction("asteroid", true) },
+          { label: "Raise shields and crawl", detail: "1 fuel · 2 slow days" + (state.broken.coil ? " · shields are down" : ""), disabled: state.fuel < 1 || !!state.broken.coil, go: () => {
+            state.fuel = Math.max(0, state.fuel - 1);
+            passDays(2);
+            if (Math.random() < 0.18) hurtCrew(6, "the rocks");
+            showTombOr(() => showCard({
+              title: "The belt is behind you",
+              body: "Shields up, pace down, the rocks slide by.",
+              choices: [{ label: "Onward", primary: true, go: () => finishLandmark(lm) }]
+            }));
+          } },
+          { label: "Pay a tug droid", detail: "80 credits · a calm tow", disabled: state.credits < 80, go: () => {
+            state.credits -= 80;
+            showCard({
+              title: "Under tow",
+              body: "The droid hauls the Lark through a mapped gap.",
+              choices: [{ label: "Onward", primary: true, go: () => finishLandmark(lm) }]
+            });
+          } }
+        ]
+      });
+      break;
+    case "hoth":
+      showCard({
+        doodle: "hoth",
+        kicker: "You have arrived at",
+        title: "HOTH",
+        sub: "Ice fields",
+        body: "The ramp freezes to the deck. Breath turns to chalk.",
+        choices: [
+          { label: "Hunt the ice", primary: true, go: () => startAction("hunt", false) },
+          { label: "Shelter in the cave", go: () => restHere(lm) },
+          { label: "Push on into the cold", detail: "A feast keeps the chill off", go: () => {
+            if (state.rations !== "feast") hurtCrew(5, "the cold");
+            showTombOr(() => finishLandmark(lm));
+          } }
+        ]
+      });
+      break;
+    case "bespin":
+      showCard({
+        doodle: "bespin",
+        kicker: "You have arrived at",
+        title: "BESPIN",
+        sub: "Cloud City",
+        body: "Orange clouds hold up a city that sells everything at a proud price.",
+        choices: [
+          { label: "Visit the market", primary: true, go: () => openStore("bespin", true) },
+          { label: "Take a bunk", detail: state.credits >= 40 ? "40 credits · a deep heal" : "The cheap bunk is free and small", go: () => {
+            if (state.credits >= 40) { state.credits -= 40; healCrew(28); }
+            else healCrew(10);
+            passDays(1);
+            showTombOr(() => finishLandmark(lm));
+          } },
+          { label: "Play a hand of sabacc", detail: "Bet 50 credits", disabled: state.credits < 50, go: () => {
+            const win = Math.random() < 0.46;
+            state.credits += win ? 50 : -50;
+            showCard({
+              doodle: "coins",
+              title: win ? "The pot is yours" : "The pot walks away",
+              body: win ? "The cards turn kind. +50 credits." : "Cloud City keeps the bet. −50 credits.",
+              choices: [{ label: "Back to the platform", go: () => openLandmark(lm) }]
+            });
+          } },
+          { label: "Leave the clouds", go: () => finishLandmark(lm) }
+        ]
+      });
+      break;
+    case "endor":
+      showCard({
+        doodle: "endor",
+        kicker: "You have arrived at",
+        title: "ENDOR",
+        sub: "Forest moon",
+        body: "Trees taller than the Lark. Small eyes in the ferns.",
+        choices: [
+          { label: "Hunt the forest", primary: true, go: () => startAction("hunt", false) },
+          { label: "Rest under the trees", go: () => restHere(lm) },
+          { label: "Ask the ewoks", detail: "A gift, usually", go: () => {
+            const roll = Math.random();
+            if (roll < 0.5) { state.food += 150; note("The ewoks bring a feast.", true); }
+            else if (roll < 0.8) {
+              const part = ["strut", "coil", "motivator"][Math.floor(Math.random() * 3)];
+              state.parts[part] += 1;
+              note("The ewoks offer a " + PART_NAME[part] + ".", true);
+            } else if (state.blasters >= 10) { state.blasters -= 10; note("Curious paws take a handful of blaster shots.", true); }
+            else { state.food = Math.max(0, state.food - 30); note("The ewoks taste 30 meals and giggle.", true); }
+            showCard({
+              doodle: "endor",
+              title: "Small hosts",
+              body: state.log[0],
+              choices: [{ label: "Thank them and fly", primary: true, go: () => finishLandmark(lm) }]
+            });
+          } },
+          { label: "Lift off", go: () => finishLandmark(lm) }
+        ]
+      });
+      break;
+    case "blockade":
+      showCard({
+        doodle: "blockade",
+        kicker: "Threat detected",
+        title: "Imperial blockade",
+        body: "A wall of red triangles sits across the last long leg. Coruscant's glow is behind them.",
+        choices: [
+          { label: "Sneak the trench", detail: "Steer and shoot", primary: true, go: () => startAction("imperial", true) },
+          { label: "Full burn past", detail: "1.5 fuel · a hard chance", disabled: state.fuel < 1.5, go: () => {
+            state.fuel = Math.max(0, state.fuel - 1.5);
+            const clipped = Math.random() < (state.broken.coil ? 0.62 : 0.38);
+            if (clipped) hurtCrew(12, "imperial fire");
+            reap();
+            showTombOr(() => showCard({
+              title: clipped ? "A cannon finds you" : "You flash past",
+              body: clipped ? "The hull rings. You are through." : "The blockade is a red smear behind you.",
+              choices: [{ label: "Onward", primary: true, go: () => finishLandmark(lm) }]
+            }));
+          } },
+          { label: "Bribe an officer", detail: "120 credits", disabled: state.credits < 120, go: () => {
+            state.credits -= 120;
+            showCard({
+              title: "Papers in order",
+              body: "A credit chip changes hands. The formation opens a gap.",
+              choices: [{ label: "Slip through", primary: true, go: () => finishLandmark(lm) }]
+            });
+          } }
+        ]
+      });
+      break;
+    case "end":
+      victory();
+      break;
+    default:
+      throw new Error("landmark " + lm.kind);
+  }
+}
+function restHere(lm) {
+  const choices = [1, 2, 3, 5].map((n) => ({
+    label: "Rest " + n + (n === 1 ? " day" : " days"),
+    go: () => {
+      passDays(n, { rest: true });
+      showTombOr(() => openLandmark(lm));
+    }
+  }));
+  choices.push({ label: "Back", go: () => openLandmark(lm) });
+  showCard({ title: "Rest at " + lm.name, doodle: "ship", choices });
+}
+function kaminoSupplies(lm) {
+  const picks = [
+    { id: "food", label: "Ration crate", detail: "+160 meals", apply: () => { state.food += 160; } },
+    { id: "fuel", label: "Fuel drums", detail: "+2 fuel", apply: () => { state.fuel += 2; } },
+    { id: "med", label: "Medpac", detail: "+1 medpac", apply: () => { state.medpacs += 1; } },
+    { id: "blast", label: "Blaster box", detail: "+20 shots", apply: () => { state.blasters += 20; } },
+    { id: "part", label: "Spare coil", detail: "+1 shield coil", apply: () => { state.parts.coil += 1; } }
+  ];
+  const chosen = [];
+  const stage = document.getElementById("stage");
+  stage.className = "modal";
+  stage.innerHTML = "";
+  const card = document.createElement("article");
+  card.className = "card wide";
+  card.innerHTML = '<div class="tape"></div><div class="kicker">Kamino docks</div><h2>Select 2 supply cards</h2><div class="picks"></div><div class="choices"></div>';
+  stage.appendChild(card);
+  const box = card.querySelector(".picks");
+  picks.forEach((p) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "pick";
+    b.innerHTML = "<strong>" + esc(p.label) + "</strong><div>" + esc(p.detail) + "</div>";
+    b.addEventListener("click", () => {
+      const i = chosen.indexOf(p);
+      if (i >= 0) chosen.splice(i, 1);
+      else if (chosen.length < 2) chosen.push(p);
+      box.querySelectorAll(".pick").forEach((el, idx) => el.classList.toggle("on", chosen.includes(picks[idx])));
+      ok.disabled = chosen.length !== 2;
+    });
+    box.appendChild(b);
+  });
+  const choices = card.querySelector(".choices");
+  const ok = document.createElement("button");
+  ok.type = "button";
+  ok.className = "primary";
+  ok.textContent = "Take these two";
+  ok.disabled = true;
+  ok.addEventListener("click", () => {
+    chosen.forEach((p) => p.apply());
+    note("Kamino loads two supply cards.", true);
+    showCard({
+      doodle: "crate",
+      title: "The hold is heavier",
+      body: chosen.map((p) => p.label).join(" and ") + " come aboard.",
+      choices: [{ label: "Leave the stilts", primary: true, go: () => finishLandmark(lm) }]
+    });
+  });
+  const back = document.createElement("button");
+  back.type = "button";
+  back.textContent = "Back";
+  back.addEventListener("click", () => openLandmark(lm));
+  choices.appendChild(ok);
+  choices.appendChild(back);
+}
+function kaminoCalm(lm) {
+  let slots = 2;
+  const lines = [];
+  for (const c of living()) {
+    if (slots <= 0) break;
+    if (c.spooked) { c.spooked = false; slots -= 1; lines.push(c.name + " stays."); }
+  }
+  for (const c of living()) {
+    if (slots <= 0) break;
+    if (c.sick) { c.sick = null; c.health = clamp(c.health + 15, 1, 100); slots -= 1; lines.push(c.name + " is well."); }
+  }
+  if (slots > 0) {
+    const part = ["motivator", "coil", "strut"].find((p) => state.broken[p]);
+    if (part) { state.broken[part] = false; slots -= 1; lines.push("The " + PART_NAME[part] + " is patched."); }
+  }
+  if (!lines.length) {
+    state.medpacs += 1;
+    lines.push("The crew is already steady. The Kaminoans send a medpac.");
+  }
+  showCard({
+    doodle: "kamino",
+    kicker: "Runaway cards leave play",
+    title: "The cabin calms",
+    body: lines.join("\n"),
+    choices: [{ label: "Leave the stilts", primary: true, go: () => finishLandmark(lm) }]
+  });
+}
+
+function startAction(kind, landmark) {
+  clearStage();
+  state.paused = true;
+  state.mode = kind;
+  state.action = {
+    kind,
+    landmark: !!landmark,
+    t: 0,
+    dur: kind === "hunt" ? 32 : 13,
+    shipY: 0.4,
+    hits: 0,
+    inv: 0,
+    rocks: [],
+    bolts: [],
+    foes: [],
+    animals: [],
+    spawn: 0.35,
+    ammo: state.blasters,
+    bag: 0,
+    jawaHit: false,
+    kills: 0,
+    fireCd: 0
+  };
+  if (kind === "hunt" && lastRect.w > 100) {
+    state.action.animals.push(
+      { kind: "nerf", x: lastRect.w * 0.58, y: lastRect.h * 0.62, speed: 72, bob: 1 },
+      { kind: "rat", x: lastRect.w * 0.78, y: lastRect.h * 0.62, speed: 90, bob: 2 },
+      { kind: "mynock", x: lastRect.w * 0.9, y: lastRect.h * 0.3, speed: 110, bob: 3 }
+    );
+  }
+  setTouch(kind);
+  setHud(true);
+  tone(kind === "hunt" ? 420 : 180, 0.08, "square", 0.03);
+}
+function updateAction(dt) {
+  const a = state.action;
+  if (!a) return;
+  a.t += dt;
+  a.inv = Math.max(0, a.inv - dt);
+  a.fireCd = Math.max(0, a.fireCd - dt);
+  a.spawn -= dt;
+  const rect = lastRect;
+  if (a.kind === "asteroid") updateDodge(a, dt, rect, false);
+  else if (a.kind === "imperial") updateDodge(a, dt, rect, true);
+  else updateHunt(a, dt, rect);
+  if (a.t >= a.dur || (a.kind !== "hunt" && a.hits >= 4)) finishAction();
+}
+function steerY(a, dt) {
+  if (control.pointer && lastRect.h > 0 && (state.mode === "asteroid" || state.mode === "imperial")) {
+    const local = clamp((control.pointer.y - lastRect.y) / lastRect.h, 0.12, 0.7);
+    a.shipY += (local - a.shipY) * Math.min(1, dt * 8);
+  } else {
+    const dir = (control.up ? -1 : 0) + (control.down ? 1 : 0);
+    a.shipY += dir * dt * 0.62;
+  }
+  a.shipY = clamp(a.shipY, 0.12, 0.72);
+}
+function updateDodge(a, dt, rect, imperial) {
+  steerY(a, dt);
+  if (a.spawn <= 0) {
+    a.spawn = imperial ? 1.05 : 0.82;
+    const y = 0.16 + Math.random() * 0.5;
+    if (imperial) {
+      a.foes.push({ x: rect.w + 40, y, s: 0.7 + Math.random() * 0.45, hp: 2, cool: 0.4 + Math.random() });
+    } else {
+      a.rocks.push({ x: rect.w + 30, y, r: 18 + Math.random() * 20, seed: Math.random() * 20, vy: (Math.random() - 0.5) * 0.05 });
+    }
+  }
+  const speed = 240;
+  a.rocks.forEach((r) => { r.x -= speed * dt; r.y += r.vy * dt; });
+  a.rocks = a.rocks.filter((r) => r.x > -80);
+  a.foes.forEach((f) => {
+    f.x -= 170 * dt;
+    f.cool -= dt;
+    if (f.cool <= 0 && f.x < rect.w - 20) {
+      f.cool = 1.35;
+      a.bolts.push({ x: rect.x + f.x, y: rect.y + f.y * rect.h, vx: -280, vy: (a.shipY - f.y) * 40, bad: true, life: 2 });
+    }
+  });
+  a.foes = a.foes.filter((f) => f.x > -80 && f.hp > 0);
+  if (imperial && a.ammo <= 0) control.queued = false;
+  if (imperial && (control.fire || control.queued || keys[" "]) && a.fireCd <= 0 && a.ammo > 0) {
+    control.queued = false;
+    a.fireCd = 0.28;
+    a.ammo -= 1;
+    const sx = rect.x + rect.w * 0.28 + 40;
+    const sy = rect.y + a.shipY * rect.h;
+    a.bolts.push({ x: sx, y: sy, vx: 640, vy: 0, bad: false, life: 1.2 });
+    tone(880, 0.05, "square", 0.03, -400);
+  }
+  a.bolts.forEach((b) => { b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt; });
+  const shipX = rect.x + rect.w * 0.28;
+  const shipY = rect.y + a.shipY * rect.h;
+  const shipR = crewNamed("poe") ? 16 : 22;
+  a.rocks.forEach((r) => {
+    const dx = rect.x + r.x - shipX;
+    const dy = rect.y + r.y * rect.h - shipY;
+    if (Math.hypot(dx, dy) < r.r * 0.7 + shipR) actionHit("the rocks");
+  });
+  a.foes.forEach((f) => {
+    const dx = rect.x + f.x - shipX;
+    const dy = rect.y + f.y * rect.h - shipY;
+    if (Math.hypot(dx, dy) < 28 + shipR) actionHit("imperial fire");
+  });
+  a.bolts.forEach((b) => {
+    if (b.bad) {
+      if (Math.hypot(b.x - shipX, b.y - shipY) < shipR + 6) { b.life = 0; actionHit("imperial fire"); }
+    } else {
+      a.foes.forEach((f) => {
+        if (f.hp <= 0) return;
+        if (Math.hypot(b.x - (rect.x + f.x), b.y - (rect.y + f.y * rect.h)) < 26) {
+          b.life = 0; f.hp -= 1;
+          if (f.hp <= 0) { a.kills += 1; tone(200, 0.08, "sawtooth", 0.04); }
+        }
+      });
+    }
+  });
+  a.bolts = a.bolts.filter((b) => b.life > 0 && b.x > -20 && b.x < rect.x + rect.w + 40);
+}
+function updateHunt(a, dt, rect) {
+  if (a.spawn <= 0) {
+    a.spawn = 0.7 + Math.random() * 0.55;
+    const bag = ["rat", "rat", "rat", "nerf", "nerf", "mynock", "mynock", "bantha", "jawa", "jawa"];
+    const kind = bag[Math.floor(Math.random() * bag.length)];
+    a.animals.push({
+      kind,
+      x: rect.w + 40,
+      y: kind === "mynock" ? rect.h * 0.28 : rect.h * 0.62,
+      speed: kind === "bantha" ? 46 : kind === "mynock" ? 110 : kind === "nerf" ? 72 : kind === "jawa" ? 58 : 90,
+      bob: Math.random() * 6
+    });
+  }
+  a.animals.forEach((an) => {
+    an.x -= an.speed * dt;
+    if (an.kind === "mynock") an.y += Math.sin(a.t * 6 + an.bob) * 20 * dt;
+  });
+  a.animals = a.animals.filter((an) => an.x > -80);
+  if (a.ammo <= 0) control.queued = false;
+  if ((control.fire || control.queued || keys[" "]) && a.fireCd <= 0 && a.ammo > 0) {
+    control.queued = false;
+    a.fireCd = 0.22;
+    a.ammo -= 1;
+    const aim = control.pointer || { x: rect.x + rect.w * 0.7, y: rect.y + rect.h * 0.45 };
+    const ox = rect.x + 90;
+    const oy = rect.y + rect.h * 0.58;
+    const ang = Math.atan2(aim.y - oy, aim.x - ox);
+    a.bolts.push({ x: ox, y: oy, vx: Math.cos(ang) * 900, vy: Math.sin(ang) * 900, bad: false, life: 1.5 });
+    tone(760, 0.04, "square", 0.03, -300);
+  }
+  a.bolts.forEach((b) => { b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt; });
+  a.bolts.forEach((b) => {
+    a.animals.forEach((an) => {
+      if (an.dead) return;
+      const ax = rect.x + an.x;
+      const ay = rect.y + an.y;
+      if (Math.hypot(b.x - ax, b.y - ay) < (an.kind === "bantha" ? 52 : 36)) {
+        b.life = 0;
+        an.dead = true;
+        if (an.kind === "jawa") {
+          if (!crewNamed("din") && !crewNamed("dindjarin")) a.jawaHit = true;
+        } else {
+          const food = an.kind === "bantha" ? 110 : an.kind === "nerf" ? 48 : an.kind === "mynock" ? 14 : 22;
+          a.bag += food;
+          tone(520, 0.05, "triangle", 0.03);
+        }
+      }
+    });
+  });
+  a.animals = a.animals.filter((an) => !an.dead);
+  a.bolts = a.bolts.filter((b) => b.life > 0);
+}
+function actionHit(cause) {
+  const a = state.action;
+  if (!a || a.inv > 0) return;
+  a.inv = 0.45;
+  a.hits += 1;
+  state.shake = 0.25;
+  hurtCrew(7, cause);
+  const weak = living().slice().sort((p, q) => p.health - q.health)[0];
+  if (weak) { weak.health -= 8; weak.cause = cause; }
+  tone(90, 0.14, "sawtooth", 0.05, -50);
+}
+function finishAction() {
+  const a = state.action;
+  if (!a || a.done) return;
+  a.done = true;
+  control.queued = false;
+  const kind = a.kind;
+  state.blasters = a.ammo;
+  state.mode = "travel";
+  setTouch(false);
+  reap();
+  if (kind === "hunt") {
+    const mult = (state.job === "farmer" ? 1.25 : 1) * (crewNamed("luke") ? 1.3 : 1) * (state.cycle === "storm" ? 1.1 : 1);
+    const got = Math.round(a.bag * mult);
+    state.food += got;
+    passDays(1);
+    if (a.jawaHit) {
+      const toll = Math.min(state.food, 40);
+      state.food -= toll;
+      if (state.fuel > 0) state.fuel = Math.max(0, state.fuel - 0.5);
+      note("The jawas take a toll.", true);
+    }
+    showTombOr(() => showCard({
+      doodle: a.jawaHit ? "jawa" : "bantha",
+      kicker: "Hunt",
+      title: got > 0 ? "The galley is heavier" : "A thin hunt",
+      body: "You bring back " + got + " meals." + (a.jawaHit ? " The jawas scatter with a toll from the hold." : "") + "\nShots left: " + state.blasters + ".",
+      choices: [{ label: "Back aboard", primary: true, go: () => endActionLandmark() }]
+    }));
+    return;
+  }
+  if (kind === "imperial") {
+    state.food += a.kills * 12;
+    state.credits += a.kills * 8;
+  }
+  const lm = state.busy && (state.busy === "belt" || state.busy === "blockade") && a.landmark ? landmarkById(state.busy) : null;
+  showTombOr(() => showCard({
+    doodle: kind === "imperial" ? "blockade" : "belt",
+    kicker: kind === "imperial" ? "Threat detected" : "The rocks",
+    title: a.hits === 0 ? "Clean flying" : a.hits < 3 ? "A scraped hull" : "The hull screams",
+    body: kind === "imperial"
+      ? ("Hits taken: " + a.hits + ". Destroyers down: " + a.kills + (a.kills ? ". Salvage comes aboard." : "."))
+      : ("Rock strikes: " + a.hits + "." + (a.hits === 0 ? " A wreck yields 20 meals." : "")),
+    choices: [{ label: "Onward", primary: true, go: () => {
+      if (kind === "asteroid" && a.hits === 0) state.food += 20;
+      if (a.hits >= 3) {
+        const broke = silentBreak();
+        if (broke) note("The " + PART_NAME[broke] + " gives up.", true);
+        spookSomeone();
+      }
+      if (lm) finishLandmark(lm);
+      else resume();
+    } }]
+  }));
+}
+function endActionLandmark() {
+  const lm = state.busy ? landmarkById(state.busy) : null;
+  if (lm && (lm.kind === "hoth" || lm.kind === "endor")) openLandmark(lm);
+  else resume();
+}
+
+function victory() {
+  state.screen = "end";
+  state.paused = true;
+  state.coins += 2;
+  if (!state.cleared.includes("coruscant")) state.cleared.push("coruscant");
+  state.busy = null;
+  healCrew(12);
+  const t = tally();
+  localStorage.removeItem(SAVE);
+  const names = living().map((c) => c.name + " (" + condition(c) + ")").join("\n");
+  showCard({
+    doodle: "temple",
+    kicker: "You have arrived at",
+    title: "CORUSCANT",
+    sub: "Jedi Temple",
+    body: "Collect 2 supply coins.\n\n"
+      + names + "\n\n"
+      + "Crew points " + t.people + "\n"
+      + "Supplies " + t.stuff + " × " + t.mult + " (" + JOBS[state.job].title + ")\n"
+      + "Early bonus " + t.early + "\n"
+      + "Day " + state.day + " · " + rankFor(t.total),
+    choices: [
+      { label: "Fly again", primary: true, go: resetGame }
+    ],
+    after: (card) => {
+      const s = document.createElement("div");
+      s.className = "score";
+      s.textContent = t.total + " · " + rankFor(t.total);
+      card.querySelector(".choices").before(s);
+    }
+  });
+  tone(523, 0.12, "triangle", 0.05);
+  setTimeout(() => tone(659, 0.12, "triangle", 0.05), 120);
+  setTimeout(() => tone(784, 0.18, "triangle", 0.05), 240);
+}
+function defeat() {
+  state.screen = "end";
+  state.paused = true;
+  state.busy = null;
+  const t = tally();
+  localStorage.removeItem(SAVE);
+  const why = leader() && !leader().alive ? cap(leader().cause || "the crossing") + " took " + leader().name + "." : "The crew is gone.";
+  showCard({
+    doodle: "tomb",
+    kicker: "The holocron never reached the Temple",
+    title: "Lost in the stars",
+    body: why + "\nDay " + state.day + " · near " + placeName() + ".\n" + Math.round(t.total) + " points on a crossing that ended early.",
+    choices: [{ label: "Try the lane again", primary: true, go: resetGame }]
+  });
+  tone(196, 0.25, "triangle", 0.05, -80);
+}
+function tally() {
+  const mult = state.job === "farmer" ? 3 : state.job === "mechanic" ? 2 : 1;
+  let people = 0;
+  for (const c of living()) {
+    people += 600;
+    if (c.health >= 80) people += 200;
+    else if (c.health >= 55) people += 80;
+  }
+  let stuff = state.food * 0.35 + state.fuel * 28 + state.blasters * 1.2 + state.medpacs * 24 + state.credits * 0.35 + state.coins * 150;
+  stuff += (state.parts.motivator + state.parts.coil + state.parts.strut) * 36;
+  const early = Math.max(0, 110 - state.day) * 12;
+  return { people, stuff: Math.round(stuff), mult, early, total: Math.round(people + stuff * mult + early) };
+}
+function rankFor(score) {
+  if (score >= 7000) return "Adrian's Legend";
+  if (score >= 5000) return "Jedi Master";
+  if (score >= 3400) return "Jedi Knight";
+  if (score >= 1800) return "Padawan";
+  return "Youngling";
+}
+function resetGame() {
+  localStorage.removeItem(SAVE);
+  state.launched = false;
+  state.paused = true;
+  state.mode = "travel";
+  state.job = null;
+  state.cycle = "quiet";
+  state.crew = [];
+  state.food = 0;
+  state.fuel = 0;
+  state.credits = 0;
+  state.blasters = 0;
+  state.medpacs = 0;
+  state.parts = { motivator: 0, coil: 0, strut: 0 };
+  state.broken = { motivator: false, coil: false, strut: false };
+  state.cart = emptyCart();
+  state.pace = "cruise";
+  state.rations = "square";
+  state.day = 1;
+  state.parsecs = 0;
+  state.dayFrac = 0;
+  state.cleared = [];
+  state.busy = null;
+  state.log = [];
+  state.tombQueue = [];
+  state.afterQueue = null;
+  state.maybeReturn = [];
+  state.eventCd = 2;
+  state.groguSave = true;
+  state.coins = 0;
+  state.action = null;
+  state.screen = "title";
+  hudCrewSig = "";
+  setHud(false);
+  openTitle();
+}
+
+function persist(force) {
+  if (!state.launched || state.screen === "end") return;
+  if (!force && state.mode !== "travel") return;
+  const data = {
+    v: 1,
+    job: state.job,
+    cycle: state.cycle,
+    crew: state.crew,
+    food: state.food,
+    fuel: state.fuel,
+    credits: state.credits,
+    blasters: state.blasters,
+    medpacs: state.medpacs,
+    parts: state.parts,
+    broken: state.broken,
+    pace: state.pace,
+    rations: state.rations,
+    day: state.day,
+    parsecs: state.parsecs,
+    dayFrac: state.dayFrac,
+    cleared: state.cleared,
+    busy: state.busy,
+    log: state.log.slice(0, 40),
+    groguSave: state.groguSave,
+    coins: state.coins,
+    maybeReturn: state.maybeReturn,
+    eventCd: state.eventCd
+  };
+  localStorage.setItem(SAVE, JSON.stringify(data));
+}
+function loadGame() {
+  try {
+    const data = JSON.parse(localStorage.getItem(SAVE) || "null");
+    if (!data || data.v !== 1) { openTitle(); return; }
+    ["job", "cycle", "crew", "food", "fuel", "credits", "blasters", "medpacs", "parts", "broken", "pace", "rations", "day", "parsecs", "dayFrac", "cleared", "busy", "log", "groguSave", "coins", "maybeReturn", "eventCd"].forEach((k) => {
+      if (data[k] !== undefined) state[k] = data[k];
+    });
+    state.launched = true;
+    state.screen = "travel";
+    state.mode = "travel";
+    state.action = null;
+    state.tombQueue = [];
+    state.afterQueue = null;
+    state.viewParsecs = state.parsecs;
+    state.cart = emptyCart();
+    setHud(true);
+    if (state.busy) {
+      const lm = landmarkById(state.busy);
+      if (lm) openLandmark(lm);
+      else { state.busy = null; resume(); }
+    } else resume();
+  } catch (err) {
+    localStorage.removeItem(SAVE);
+    openTitle();
+  }
+}
+
+function drawConcrete(c, w, h) {
+  c.fillStyle = "#b0ada6";
+  c.fillRect(0, 0, w, h);
+  c.strokeStyle = "rgba(70,68,62,.35)";
+  c.lineWidth = 3;
+  for (let x = 18; x < w; x += 148) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h); c.stroke(); }
+  for (let y = 12; y < h; y += 148) { c.beginPath(); c.moveTo(0, y); c.lineTo(w, y); c.stroke(); }
+  c.fillStyle = "rgba(255,255,255,.18)";
+  for (let i = 0; i < 70; i++) c.fillRect(hash(i) * w, hash(i + 40) * h, 2, 2);
+}
+function sceneRect() {
+  const hud = document.getElementById("hud");
+  const hudH = hud.hidden ? 0 : hud.getBoundingClientRect().height;
+  const m = 14;
+  return {
+    x: m,
+    y: m,
+    w: Math.max(10, innerWidth - m * 2),
+    h: Math.max(10, innerHeight - m * 2 - (hud.hidden ? 0 : hudH + 12))
+  };
+}
+function drawTrail(c, rect, parsecs, time) {
+  const v = visualsAt(parsecs);
+  const biome = BIOMES[v.biome];
+  if (!biome) throw new Error(v.biome);
+  c.save();
+  c.beginPath();
+  c.rect(rect.x, rect.y, rect.w, rect.h);
+  c.clip();
+  const sky = c.createLinearGradient(0, rect.y, 0, rect.y + rect.h);
+  sky.addColorStop(0, biome.sky);
+  sky.addColorStop(0.55, "#fffaf0");
+  sky.addColorStop(1, biome.ground);
+  c.fillStyle = sky;
+  c.fillRect(rect.x, rect.y, rect.w, rect.h);
+  if (grainPat && c === ctx) {
+    c.save();
+    c.globalAlpha = 0.35;
+    c.fillStyle = grainPat;
+    c.fillRect(rect.x, rect.y, rect.w, rect.h);
+    c.restore();
+  }
+  c.fillStyle = INK;
+  for (let i = 0; i < 55; i++) {
+    const depth = 0.3 + (i % 5) * 0.15;
+    const sx = rect.x + ((i * 97 + parsecs * PX * depth) % (rect.w + 30)) - 15;
+    const sy = rect.y + 12 + (i * 53) % (rect.h * 0.48);
+    if ((i + Math.floor(parsecs)) % 4 === 0) {
+      c.fillRect(sx, sy, 2, 2);
+    } else {
+      c.fillRect(sx, sy, 3, 1);
+      c.fillRect(sx + 1, sy - 1, 1, 3);
+    }
+  }
+  const shipScreen = rect.x + rect.w * 0.28;
+  c.beginPath();
+  const step = 12;
+  let groundAtShip = rect.y + rect.h * 0.64;
+  for (let x = 0; x <= rect.w; x += step) {
+    const world = parsecs + (x - rect.w * 0.28) / PX;
+    const y = rect.y + rect.h * 0.64 + terrainOffset(world);
+    if (x === 0) c.moveTo(rect.x, y);
+    else c.lineTo(rect.x + x, y);
+    if (Math.abs(rect.x + x - shipScreen) < step) groundAtShip = y;
+  }
+  c.lineTo(rect.x + rect.w, rect.y + rect.h);
+  c.lineTo(rect.x, rect.y + rect.h);
+  c.closePath();
+  c.fillStyle = biome.ground;
+  c.fill();
+  pen(c, INK, 2.5);
+  c.beginPath();
+  for (let x = 0; x <= rect.w; x += step) {
+    const world = parsecs + (x - rect.w * 0.28) / PX;
+    const y = rect.y + rect.h * 0.64 + terrainOffset(world);
+    if (x === 0) c.moveTo(rect.x, y); else c.lineTo(rect.x + x, y);
+  }
+  c.stroke();
+  drawDetails(c, rect, parsecs, v.biome, shipScreen);
+  if (v.t > 0.62 && v.next && v.next !== v.from) drawApproach(c, rect, v.next.biome, (v.t - 0.62) / 0.38);
+  const bob = reduced ? 0 : Math.sin(time * 2) * 4;
+  const shipY = groundAtShip - 46 * clamp(rect.h / 380, 0.6, 1.2) + bob;
+  drawShip(c, shipScreen, shipY, clamp(rect.h / 460, 0.55, 1.15), time);
+  if (v.t > 0.84 && v.next) {
+    c.fillStyle = INK;
+    c.font = Math.max(18, rect.h * 0.06) + "px Patrick Hand, cursive";
+    c.textAlign = "right";
+    c.fillText(v.next.name + " ahead", rect.x + rect.w - 16, rect.y + 32);
+  }
+  c.restore();
+  if (rect.w > 200) {
+    pen(c, INK, 3);
+    c.strokeRect(rect.x + 1.5, rect.y + 1.5, rect.w - 3, rect.h - 3);
+  }
+}
+function drawDetails(c, rect, parsecs, biome, shipScreen) {
+  const p0 = parsecs - (shipScreen - rect.x) / PX - 4;
+  const p1 = parsecs + (rect.x + rect.w - shipScreen) / PX + 4;
+  for (let p = Math.floor(p0 / 18) * 18; p < p1; p += 18) {
+    const x = shipScreen + (p - parsecs) * PX;
+    const y = rect.y + rect.h * 0.64 + terrainOffset(p);
+    const n = hash(p * 0.17 + biome.length);
+    switch (biome) {
+      case "tatooine":
+        if (n > 0.72) drawBantha(c, x, y, 0.7, hash(p) > 0.5);
+        else if (n > 0.45) {
+          c.fillStyle = "#c4843a";
+          c.beginPath(); c.arc(x, y + 8, 10 + n * 8, Math.PI, 0); c.fill();
+          pen(c, INK, 2); c.stroke();
+        }
+        break;
+      case "naboo":
+        if (n > 0.55) drawTree(c, x, y + 6, 0.7 + n * 0.4);
+        break;
+      case "kamino":
+        if (n > 0.4) {
+          c.fillStyle = "#d5dde6";
+          c.fillRect(x, y - 50 - n * 40, 6, 56 + n * 40);
+          c.fillStyle = "#f4f7fb";
+          c.fillRect(x - 16, y - 66 - n * 40, 38, 14);
+          pen(c, INK, 1.5);
+          c.strokeRect(x - 16, y - 66 - n * 40, 38, 14);
+        }
+        break;
+      case "belt":
+        drawRock(c, x, rect.y + 50 + n * rect.h * 0.35, 12 + n * 18, p);
+        break;
+      case "hoth":
+        c.fillStyle = "rgba(255,255,255,.8)";
+        c.beginPath(); c.arc(x, y - 4, 6 + n * 6, 0, Math.PI * 2); c.fill();
+        break;
+      case "bespin":
+        c.fillStyle = "rgba(255,244,230,.7)";
+        c.beginPath(); c.ellipse(x, y - 20, 22, 8, 0, 0, Math.PI * 2); c.fill();
+        pen(c, INK, 1.5); c.stroke();
+        break;
+      case "endor":
+        drawTree(c, x, y + 4, 0.8 + n);
+        break;
+      case "blockade":
+        if (n > 0.62) drawDestroyer(c, x, rect.y + 40 + n * 80, 0.45 + n * 0.3, -1);
+        break;
+      case "coruscant":
+        c.fillStyle = n > 0.5 ? "#d97830" : "#f0c07a";
+        c.fillRect(x, y - 20 - n * 70, 16 + n * 10, 24 + n * 70);
+        pen(c, INK, 1.5);
+        c.strokeRect(x, y - 20 - n * 70, 16 + n * 10, 24 + n * 70);
+        break;
+      default:
+        throw new Error("detail " + biome);
+    }
+  }
+}
+function drawApproach(c, rect, biome, grow) {
+  const x = rect.x + rect.w - 30 - grow * 20;
+  const s = 0.45 + grow * 0.9;
+  switch (biome) {
+    case "naboo":
+      c.fillStyle = "#7fba6a";
+      c.beginPath(); c.arc(x, rect.y + 70, 40 * s, 0, Math.PI * 2); c.fill();
+      wobbleCircle(c, x, rect.y + 70, 40 * s, 2);
+      break;
+    case "kamino":
+      drawKaminoScene(c, x - 20, rect.y + rect.h * 0.62, s);
+      break;
+    case "belt":
+      drawRock(c, x, rect.y + 80, 30 * s, 3);
+      break;
+    case "hoth":
+      c.fillStyle = "#f7fbfe";
+      c.beginPath(); c.arc(x, rect.y + 60, 36 * s, 0, Math.PI * 2); c.fill();
+      wobbleCircle(c, x, rect.y + 60, 36 * s, 2);
+      break;
+    case "bespin":
+      c.fillStyle = "#f0b06a";
+      c.beginPath(); c.ellipse(x, rect.y + 70, 48 * s, 28 * s, 0, 0, Math.PI * 2); c.fill();
+      wobbleCircle(c, x, rect.y + 70, 34 * s, 2);
+      break;
+    case "endor":
+      drawTree(c, x - 30, rect.y + rect.h * 0.64, s);
+      drawTree(c, x + 10, rect.y + rect.h * 0.64, s * 1.2);
+      break;
+    case "blockade":
+      drawDestroyer(c, x - 80, rect.y + 70, s, -1);
+      drawDestroyer(c, x, rect.y + 120, s * 0.8, -1);
+      break;
+    case "coruscant":
+      drawCoruscant(c, x - 10, rect.y + 78, 54 * s);
+      break;
+    case "tatooine":
+      break;
+    default:
+      throw new Error("approach " + biome);
+  }
+}
+function drawActionScene(c, rect, time) {
+  const a = state.action;
+  const biome = a.kind === "hunt"
+    ? (state.busy === "hoth" ? "hoth" : state.busy === "endor" ? "endor" : "tatooine")
+    : (a.kind === "imperial" ? "blockade" : "belt");
+  c.save();
+  c.beginPath(); c.rect(rect.x, rect.y, rect.w, rect.h); c.clip();
+  c.fillStyle = BIOMES[biome].sky;
+  c.fillRect(rect.x, rect.y, rect.w, rect.h);
+  c.fillStyle = BIOMES[biome].ground;
+  c.fillRect(rect.x, rect.y + rect.h * 0.62, rect.w, rect.h * 0.38);
+  pen(c, INK, 2);
+  c.beginPath();
+  c.moveTo(rect.x, rect.y + rect.h * 0.62);
+  c.lineTo(rect.x + rect.w, rect.y + rect.h * 0.62);
+  c.stroke();
+  if (a.kind === "hunt") {
+    const hx = rect.x + 78;
+    const hy = rect.y + rect.h * 0.62;
+    c.strokeStyle = INK; c.lineWidth = 3; c.lineCap = "round";
+    c.beginPath(); c.arc(hx, hy - 46, 10, 0, Math.PI * 2); c.stroke();
+    c.beginPath(); c.moveTo(hx, hy - 36); c.lineTo(hx, hy - 8); c.moveTo(hx, hy - 28); c.lineTo(hx + 26, hy - 18); c.moveTo(hx, hy - 8); c.lineTo(hx - 8, hy); c.lineTo(hx + 8, hy); c.stroke();
+    c.strokeStyle = "#7dce4a";
+    c.beginPath(); c.moveTo(hx + 8, hy - 24); c.lineTo(hx + 28, hy - 20); c.stroke();
+    a.animals.forEach((an) => drawAnimal(c, an.kind, rect.x + an.x, rect.y + an.y, an.kind === "bantha" ? 1.15 : 1.2));
+    if (control.pointer) {
+      c.strokeStyle = "#e23b32"; c.lineWidth = 2;
+      c.beginPath(); c.arc(control.pointer.x, control.pointer.y, 10, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.moveTo(control.pointer.x - 14, control.pointer.y); c.lineTo(control.pointer.x + 14, control.pointer.y); c.moveTo(control.pointer.x, control.pointer.y - 14); c.lineTo(control.pointer.x, control.pointer.y + 14); c.stroke();
+    }
+  } else {
+    const sy = rect.y + a.shipY * rect.h;
+    if (a.inv > 0 && Math.floor(time * 20) % 2 === 0) c.globalAlpha = 0.45;
+    drawShip(c, rect.x + rect.w * 0.28, sy, clamp(rect.h / 460, 0.55, 1.05), time);
+    c.globalAlpha = 1;
+    a.rocks.forEach((r) => drawRock(c, rect.x + r.x, rect.y + r.y * rect.h, r.r, r.seed));
+    a.foes.forEach((f) => drawDestroyer(c, rect.x + f.x, rect.y + f.y * rect.h, f.s, -1));
+  }
+  a.bolts.forEach((b) => {
+    c.strokeStyle = b.bad ? "#e23b32" : "#7dce4a";
+    c.lineWidth = 3;
+    c.beginPath();
+    c.moveTo(b.x, b.y);
+    c.lineTo(b.x - b.vx * 0.03, b.y - b.vy * 0.03);
+    c.stroke();
+  });
+  c.fillStyle = INK;
+  c.font = "22px Patrick Hand, cursive";
+  c.textAlign = "left";
+  const label = a.kind === "hunt" ? "Click the creatures   " + Math.ceil(a.dur - a.t) + "s   shots " + a.ammo + "   bag " + a.bag
+    : (a.kind === "imperial" ? "Threat  steer and fire   " : "Steer   ") + Math.ceil(a.dur - a.t) + "s   hits " + a.hits + (a.kind === "imperial" ? "   shots " + a.ammo : "");
+  c.fillText(label, rect.x + 12, rect.y + 28);
+  c.restore();
+  pen(c, INK, 3);
+  c.strokeRect(rect.x + 1.5, rect.y + 1.5, rect.w - 3, rect.h - 3);
+}
+function draw() {
+  const w = innerWidth;
+  const h = innerHeight;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (state.shake > 0) {
+    ctx.translate(Math.sin(state.shake * 80) * 5, 0);
+    state.shake = Math.max(0, state.shake - 0.016);
+  }
+  drawConcrete(ctx, w, h);
+  ensureGrain();
+  if (!state.launched) {
+    const live = document.getElementById("titleLive");
+    if (live) {
+      const lc = live.getContext("2d");
+      drawTrail(lc, { x: 0, y: 0, w: live.width, h: live.height }, state.viewParsecs, performance.now() / 1000);
+    }
+    return;
+  }
+  const rect = sceneRect();
+  lastRect = rect;
+  if (rect.w < 30 || rect.h < 30) return;
+  ctx.save();
+  ctx.fillStyle = "rgba(36,30,26,.18)";
+  ctx.fillRect(rect.x + 6, rect.y + 8, rect.w, rect.h);
+  ctx.restore();
+  if (state.mode === "travel") drawTrail(ctx, rect, state.viewParsecs || 0, performance.now() / 1000);
+  else drawActionScene(ctx, rect, performance.now() / 1000);
+}
+
+function resize() {
+  dpr = Math.min(2, devicePixelRatio || 1);
+  view.width = Math.floor(innerWidth * dpr);
+  view.height = Math.floor(innerHeight * dpr);
+}
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  try {
+    if (!state.launched) {
+      state.demo += dt * 16;
+      state.viewParsecs = 500 + (state.demo % 700);
+    } else if (state.screen === "travel" && !state.paused && state.mode === "travel") {
+      updateTravel(dt);
+    }
+    if (state.mode !== "travel") updateAction(dt);
+    updateBanner();
+    updateHud();
+    draw();
+  } catch (err) {
+    if (errors.length < 6) errors.push(String(err && err.stack || err));
+    console.error(err);
+  }
+  requestAnimationFrame(frame);
+}
+function updateTravel(dt) {
+  if (state.fuel <= 0) { strandedCard(); return; }
+  const pace = paceStats();
+  const dayLen = pace.day;
+  state.dayFrac += dt / dayLen;
+  const shown = state.parsecs + pace.speed * Math.min(state.dayFrac, 1.25);
+  state.viewParsecs = shown;
+  const nx = nextLandmark();
+  if (nx && shown >= nx.at && state.busy !== nx.id) {
+    state.viewParsecs = nx.at;
+    arrive(nx);
+    return;
+  }
+  if (state.dayFrac >= 1) {
+    state.dayFrac -= 1;
+    state.parsecs += pace.speed;
+    const nx2 = nextLandmark();
+    if (nx2 && state.parsecs > nx2.at) state.parsecs = nx2.at;
+    state.viewParsecs = state.parsecs + pace.speed * state.dayFrac;
+    resolveDay();
+  }
+}
+
+function bindHold(id, prop) {
+  const el = document.getElementById(id);
+  const set = (v) => { control[prop] = v; };
+  el.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    set(true);
+    if (prop === "fire") control.queued = true;
+  });
+  ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => el.addEventListener(ev, () => set(false)));
+}
+bindHold("btnUp", "up");
+bindHold("btnDown", "down");
+bindHold("btnFire", "fire");
+document.getElementById("btnDone").addEventListener("click", () => {
+  if (state.action) finishAction();
+});
+document.getElementById("btnMenu").addEventListener("click", () => { if (!document.getElementById("btnMenu").disabled) openMenu(); });
+document.getElementById("btnHunt").addEventListener("click", () => { if (state.mode === "travel") startHunt(); });
+document.getElementById("btnRest").addEventListener("click", () => { if (state.mode === "travel" && !state.paused) openRest(); });
+document.getElementById("btnMap").addEventListener("click", () => { if (state.mode === "travel") openMap(resume); });
+document.getElementById("btnSound").addEventListener("click", () => {
+  state.mute = !state.mute;
+  localStorage.setItem("adrian-sw-trail-mute", state.mute ? "1" : "0");
+  if (!state.mute) tone(660, 0.07, "triangle", 0.04);
+  updateHud();
+});
+function startHunt() {
+  if (state.blasters <= 0) {
+    showCard({
+      doodle: "crate",
+      title: "No blaster shots",
+      body: "The rifle clicks on an empty pack. Ports sell more.",
+      choices: [{ label: "Back to the lane", primary: true, go: resume }]
+    });
+    return;
+  }
+  startAction("hunt", false);
+}
+view.addEventListener("pointerdown", (e) => {
+  control.pointer = { x: e.clientX, y: e.clientY };
+  control.fire = true;
+  control.queued = true;
+});
+view.addEventListener("pointermove", (e) => {
+  control.pointer = { x: e.clientX, y: e.clientY };
+});
+window.addEventListener("pointerup", () => { control.fire = false; });
+addEventListener("keydown", (e) => {
+  const typing = document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA");
+  if (typing) return;
+  const k = e.key.toLowerCase();
+  const onButton = document.activeElement && document.activeElement.tagName === "BUTTON";
+  keys[k] = true;
+  if ((k === "arrowup" || k === "arrowdown" || k === " ") && !onButton) e.preventDefault();
+  if (onButton && (k === " " || k === "enter")) return;
+  if (k === " " && (state.mode === "hunt" || state.mode === "imperial")) control.fire = true;
+  else if (k === " " && state.screen === "travel" && state.mode === "travel" && !state.paused) openMenu();
+  if (k === "m" && state.screen === "travel" && state.mode === "travel" && !state.paused) openMenu();
+  if (k === "h" && state.screen === "travel" && state.mode === "travel" && !state.paused) startHunt();
+  if ((k === "arrowup" || k === "w") && state.mode !== "travel") control.up = true;
+  if ((k === "arrowdown" || k === "s") && state.mode !== "travel") control.down = true;
+  if (k >= "1" && k <= "9") {
+    const btns = document.querySelectorAll("#stage .choices button:not(:disabled), #stage .card > .choices button");
+    const list = document.querySelectorAll("#stage .choices button:not(:disabled)");
+    const b = list[Number(k) - 1];
+    if (b) b.click();
+  }
+  if (k === "enter") {
+    if (document.activeElement && document.activeElement.tagName === "BUTTON") return;
+    const p = document.querySelector("#stage button.primary:not(:disabled)") || document.querySelector("#stage .choices button:not(:disabled)");
+    if (p) p.click();
+  }
+  if (k === "escape" && state.screen === "travel" && state.mode === "travel") {
+    if (state.menuOpen) resume();
+    else if (!state.paused) openMenu();
+  }
+});
+addEventListener("keyup", (e) => {
+  const k = e.key.toLowerCase();
+  keys[k] = false;
+  if (k === " ") control.fire = false;
+  if (k === "arrowdown" || k === "s") control.down = keys["arrowdown"] || keys["s"];
+  if (k === "arrowup" || k === "w") control.up = keys["arrowup"] || keys["w"];
+});
+addEventListener("resize", resize);
+window.__trail = {
+  state,
+  errors,
+  LANDMARKS,
+  day() { resolveDay(); },
+  fire(id) { fireEvent(id, 0); },
+  fill() {
+    state.food = 4000;
+    state.fuel = 40;
+    state.credits = 800;
+    state.blasters = 80;
+    state.medpacs = 6;
+    state.parts = { motivator: 2, coil: 2, strut: 2 };
+  },
+  jump(id) {
+    const lm = landmarkById(id);
+    state.cleared = LANDMARKS.filter((l) => l.at < lm.at && l.kind !== "end").map((l) => l.id);
+    if (!state.cleared.includes("tatooine")) state.cleared.unshift("tatooine");
+    state.parsecs = Math.max(0, lm.at - 0.2);
+    state.dayFrac = 0;
+    state.viewParsecs = state.parsecs;
+    state.busy = null;
+    state.paused = false;
+    state.mode = "travel";
+    state.screen = "travel";
+    state.launched = true;
+    clearStage();
+    setHud(true);
+  }
+};
+resize();
+openTitle();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
