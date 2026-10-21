@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><link rel="icon" href="data:,"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>RENTOR · Day Shift</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#07080c;color:#f4efe6;font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;user-select:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+canvas{display:block}
+.hidden{display:none!important}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:2}
+#clock{position:absolute;top:14px;left:50%;transform:translateX(-50%);text-align:center;min-width:220px;background:rgba(8,10,14,.62);border:1px solid rgba(228,177,90,.45);padding:8px 18px 10px;border-radius:4px}
+#clock b{display:block;font-size:40px;letter-spacing:2px;font-variant-numeric:tabular-nums;line-height:1}
+#clock .tod{display:block;letter-spacing:3px;font-size:12px;opacity:.8;margin-top:2px}
+#clock.warn{border-color:#ff5a4a;box-shadow:0 0 24px rgba(255,60,40,.35)}
+#clock.warn b{color:#ffb0a6}
+#clock.night{border-color:#7f96c4}
+#hint{position:absolute;top:108px;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:.4px;text-shadow:0 1px 2px #000;max-width:520px;text-align:center}
+#obj{position:absolute;top:16px;left:16px;max-width:320px;font-size:14px;line-height:1.45;text-shadow:0 1px 2px #000}
+#obj div{margin:0 0 4px}
+#obj .hot{color:#ffb15a}
+#feed{position:absolute;left:16px;bottom:108px;max-width:420px;font-size:14px;line-height:1.4;text-shadow:0 1px 2px #000}
+#vitals{position:absolute;left:16px;bottom:16px;width:240px;background:rgba(8,10,14,.55);padding:8px 10px;border-radius:4px}
+#cash{font-size:22px;font-weight:700;letter-spacing:.5px}
+#hp{height:8px;background:#241418;margin-top:6px;border-radius:2px}
+#hp i{display:block;height:100%;background:#d45448;width:100%}
+#hp.safe i{background:#d4a24a}
+#safe{margin-top:4px;font-size:12px;letter-spacing:2px;color:#e4b15a}
+#ammo{position:absolute;right:16px;bottom:16px;text-align:right;background:rgba(8,10,14,.55);padding:8px 12px;min-width:140px;border-radius:4px}
+#wname{font-size:12px;letter-spacing:1px;text-transform:uppercase;opacity:.75}
+#acount{font-size:28px;font-weight:700}
+#compass{position:absolute;top:16px;right:16px;text-align:right;font-size:13px;text-shadow:0 1px 2px #000}
+#compass .arr{display:inline-block;width:18px;height:18px;margin-left:6px;vertical-align:-3px}
+#xh{position:absolute;left:50%;top:50%}
+#xh i{position:absolute;background:rgba(255,255,255,.88);box-shadow:0 0 2px #000}
+#xh .t,#xh .b{width:2px;height:8px;left:-1px}
+#xh .l,#xh .r{height:2px;width:8px;top:-1px}
+#xh .t{top:-14px}#xh .b{top:6px}#xh .l{left:-14px}#xh .r{left:6px}
+#prompt{position:absolute;top:62%;left:50%;transform:translateX(-50%);background:rgba(8,10,14,.7);border:1px solid rgba(228,177,90,.5);padding:6px 14px;border-radius:3px;letter-spacing:.4px}
+#downmsg{position:absolute;top:38%;width:100%;text-align:center;font-size:28px;letter-spacing:2px;color:#ffb0a6;text-shadow:0 2px 8px #000}
+#dmg{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(120,0,0,.85));opacity:0}
+#panel{position:fixed;right:20px;top:132px;width:min(440px,calc(100vw - 32px));z-index:8;background:#f4efe6;color:#1c1915;border-radius:6px;padding:16px 16px 12px;box-shadow:0 16px 50px rgba(0,0,0,.45)}
+#panel h3{margin:0 0 6px;font-size:18px;letter-spacing:.3px}
+#panelclock{float:right;font-variant-numeric:tabular-nums;color:#9a3412;font-weight:700}
+#pbody{margin:0 0 12px;line-height:1.45;font-size:15px}
+#pchoices{display:flex;flex-direction:column;gap:8px}
+#pchoices button{font:inherit;text-align:left;padding:10px 12px;border-radius:4px;border:1px solid #c8bba6;background:#fffaf3;cursor:pointer}
+#pchoices button:hover{border-color:#9a3412}
+.screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,rgba(12,16,24,.35),rgba(6,8,12,.88));z-index:10}
+.card{max-width:760px;padding:28px 34px;text-align:center}
+.kicker{letter-spacing:4px;font-size:12px;color:#e4b15a}
+h1{font-family:Palatino,"Iowan Old Style",Georgia,serif;font-size:78px;margin:4px 0 0;letter-spacing:10px;font-weight:600}
+h2{margin:0 0 12px;letter-spacing:8px;font-size:18px;font-weight:600;color:#e4b15a}
+.sub{font-size:15px;line-height:1.5;max-width:640px;margin:0 auto}
+.controls{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 16px;margin:16px auto;text-align:left;font-size:13px;max-width:640px}
+.controls b{display:inline-block;min-width:64px;background:#f4efe6;color:#1c1915;border-radius:3px;padding:1px 6px;margin-right:6px;text-align:center}
+button.big{font:inherit;letter-spacing:3px;font-size:18px;padding:12px 28px;background:#9a3412;color:#fffaf3;border:0;border-radius:3px;cursor:pointer}
+button.big:hover{background:#b45309}
+.tiny{margin-top:14px;font-size:12px;opacity:.7;line-height:1.45}
+.tiny a{color:#e4b15a}
+table.stats{margin:12px auto;border-collapse:collapse;font-size:16px}
+table.stats td{padding:4px 14px;border-bottom:1px solid rgba(255,255,255,.15);text-align:left}
+table.stats td:last-child{text-align:right;font-weight:700}
+.touchhelp{display:none}
+#touch{position:fixed;inset:0;z-index:6;pointer-events:none;touch-action:none}
+#stickzone,#lookpad{position:absolute;top:0;bottom:0;pointer-events:auto;touch-action:none}
+#stickzone{left:0;width:46%}
+#lookpad{left:46%;right:0}
+#stick{position:absolute;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;border:2px solid rgba(255,255,255,.4);background:rgba(0,0,0,.25);pointer-events:none;display:none}
+#knob{position:absolute;left:38px;top:38px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.45)}
+#tbtns{position:absolute;right:calc(8px + env(safe-area-inset-right));bottom:calc(8px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none}
+#tbtns .trow{display:flex;gap:8px}
+#tbtns button{pointer-events:auto;touch-action:none;width:62px;height:62px;border-radius:50%;border:2px solid rgba(255,255,255,.45);background:rgba(0,0,0,.4);color:#fff;font:inherit;font-size:11px}
+#tbtns button.fire{width:86px;height:86px;background:rgba(154,52,18,.6);font-weight:700}
+body.touching #clock{top:calc(8px + env(safe-area-inset-top));padding:6px 10px}
+body.touching #clock b{font-size:28px}
+body.touching #hint{top:78px;font-size:12px;padding:0 12px}
+body.touching #obj{top:78px;max-width:46vw;font-size:12px}
+body.touching #compass{display:none}
+body.touching #ammo{top:calc(8px + env(safe-area-inset-top));right:8px;bottom:auto}
+body.touching #vitals{bottom:calc(210px + env(safe-area-inset-bottom));width:min(46vw,200px)}
+body.touching #feed{display:none}
+@media (max-width:900px),(max-height:520px){
+ .screen{overflow:auto;align-items:flex-start;padding:16px 0}
+ h1{font-size:46px;letter-spacing:4px}
+ .controls{grid-template-columns:1fr 1fr}
+ #panel{top:auto;bottom:12px;right:12px;left:12px;width:auto;max-height:46vh;overflow:auto}
+}
+@media (max-width:640px){.controls{display:none}.touchhelp{display:block;margin:8px auto 12px;max-width:420px;font-size:14px}}
+</style></head><body>
+<div id="hud" class="hidden">
+ <div id="dmg"></div>
+ <div id="clock"><b id="count">5:00</b><span class="tod" id="tod">DAY · JANUARY · 8:00 AM</span></div>
+ <div id="hint"></div>
+ <div id="obj"></div>
+ <div id="compass"></div>
+ <div id="feed"></div>
+ <div id="vitals"><div id="cash"></div><div id="hp"><i id="hpfill"></i></div><div id="safe" class="hidden">SAFE · 3109</div></div>
+ <div id="ammo" class="hidden"><div id="wname"></div><div id="acount"></div></div>
+ <div id="xh" class="hidden"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i></div>
+ <div id="prompt" class="hidden"></div>
+ <div id="downmsg" class="hidden">OUT COLD</div>
+</div>
+<div id="touch" class="hidden">
+ <div id="stickzone"></div><div id="lookpad"></div>
+ <div id="stick"><div id="knob"></div></div>
+ <div id="tbtns">
+  <div class="trow"><button type="button" data-act="gun">GUN</button><button type="button" data-act="reload">RELOAD</button></div>
+  <div class="trow"><button type="button" data-act="shove">SHOVE</button><button type="button" data-act="use">USE</button></div>
+  <button type="button" class="fire" data-act="fire">FIRE</button>
+ </div>
+</div>
+<div id="panel" class="hidden">
+ <div id="panelclock"></div>
+ <h3 id="ptitle"></h3>
+ <p id="pbody"></p>
+ <div id="pchoices"></div>
+</div>
+<div id="title" class="screen"><div class="card">
+ <div class="kicker">3109 H STREET · EUREKA</div>
+ <h1>RENTOR</h1>
+ <h2>DAY SHIFT</h2>
+ <p class="sub">Walk the rent route while the sun is up: collect, repair, fill an empty unit, answer the lease. Daylight lasts five minutes. Night lasts five. The office is the only safe room once the street turns. A late signing will try to strand you past dusk.</p>
+ <div class="controls">
+  <div><b>WASD</b>Move</div><div><b>MOUSE</b>Look</div><div><b>SHIFT</b>Sprint</div>
+  <div><b>E</b>Use</div><div><b>ESC</b>Close a note</div><div><b>CLICK</b>Capture mouse</div>
+  <div><b>L-CLICK</b>Fire at night</div><div><b>R-CLICK</b>Shove</div><div><b>R</b>Reload</div>
+  <div><b>1 2 3</b>Weapons</div>
+ </div>
+ <p class="touchhelp">Left side moves, right side looks. USE talks to a door. At night, FIRE, SHOVE, and RELOAD. Hold the right side and drag to look. The clock never stops while a note is open.</p>
+ <button class="big" id="playbtn" type="button">START THE ROUTE</button>
+ <p class="tiny">The clock keeps running while you read. Sprint is how you make the door.<br>An original sim about the desk at <a href="https://www.rentor.com">Rentor</a>, 3109 H Street, Eureka. Not affiliated with Second Nature or Whimsy Games.</p>
+</div></div>
+<div id="year" class="screen hidden"><div class="card">
+ <div class="kicker">TWELVE MONTHS ON H STREET</div>
+ <h1 style="font-size:56px">YEAR CLOSED</h1>
+ <table class="stats" id="yearstats"></table>
+ <p class="tiny" id="yearformula"></p>
+ <button class="big" id="againbtn" type="button">RUN ANOTHER YEAR</button>
+</div></div>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}</script>
+<script type="module">
+import * as THREE from 'three';
+
+const QS = new URLSearchParams(location.search);
+const AUTOTEST = QS.has('autotest');
+const FAST = QS.has('fast');
+const DAY_LEN = FAST ? 40 : 300;
+const NIGHT_LEN = FAST ? 40 : 300;
+const DUSK_WARN = FAST ? 10 : 40;
+const WALK = 5.2;
+const SPRINT = 8.4;
+
+const $ = id => document.getElementById(id);
+const rand = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, t) => a + (b - a) * t;
+function angDiff(a, b){ let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d; }
+function assertNever(x){ throw new Error('Unhandled ' + x); }
+function money(n){
+  const sign = n < 0 ? '-' : '';
+  return sign + '$' + Math.abs(Math.round(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+const WEAP = {
+  pistol: {name:'Pistol', mag:12, res:Infinity, dmg:28, rate:0.22, spread:0.012, pellets:1, reload:1.25, auto:false},
+  shotgun: {name:'Pump Shotgun', mag:6, res:24, dmg:14, rate:0.82, spread:0.08, pellets:8, reload:1.9, auto:false},
+  smg: {name:'SMG', mag:30, res:120, dmg:12, rate:0.09, spread:0.03, pellets:1, reload:1.6, auto:true},
+};
+const ORDER = ['pistol','shotgun','smg'];
+const PICKUPS = [
+  {type:'pistol', x:6, z:8},
+  {type:'shotgun', x:-6, z:55},
+  {type:'smg', x:6.5, z:100},
+];
+
+const PROPS = [
+  {id:'duplex', addr:'1412 H St', kind:'Duplex', resident:'Elena Voss', x:10, z:22, hw:3.5, hd:4.6, h:5.2, rent:1650, occ:true, happy:78, color:0xc4b49a, roof:0x6e3b2c, side:1},
+  {id:'cottage', addr:'1620 H St', kind:'Cottage', resident:'Sam Ortega', x:-11, z:40, hw:3.3, hd:3.8, h:3.1, rent:1425, occ:true, happy:72, color:0xd9d3c5, roof:0x3e4a55, side:-1},
+  {id:'harris', addr:'1904 Harris', kind:'Bungalow', resident:null, x:12, z:58, hw:3.4, hd:4.0, h:3.2, rent:1280, occ:false, happy:0, color:0xb7c3a4, roof:0x4a3a32, side:1},
+  {id:'broadway', addr:'2108 Broadway', kind:'Fourplex', resident:'Priya Shah', x:-13, z:78, hw:4.0, hd:5.0, h:5.6, rent:2100, occ:true, happy:80, color:0xd8d2c8, roof:0x2c3338, side:-1},
+  {id:'henderson', addr:'908 Henderson', kind:'House', resident:'Jonah Reed', x:12.5, z:98, hw:3.4, hd:4.2, h:3.4, rent:1175, occ:true, happy:68, color:0xe0d2b8, roof:0x6a4030, side:1},
+  {id:'fifth', addr:'44 5th', kind:'Victorian', resident:null, x:-10, z:118, hw:3.6, hd:4.6, h:5.4, rent:1890, occ:false, happy:0, color:0xd5c6c0, roof:0x3a2a28, side:-1},
+  {id:'fern', addr:'612 Main, Ferndale', kind:'Cottage', resident:null, x:11, z:142, hw:3.6, hd:4.4, h:3.2, rent:2300, occ:false, happy:0, color:0xd7c4a3, roof:0x6a3a2a, side:1},
+];
+for (const p of PROPS){
+  p.baseOcc = p.occ; p.baseHappy = p.happy; p.baseRent = p.rent; p.baseResident = p.resident;
+}
+const FERN_YARD = {x:11, z:148.8};
+const FERN_GARAGE = {x:15.2, z:133};
+
+const QUESTIONS = [
+  p => ({title:'Paint', body:`${p.resident} wants the south bedroom a deep red before family visits. The lease requires written approval, and the unit was just turned in warm white.`, choices:[
+    {label:'Approve a warm-white touch-up only.', ok:true, cash:0, happy:4, note:'The color stays with the lease.'},
+    {label:'Let them paint it. You will prime it later.', ok:false, cash:-420, happy:-6, note:'A full prime is coming out of the desk.'},
+    {label:'Ignore the note.', ok:false, cash:0, happy:-16, note:'They painted it anyway.'},
+  ]}),
+  p => ({title:'The band', body:`${p.resident} wants a Saturday band in the driveway. Eighty people, amps, a keg. Quiet hours in the lease start at 9.`, choices:[
+    {label:'Small gathering, no amps after 9, in writing.', ok:true, cash:0, happy:3, note:'You put the cap in writing.'},
+    {label:'It is their rental. Let the band play.', ok:false, cash:-300, happy:-10, note:'The neighbors billed the mess to the desk.'},
+    {label:'Start an eviction over the question.', ok:false, cash:0, happy:-22, note:'They started looking at other towns.'},
+  ]}),
+  p => ({title:'Deposit', body:`${p.resident} is leaving on the 30th and wants the security deposit used as this month's rent.`, choices:[
+    {label:'The deposit stays in trust. Rent is still due.', ok:true, cash:0, happy:1, note:'Rent stays separate from the deposit.'},
+    {label:'Apply the deposit and skip the rent.', ok:false, cash:-p.rent, happy:-4, note:'You spent the deposit as rent.'},
+    {label:'Refund it today and call the month even.', ok:false, cash:-p.rent, happy:-8, note:'The month went out the door with the refund.'},
+  ]}),
+  p => ({title:'Extra key', body:`Someone has been in the second bedroom for a month. ${p.resident} wants them to have a key. That person never applied.`, choices:[
+    {label:'They apply, or they do not get a key.', ok:true, cash:0, happy:2, note:'Every adult goes on the lease.'},
+    {label:'A long guest is fine. Skip the paperwork.', ok:false, cash:-200, happy:-8, note:'An unnamed occupant is now your problem.'},
+    {label:'Raise the rent and do not say why.', ok:false, cash:80, happy:-18, note:'They noticed. Trust dropped.'},
+  ]}),
+  p => ({title:'The pool', body:`A new inflatable pool and a slide are against the back fence at ${p.addr}. The yard drains toward the neighbor, and the policy will not cover it.`, choices:[
+    {label:'It comes down. No pools, slides, or trampolines.', ok:true, cash:0, happy:-2, note:'The hazard is going.'},
+    {label:'Leave it if the neighbors stay quiet.', ok:false, cash:-750, happy:-6, note:'The slide met the fence, then the invoice.'},
+    {label:'Say nothing and hope the rain ends it.', ok:false, cash:-400, happy:-8, note:'The rain did not take the bill with it.'},
+  ]}),
+  p => ({title:'Weekend listing', body:`${p.addr} is listed for weekend guests. Lockbox on the rail, strangers in and out. The lease does not allow short stays.`, choices:[
+    {label:'The listing comes down today.', ok:true, cash:0, happy:-1, note:'Short stays stay off the lease.'},
+    {label:'Ask for a cut of each booking.', ok:false, cash:-500, happy:-6, note:'The city notice cost more than the cut.'},
+    {label:'Allow summer if they pay a fee.', ok:false, cash:-350, happy:-4, note:'One bad guest wiped the fee.'},
+  ]}),
+  p => ({title:'Out of town', body:`${p.resident} was gone all month and wrote that rent should pause because they did not sleep there.`, choices:[
+    {label:'Rent was due on the first either way.', ok:true, cash:0, happy:0, note:'Being away does not pause the rent.'},
+    {label:'Credit the month so they stay loyal.', ok:false, cash:-p.rent, happy:6, note:'You paid their vacation month.'},
+    {label:'Bill two months to make the point.', ok:false, cash:0, happy:-24, note:'They heard a threat, not a lease.'},
+  ]}),
+  p => ({title:'Late fee', body:`Rent at ${p.addr} is three days past the grace period. The history is clean. They want the late fee dropped.`, choices:[
+    {label:'The fee stays. Give a written catch-up date. No lockout.', ok:true, cash:0, happy:2, note:'The fee stands, and so does the tenancy.'},
+    {label:'Waive every fee from here on.', ok:false, cash:-150, happy:4, note:'You set a precedent the ledger will feel.'},
+    {label:'Change the locks until the fee posts.', ok:false, cash:0, happy:-30, note:'A lockout is not a late fee.'},
+  ]}),
+  p => ({title:'The power bill', body:`${p.resident} wants the electric account moved into the company name. The lease leaves electric and trash with the resident.`, choices:[
+    {label:'Those accounts stay in their name.', ok:true, cash:0, happy:0, note:'The lease already names who pays the power.'},
+    {label:'Move the electric over and sort it out later.', ok:false, cash:-190, happy:2, note:'The meter is on your books now.'},
+    {label:'Shut the breaker off until they agree.', ok:false, cash:0, happy:-26, note:'Dark units do not pay faster.'},
+  ]}),
+  p => ({title:'The dog', body:`There is a dog at ${p.addr}. No pet addendum, no pet rent, and the lease requires written approval.`, choices:[
+    {label:'Approval, a deposit, and pet rent, or the dog goes.', ok:true, cash:150, happy:2, note:'Pet deposit collected.'},
+    {label:'Dogs are family. Skip the addendum.', ok:false, cash:-260, happy:3, note:'The hallway carpet sent a bill.'},
+    {label:'Keep the whole security deposit today.', ok:false, cash:0, happy:-20, note:'You jumped the deposit. They are done talking.'},
+  ]}),
+  p => ({title:'The drip', body:`The kitchen supply at ${p.addr} is dripping into the cabinet. ${p.resident} says they will tighten it after work.`, choices:[
+    {label:'Send a plumber. Supply lines are yours to fix.', ok:true, cash:-280, happy:5, note:'The plumber stopped it.'},
+    {label:'Let them handle it and save the trip.', ok:false, cash:-880, happy:-8, note:'The cabinet, the floor, and the neighbor below.'},
+    {label:'Leave a wrench on the porch.', ok:false, cash:-640, happy:-6, note:'The wrench did not know which nut to turn.'},
+  ]}),
+  p => ({title:'Lapsed policy', body:`The renters policy at ${p.addr} lapsed in March. The lease requires coverage for the whole term.`, choices:[
+    {label:'The policy has to be active again. Rent is still due.', ok:true, cash:0, happy:0, note:'Coverage goes back on. Rent does not pause.'},
+    {label:'Drop the requirement. They have been careful.', ok:false, cash:-600, happy:1, note:'A careful tenant still had a kitchen fire.'},
+    {label:'Buy the policy for them and bill it someday.', ok:false, cash:-240, happy:2, note:'You are paying their premium.'},
+  ]}),
+];
+
+const errors = [];
+addEventListener('error', e => errors.push(String(e.message)));
+addEventListener('unhandledrejection', e => errors.push(String(e.reason)));
+
+const el = {
+  hud:$('hud'), clock:$('clock'), count:$('count'), tod:$('tod'), hint:$('hint'), obj:$('obj'),
+  compass:$('compass'), feed:$('feed'), cash:$('cash'), hp:$('hp'), hpfill:$('hpfill'), safe:$('safe'),
+  ammo:$('ammo'), wname:$('wname'), acount:$('acount'), xh:$('xh'), prompt:$('prompt'), downmsg:$('downmsg'),
+  dmg:$('dmg'), panel:$('panel'), panelclock:$('panelclock'), ptitle:$('ptitle'), pbody:$('pbody'),
+  pchoices:$('pchoices'), title:$('title'), year:$('year'), yearstats:$('yearstats'), yearformula:$('yearformula'),
+  touch:$('touch'), stickzone:$('stickzone'), lookpad:$('lookpad'), stick:$('stick'), knob:$('knob'),
+};
+
+let TOUCH = false;
+function applyTouch(){
+  TOUCH = matchMedia('(pointer: coarse)').matches || innerWidth <= 900;
+  document.body.classList.toggle('touching', TOUCH);
+  el.touch.classList.toggle('hidden', !TOUCH);
+}
+
+const S = {
+  mode:'title', phase:'day', left:DAY_LEN, month:0, cash:4200, doors:false,
+  homeNights:0, caught:0, deaths:0, collected:0, repairs:0, filled:0, correct:0, wrong:0, rentIn:0, spent:0,
+  tasks:[], urgent:null, offered:false, pendingOffer:false, panel:null, trickle:8, hurt:0, muzzle:0,
+};
+let qCursor = 0;
+const keys = {};
+let mouseLeft = false, mouseRight = false, touchRun = false, touchShove = false;
+let stickX = 0, stickY = 0;
+const player = {
+  x:0, z:-1, yaw:Math.PI, pitch:0, hp:100, down:false,
+  inv:{pistol:null, shotgun:null, smg:null}, slot:null,
+  fireCd:0, reloadT:0, shoveT:0, bob:0,
+};
+
+function curW(){ return player.slot ? player.inv[player.slot] : null; }
+function propById(id){ return PROPS.find(p => p.id === id); }
+function onRoute(p){
+  if (p.id === 'fern') return false;
+  if (p.z > 90 && !S.doors) return false;
+  return true;
+}
+function pointInOffice(x, z){ return x > -3.55 && x < 3.55 && z > -7.55 && z < 1.45; }
+function inOffice(){ return pointInOffice(player.x, player.z); }
+function urgentAt(){
+  if (FAST) return 16;
+  return Math.max(36, 50 - S.month * 1.2);
+}
+function phaseLen(phase){
+  switch (phase){
+    case 'day': return DAY_LEN;
+    case 'night': return NIGHT_LEN;
+    default: return assertNever(phase);
+  }
+}
+function bumpHappy(p, d){ p.happy = clamp(p.happy + d, 0, 100); }
+function earn(n){ S.cash += n; S.rentIn += n; }
+function pay(n){ S.cash -= n; S.spent += n; }
+function toast(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  el.feed.prepend(d);
+  while (el.feed.children.length > 5) el.feed.lastChild.remove();
+}
+
+/* ---------- scene ---------- */
+const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance', preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xc5dff5);
+scene.fog = new THREE.FogExp2(0xc5dff5, 0.012);
+const camera = new THREE.PerspectiveCamera(78, innerWidth / innerHeight, 0.08, 420);
+camera.rotation.order = 'YXZ';
+scene.add(camera);
+const hemi = new THREE.HemisphereLight(0xcfe4f8, 0x3d4a32, 0.95);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff1d2, 1.25);
+sun.position.set(-40, 80, 20);
+scene.add(sun);
+const officeLight = new THREE.PointLight(0xffc98a, 0.9, 16, 2);
+officeLight.position.set(0, 2.7, -3);
+scene.add(officeLight);
+const muzzle = new THREE.PointLight(0xffb060, 0, 12, 2);
+scene.add(muzzle);
+const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+const matCache = {};
+function mat(c, o){
+  const k = c + '|' + (o ? JSON.stringify(o) : '');
+  return matCache[k] || (matCache[k] = new THREE.MeshLambertMaterial(Object.assign({color:c}, o || {})));
+}
+function box(w, h, d, c, x, y, z, parent, o){
+  const m = new THREE.Mesh(boxGeo, typeof c === 'number' ? mat(c, o) : c);
+  m.scale.set(w, h, d);
+  m.position.set(x, y, z);
+  (parent || scene).add(m);
+  return m;
+}
+function signTex(a, b, bg, fg){
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = bg; g.fillRect(0, 0, 512, 256);
+  g.strokeStyle = fg; g.lineWidth = 10; g.strokeRect(16, 16, 480, 224);
+  g.fillStyle = fg; g.textAlign = 'center';
+  g.font = '700 84px Georgia, serif'; g.fillText(a, 256, 120);
+  g.font = '600 40px system-ui, sans-serif'; g.fillText(b, 256, 190);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+function plane(w, h, tex, x, y, z, ry){
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({map:tex, side:THREE.DoubleSide}));
+  m.position.set(x, y, z);
+  m.rotation.y = ry || 0;
+  scene.add(m);
+  return m;
+}
+
+const solids = [];
+function addSolid(minx, minz, maxx, maxz){ solids.push({minx, minz, maxx, maxz}); }
+function hits(x, z, r){
+  if (x < -22 || x > 22 || z < -12 || z > 158) return true;
+  for (const s of solids){
+    const cx = clamp(x, s.minx, s.maxx), cz = clamp(z, s.minz, s.maxz);
+    if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r) return true;
+  }
+  return false;
+}
+function moveCircle(e, dx, dz, r){
+  e.x += dx;
+  if (hits(e.x, e.z, r)) e.x -= dx;
+  e.z += dz;
+  if (hits(e.x, e.z, r)) e.z -= dz;
+}
+function rayAABB2(ox, oz, dx, dz, s){
+  let tmin = 0, tmax = 1e9;
+  const axes = [[ox, dx, s.minx, s.maxx], [oz, dz, s.minz, s.maxz]];
+  for (const [o, d, min, max] of axes){
+    if (Math.abs(d) < 1e-8){ if (o < min || o > max) return -1; }
+    else {
+      let t1 = (min - o) / d, t2 = (max - o) / d;
+      if (t1 > t2){ const tmp = t1; t1 = t2; t2 = tmp; }
+      tmin = Math.max(tmin, t1); tmax = Math.min(tmax, t2);
+      if (tmax < tmin) return -1;
+    }
+  }
+  if (tmin >= 0) return tmin;
+  return tmax >= 0 ? tmax : -1;
+}
+function raySolidDist(ox, oz, dx, dz, maxD){
+  let best = maxD;
+  for (const s of solids){
+    const t = rayAABB2(ox, oz, dx, dz, s);
+    if (t >= 0 && t < best) best = t;
+  }
+  return best;
+}
+
+function buildWorld(){
+  box(420, 0.2, 420, 0x3d5a34, 0, -0.12, 70);
+  box(9.2, 0.08, 160, 0x3a3d44, 0, 0.02, 74);
+  box(2.2, 0.04, 160, 0xb7b1a6, -5.6, 0.05, 74);
+  box(2.2, 0.04, 160, 0xb7b1a6, 5.6, 0.05, 74);
+  for (let z = 8; z < 150; z += 8) box(0.16, 0.02, 2.2, 0xd8d4cc, 0, 0.08, z);
+  addSolid(-4.3, -8.3, 4.3, -7.65);
+  addSolid(-4.3, -8.3, -3.65, 2.25);
+  addSolid(3.65, -8.3, 4.3, 2.25);
+  addSolid(-4.3, 1.85, -1.7, 2.3);
+  addSolid(1.7, 1.85, 4.3, 2.3);
+  addSolid(-1.35, -6.1, 1.35, -4.55);
+  box(8.6, 3.5, 0.28, 0xe7e1d6, 0, 1.75, -7.9);
+  box(0.28, 3.5, 10.2, 0xe7e1d6, -4.0, 1.75, -3);
+  box(0.28, 3.5, 10.2, 0xe7e1d6, 4.0, 1.75, -3);
+  box(2.6, 3.5, 0.28, 0xe7e1d6, -3.0, 1.75, 2.05);
+  box(2.6, 3.5, 0.28, 0xe7e1d6, 3.0, 1.75, 2.05);
+  box(8.6, 0.2, 10.4, 0xc8b496, 0, 3.45, -3);
+  box(8.2, 0.12, 9.6, 0x8d6a45, 0, 0.08, -3);
+  box(2.4, 0.78, 1.2, 0x6b422c, 0, 0.45, -5.3);
+  box(1.3, 0.9, 0.5, 0x3a3a3a, 0, 0.5, -4.2);
+  plane(3.4, 1.7, signTex('RENTOR', '3109 H ST', '#14202c', '#e4b15a'), 0, 2.7, 2.28, 0);
+  plane(2.2, 1.1, signTex('707.444.3835', 'SINCE 1989', '#1c1915', '#f4efe6'), 0, 2.2, -7.7, Math.PI);
+  for (const p of PROPS){
+    const g = new THREE.Group();
+    box(p.hw * 2, p.h, p.hd * 2, p.color, 0, p.h / 2, 0, g);
+    box(p.hw * 2 + 0.5, 0.45, p.hd * 2 + 0.5, p.roof, 0, p.h + 0.15, 0, g);
+    const face = -p.side * p.hw;
+    box(0.16, 2.15, 0.92, 0x4a3428, face - p.side * 0.02, 1.1, 0, g);
+    box(0.7, 0.9, 0.08, 0x9ec7de, face - p.side * 0.02, p.h * 0.62, 1.4, g);
+    box(0.7, 0.9, 0.08, 0x9ec7de, face - p.side * 0.02, p.h * 0.62, -1.4, g);
+    box(p.hw * 2 + 1.4, 0.05, p.hd * 2 + 1.4, 0x6d7a48, 0, 0.06, 0, g);
+    g.position.set(p.x, 0, p.z);
+    scene.add(g);
+    addSolid(p.x - p.hw, p.z - p.hd, p.x + p.hw, p.z + p.hd);
+    p.door = {x: p.x - p.side * (p.hw + 1.7), z: p.z};
+    const label = signTex(p.addr.split(',')[0], p.kind, '#f4efe6', '#1c1915');
+    plane(1.8, 0.7, label, p.door.x, 2.15, p.door.z, p.side > 0 ? -Math.PI / 2 : Math.PI / 2);
+  }
+  addSolid(16, 131.2, 19, 134.8);
+  box(3, 2.4, 3.6, 0x8a6248, 17.5, 1.2, 133);
+  box(3.3, 0.3, 3.9, 0x4a3428, 17.5, 2.5, 133);
+  const cars = [{x:5.4, z:30}, {x:-5.4, z:47}, {x:5.4, z:70}, {x:-5.4, z:93}, {x:5.4, z:116}];
+  for (const c of cars){
+    addSolid(c.x - 0.9, c.z - 2.1, c.x + 0.9, c.z + 2.1);
+    box(1.7, 0.7, 4, 0x2c3440, c.x, 0.55, c.z);
+    box(1.5, 0.55, 2, 0x8eb4c9, c.x, 1.05, c.z);
+  }
+  for (const [x, z] of [[-8.4, 16], [8.6, 34], [-8.4, 52], [8.6, 74], [-8.4, 96], [8.6, 124], [-8.4, 148]]){
+    box(0.35, 2.4, 0.35, 0x4a3428, x, 1.2, z);
+    box(2.4, 1.8, 2.4, 0x2d6a3c, x, 3.0, z);
+  }
+  const lampSpots = [[7.2, 8], [-7.2, 30], [-7.2, 55], [7.2, 78], [7.2, 100], [-7.2, 120], [7.2, 142]];
+  const lamps = [];
+  for (const [x, z] of lampSpots){
+    box(0.18, 4.4, 0.18, 0x2a2e33, x, 2.2, z);
+    box(0.7, 0.16, 0.3, 0x2a2e33, x - Math.sign(x) * 0.2, 4.3, z);
+    const L = new THREE.PointLight(0xffe1b0, 0, 18, 2);
+    L.position.set(x, 4.15, z);
+    scene.add(L);
+    lamps.push(L);
+  }
+  return lamps;
+}
+const lamps = buildWorld();
+
+const beamMat = new THREE.MeshLambertMaterial({color:0xffd56a, transparent:true, opacity:0.35});
+const beam = box(0.35, 14, 0.35, beamMat, 0, 7, 0);
+const vm = new THREE.Group();
+camera.add(vm);
+vm.position.set(0.28, -0.26, -0.48);
+const vmGuns = {};
+function makeGun(type){
+  const g = new THREE.Group();
+  switch (type){
+    case 'pistol':
+      box(0.08, 0.14, 0.28, 0x22262c, 0, 0, -0.05, g);
+      box(0.05, 0.12, 0.06, 0x1a1c20, 0, -0.1, 0.06, g);
+      break;
+    case 'shotgun':
+      box(0.09, 0.1, 0.7, 0x3a2a22, 0, 0.02, -0.15, g);
+      box(0.06, 0.08, 0.28, 0x222, 0, -0.06, 0.12, g);
+      break;
+    case 'smg':
+      box(0.09, 0.14, 0.42, 0x2a2e28, 0, 0, -0.08, g);
+      box(0.1, 0.16, 0.16, 0x1c1e1a, 0, -0.1, 0.02, g);
+      break;
+    default: assertNever(type);
+  }
+  g.visible = false;
+  vm.add(g);
+  return g;
+}
+for (const type of ORDER) vmGuns[type] = makeGun(type);
+const fists = new THREE.Group();
+box(0.08, 0.08, 0.16, 0xd7b099, -0.16, -0.02, 0.05, fists);
+box(0.08, 0.08, 0.2, 0xd7b099, 0.05, -0.04, 0.02, fists);
+vm.add(fists);
+
+const pickupMeshes = PICKUPS.map(pk => {
+  const g = new THREE.Group();
+  const crate = new THREE.MeshLambertMaterial({color:0xd7b07a, emissive:0xffb45a, emissiveIntensity:0.55});
+  box(1.15, 0.62, 1.15, crate, 0, 0.31, 0, g);
+  const gun = new THREE.MeshLambertMaterial({color:0xd5dee8, emissive:0x9ecbff, emissiveIntensity:0.85});
+  box(0.16, 0.18, 0.95, gun, 0, 0.78, 0, g);
+  g.position.set(pk.x, 0, pk.z);
+  scene.add(g);
+  return g;
+});
+
+/* ---------- zombies ---------- */
+const pool = [];
+let zid = 1;
+const SHIRTS = [0x5c6b4a, 0x6e4a4a, 0x4a5568, 0x6b5a3e, 0x3e4a55];
+function spawnMesh(){
+  const g = new THREE.Group();
+  const shirt = new THREE.MeshLambertMaterial({color:SHIRTS[pool.length % SHIRTS.length], emissive:0x3a1010, emissiveIntensity:0.35});
+  const body = box(0.55, 0.75, 0.32, shirt, 0, 1.15, 0, g);
+  box(0.32, 0.32, 0.3, 0xc4a484, 0, 1.7, 0, g);
+  const eye = new THREE.MeshBasicMaterial({color:0xff4428});
+  box(0.07, 0.045, 0.05, eye, -0.08, 1.74, 0.14, g);
+  box(0.07, 0.045, 0.05, eye, 0.08, 1.74, 0.14, g);
+  const legL = new THREE.Group(); legL.position.set(-0.14, 0.78, 0); g.add(legL);
+  const legR = new THREE.Group(); legR.position.set(0.14, 0.78, 0); g.add(legR);
+  box(0.16, 0.7, 0.18, 0x2a2c33, 0, -0.35, 0, legL);
+  box(0.16, 0.7, 0.18, 0x2a2c33, 0, -0.35, 0, legR);
+  const armL = new THREE.Group(); armL.position.set(-0.38, 1.4, 0); g.add(armL);
+  const armR = new THREE.Group(); armR.position.set(0.38, 1.4, 0); g.add(armR);
+  box(0.14, 0.6, 0.14, 0xc4a484, 0, -0.3, 0, armL);
+  box(0.14, 0.6, 0.14, 0xc4a484, 0, -0.3, 0, armR);
+  scene.add(g);
+  const z = {id:zid++, mesh:g, body, shirt, legL, legR, armL, armR, dead:true, hp:64, x:0, z:0, yaw:0, speed:4, atk:0, stag:0, kvx:0, kvz:0, hitT:0, phase:0, base:shirt.color.getHex()};
+  pool.push(z);
+  return z;
+}
+function makeZombie(x, z){
+  if (hits(x, z, 0.4)) x = 0;
+  if (pointInOffice(x, z)) z = 8;
+  let zed = pool.find(q => q.dead);
+  if (!zed) zed = pool.length < 18 ? spawnMesh() : pool[0];
+  zed.dead = false;
+  zed.hp = 64;
+  zed.x = x; zed.z = z;
+  zed.speed = rand(3.6, 4.4 + Math.min(S.month, 11) * 0.12);
+  zed.atk = rand(0.05, 0.4);
+  zed.stag = 0; zed.kvx = 0; zed.kvz = 0; zed.hitT = 0; zed.phase = rand(0, 6);
+  zed.mesh.visible = true;
+  zed.shirt.color.setHex(zed.base);
+  return zed;
+}
+function clearZombies(){
+  for (const z of pool){ z.dead = true; z.mesh.visible = false; }
+}
+function killZ(z){
+  z.dead = true; z.hp = 0; z.mesh.visible = false;
+}
+function damageZombie(z, dmg){
+  z.hp -= dmg; z.hitT = 0.12; z.stag = Math.max(z.stag, 0.08);
+  if (z.hp <= 0) killZ(z);
+}
+
+function aimDir(spread){
+  camera.rotation.set(player.pitch, player.yaw, 0, 'YXZ');
+  camera.position.set(player.x, 1.55, player.z);
+  camera.updateMatrixWorld();
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir);
+  if (spread){
+    dir.x += (Math.random() * 2 - 1) * spread;
+    dir.y += (Math.random() * 2 - 1) * spread;
+    dir.z += (Math.random() * 2 - 1) * spread;
+    dir.normalize();
+  }
+  return dir;
+}
+function rayZombie(origin, dir, maxD){
+  let best = null, bestT = maxD;
+  for (const z of pool){
+    if (z.dead) continue;
+    const ox = z.x - origin.x, oy = 1.25 - origin.y, oz = z.z - origin.z;
+    const t = ox * dir.x + oy * dir.y + oz * dir.z;
+    if (t < 0 || t > bestT) continue;
+    const d2 = ox * ox + oy * oy + oz * oz - t * t;
+    if (d2 < 0.62 * 0.62){ best = z; bestT = t; }
+  }
+  return best ? {z:best, t:bestT} : null;
+}
+function canFight(){
+  return S.phase === 'night' && !player.down && !S.panel && (TOUCH || AUTOTEST || document.pointerLockElement === renderer.domElement);
+}
+function fire(){
+  if (!canFight()) return;
+  const w = curW();
+  if (!w) return;
+  const def = WEAP[w.type];
+  if (player.reloadT > 0 || player.fireCd > 0) return;
+  if (w.mag <= 0){ startReload(); return; }
+  w.mag -= 1;
+  player.fireCd = def.rate;
+  S.muzzle = 1;
+  const origin = new THREE.Vector3(player.x, 1.5, player.z);
+  for (let i = 0; i < def.pellets; i++){
+    const dir = aimDir(def.spread);
+    const hit = rayZombie(origin, dir, 70);
+    if (!hit) continue;
+    const wall = raySolidDist(origin.x, origin.z, dir.x, dir.z, 70);
+    if (wall < hit.t) continue;
+    damageZombie(hit.z, def.dmg);
+  }
+  if (w.mag <= 0) startReload();
+}
+function startReload(){
+  const w = curW();
+  if (!w || player.reloadT > 0 || player.down) return;
+  const def = WEAP[w.type];
+  if (w.mag >= def.mag || w.res <= 0) return;
+  player.reloadT = def.reload;
+}
+function finishReload(){
+  const w = curW();
+  if (!w){ player.reloadT = 0; return; }
+  const def = WEAP[w.type];
+  const take = Math.min(def.mag - w.mag, w.res);
+  w.mag += take;
+  if (w.res !== Infinity) w.res -= take;
+  player.reloadT = 0;
+}
+function shove(){
+  if (!canFight()) return;
+  if (player.shoveT > 0) return;
+  player.shoveT = 0.45;
+  const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+  for (const z of pool){
+    if (z.dead) continue;
+    const dx = z.x - player.x, dz = z.z - player.z;
+    const d = Math.hypot(dx, dz);
+    if (d > 2.25 || d < 0.001) continue;
+    if ((dx * fx + dz * fz) / d < 0.25) continue;
+    damageZombie(z, 12);
+    if (z.dead) continue;
+    z.stag = 0.55;
+    z.kvx = dx / d * 7;
+    z.kvz = dz / d * 7;
+    z.atk = 0.45;
+  }
+}
+function pickup(type){
+  const def = WEAP[type];
+  if (!player.inv[type]){
+    player.inv[type] = {type, mag:def.mag, res:def.res};
+    player.slot = type;
+    player.reloadT = 0;
+    toast(def.name + ' off the corner.');
+  } else {
+    const w = player.inv[type];
+    if (w.res !== Infinity) w.res = Math.min(def.res, w.res + def.mag);
+    toast(def.name + ' ammo.');
+  }
+}
+function cycleWeapon(){
+  if (S.phase !== 'night') return;
+  const owned = ORDER.filter(t => player.inv[t]);
+  if (!owned.length) return;
+  const i = Math.max(0, owned.indexOf(player.slot));
+  player.slot = owned[(i + 1) % owned.length];
+  player.reloadT = 0;
+}
+function selectWeapon(type){
+  if (S.phase !== 'night' || !player.inv[type]) return;
+  player.slot = type;
+  player.reloadT = 0;
+}
+function hurt(n){
+  if (player.down || inOffice() || S.phase !== 'night') return;
+  player.hp = Math.max(0, player.hp - n);
+  S.hurt = 0.75;
+  if (player.hp <= 0) die();
+}
+function die(){
+  if (player.down) return;
+  player.down = true;
+  player.hp = 0;
+  S.deaths += 1;
+  pay(1500);
+  player.x = 0; player.z = -3; player.yaw = Math.PI; player.pitch = 0.4;
+  toast('The street took you. Dawn finds you at the desk. −$1,500');
+}
+
+function tickZombies(dt){
+  const safe = inOffice() || player.down;
+  for (const z of pool){
+    if (z.dead) continue;
+    z.atk = Math.max(0, z.atk - dt);
+    z.stag -= dt;
+    z.hitT = Math.max(0, z.hitT - dt);
+    if (z.hitT > 0) z.shirt.color.setHex(0xff5544);
+    else z.shirt.color.setHex(z.base);
+    if (pointInOffice(z.x, z.z) || (Math.abs(z.x) < 1.95 && z.z < 4.3 && z.z > 1.15)){
+      z.x += z.x >= 0 ? 2.6 : -2.6;
+      z.z = 4.3;
+    }
+    const tx = safe ? 0 : player.x;
+    const tz = safe ? 5.2 : player.z;
+    let dx = tx - z.x, dz = tz - z.z;
+    const d = Math.hypot(dx, dz) || 1;
+    if (z.stag > 0){
+      moveCircle(z, z.kvx * dt, z.kvz * dt, 0.38);
+      z.kvx = lerp(z.kvx, 0, dt * 3);
+      z.kvz = lerp(z.kvz, 0, dt * 3);
+    } else {
+      moveCircle(z, dx / d * z.speed * dt, dz / d * z.speed * dt, 0.38);
+    }
+    for (const o of pool){
+      if (o === z || o.dead) continue;
+      const sx = z.x - o.x, sz = z.z - o.z;
+      const sd = Math.hypot(sx, sz);
+      if (sd < 0.75 && sd > 0.001){ z.x += sx / sd * 0.6 * dt; z.z += sz / sd * 0.6 * dt; }
+    }
+    if (hits(z.x, z.z, 0.38)){
+      z.x = clamp(z.x, -6, 6);
+      if (hits(z.x, z.z, 0.38)) z.z += 0.4;
+    }
+    if (!safe && d < 1.28 && z.atk <= 0 && z.stag <= 0){
+      z.atk = 0.7;
+      hurt(16);
+    }
+    z.yaw = Math.atan2(dx, dz);
+    z.phase += dt * z.speed;
+    const sw = Math.sin(z.phase) * (z.stag > 0 ? 0.2 : 0.7);
+    z.mesh.position.set(z.x, 0, z.z);
+    z.mesh.rotation.y = z.yaw;
+    z.legL.rotation.x = sw;
+    z.legR.rotation.x = -sw;
+    z.armL.rotation.x = -sw * 0.6;
+    z.armR.rotation.x = sw * 0.6;
+  }
+  if (!safe && !player.down){
+    S.trickle -= dt;
+    if (S.trickle <= 0){
+      S.trickle = 11;
+      const alive = pool.filter(z => !z.dead).length;
+      if (alive < Math.min(14, 7 + S.month)){
+        const dir = Math.random() < 0.65 ? -1 : 1;
+        makeZombie(rand(-1.5, 1.5), clamp(player.z + dir * rand(14, 22), 8, 152));
+      }
+    }
+  }
+}
+
+/* ---------- tasks ---------- */
+function resetProps(){
+  for (const p of PROPS){
+    p.occ = p.baseOcc; p.happy = p.baseHappy; p.rent = p.baseRent; p.resident = p.baseResident;
+  }
+}
+function nextQ(){ const i = qCursor % QUESTIONS.length; qCursor += 1; return i; }
+function labelFor(t){
+  const p = propById(t.propId);
+  switch (t.type){
+    case 'rent': return 'Collect rent · ' + p.addr;
+    case 'repair': return 'Repair · ' + p.addr;
+    case 'lease': return 'Lease question · ' + p.addr;
+    case 'vacancy': return 'Fill vacancy · ' + p.addr;
+    default: return assertNever(t.type);
+  }
+}
+function buildTasks(){
+  const occ = PROPS.filter(p => p.occ && onRoute(p)).sort(() => Math.random() - 0.5);
+  const vac = PROPS.filter(p => !p.occ && onRoute(p)).sort(() => Math.random() - 0.5);
+  const used = new Set();
+  function take(list, allowUsed){
+    const p = list.find(x => allowUsed || !used.has(x.id));
+    if (!p) return null;
+    used.add(p.id);
+    return p;
+  }
+  S.tasks = [];
+  const r1 = take(occ, false), r2 = take(occ, false);
+  const rep = take(occ, false) || take(occ, true);
+  const lease = take(occ, true);
+  const v = take(vac, false);
+  if (r1) S.tasks.push({type:'rent', propId:r1.id, done:false});
+  if (r2) S.tasks.push({type:'rent', propId:r2.id, done:false});
+  if (rep) S.tasks.push({type:'repair', propId:rep.id, done:false});
+  if (v) S.tasks.push({type:'vacancy', propId:v.id, done:false});
+  if (lease) S.tasks.push({type:'lease', propId:lease.id, done:false, q:nextQ()});
+  S.tasks.sort((a, b) => propById(a.propId).z - propById(b.propId).z);
+}
+function resolveMoveOuts(){
+  for (const p of PROPS){
+    if (!p.occ || p.happy >= 30) continue;
+    const name = p.resident || 'The resident';
+    p.occ = false; p.resident = null; p.happy = 0;
+    toast(name + ' left ' + p.addr + '.');
+  }
+}
+function hidePanel(){ S.panel = null; el.panel.classList.add('hidden'); }
+function openPanel(spec){
+  S.panel = spec;
+  el.panel.classList.remove('hidden');
+  el.ptitle.textContent = spec.title;
+  el.pbody.textContent = spec.body;
+  el.pchoices.replaceChildren();
+  spec.choices.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = c.label;
+    b.addEventListener('click', () => choose(i));
+    el.pchoices.appendChild(b);
+  });
+  if (document.pointerLockElement) document.exitPointerLock();
+}
+function choose(i){
+  const spec = S.panel;
+  if (!spec || !spec.choices[i]) return;
+  const fn = spec.choices[i].apply;
+  hidePanel();
+  fn();
+  maybeOffer();
+}
+function dismissPanel(){
+  const spec = S.panel;
+  if (!spec) return;
+  hidePanel();
+  if (spec.onDismiss) spec.onDismiss();
+  maybeOffer();
+}
+function maybeOffer(){
+  if (S.mode !== 'play' || S.phase !== 'day' || S.panel || !S.pendingOffer) return;
+  if (S.left < 8){ S.pendingOffer = false; toast('Ferndale called too late.'); return; }
+  S.pendingOffer = false;
+  const p = propById('fern');
+  const meters = Math.round(Math.hypot(p.door.x - player.x, p.door.z - player.z));
+  const pay = p.occ ? 1800 : 2400;
+  openPanel({
+    title: p.occ ? 'Ferndale renewal' : 'Ferndale is waiting',
+    body: p.addr + ' is ' + meters + 'm out. Sign before dusk and the desk clears ' + money(pay) + '. Reading this does not stop the clock. From the office this is a sprint, not a meeting. Still outside when the day ends, and the street is not yours.',
+    choices:[
+      {label:'Take it · ' + money(pay), apply(){ armUrgent(pay); }},
+      {label:'Stay in. Let it ring.', apply(){ toast('You let Ferndale ring out.'); }},
+    ],
+    onDismiss(){ toast('You let Ferndale ring out.'); },
+  });
+}
+function armUrgent(pay){
+  S.urgent = {step:0, done:false, payout:pay};
+  toast('Ferndale. Sprint if you want the door.');
+}
+function urgentSpot(){
+  const p = propById('fern');
+  const step = S.urgent ? S.urgent.step : 0;
+  switch (step){
+    case 0: return {x:p.door.x, z:p.door.z, label:'Ferndale porch · ' + p.addr};
+    case 1: return {x:FERN_YARD.x, z:FERN_YARD.z, label:'Check the back fence'};
+    case 2: return {x:FERN_GARAGE.x, z:FERN_GARAGE.z, label:'Garage packet'};
+    default: return assertNever(step);
+  }
+}
+function doUrgent(){
+  const step = S.urgent.step;
+  switch (step){
+    case 0: S.urgent.step = 1; toast('The fence is behind the cottage.'); break;
+    case 1: S.urgent.step = 2; toast('The packet is in the garage.'); break;
+    case 2: openPanel(fernPanel()); break;
+    default: assertNever(step);
+  }
+}
+function fernPanel(){
+  const p = propById('fern');
+  const renew = p.occ;
+  return {
+    title: renew ? 'Renew 612 Main' : 'Sign 612 Main',
+    body: renew
+      ? 'The Pell renewal is clean and the rent holds. Cutting it fills nothing you do not already have. Refusing means the long run home was for the air.'
+      : 'The Pell file is complete: income, references, and a cottage that has sat empty. Signing pays the desk. Cutting the rent gets a signature and a smaller check. Walking away pays nothing.',
+    choices:[
+      {label:'Sign it as written · ' + money(S.urgent.payout), apply(){ finishUrgent('sign'); }},
+      {label:'Cut the rent to rush the signature', apply(){ finishUrgent('cut'); }},
+      {label:'Walk. The clock matters more.', apply(){ finishUrgent('walk'); }},
+    ],
+  };
+}
+function finishUrgent(kind){
+  const p = propById('fern');
+  S.urgent.done = true;
+  switch (kind){
+    case 'sign':
+      earn(S.urgent.payout);
+      S.correct += 1;
+      if (!p.occ){ p.occ = true; p.happy = 74; p.resident = 'The Pell family'; S.filled += 1; }
+      else bumpHappy(p, 6);
+      toast('Signed. ' + money(S.urgent.payout) + '. Get inside.');
+      break;
+    case 'cut': {
+      const pay = Math.round(S.urgent.payout * 0.45);
+      earn(pay);
+      S.wrong += 1;
+      p.rent = Math.round(p.baseRent * 0.8);
+      if (!p.occ){ p.occ = true; p.happy = 58; p.resident = 'The Pell family'; S.filled += 1; }
+      toast('You discounted Ferndale. ' + money(pay) + '. Run.');
+      break;
+    }
+    case 'walk':
+      toast('No signature. The door is still a long way south.');
+      break;
+    default: assertNever(kind);
+  }
+}
+function leasePanel(t){
+  const p = propById(t.propId);
+  const q = QUESTIONS[t.q](p);
+  return {
+    title: q.title + ' · ' + p.addr,
+    body: q.body,
+    choices: q.choices.map(c => ({
+      label: c.label,
+      apply(){
+        t.done = true;
+        if (c.cash > 0) earn(c.cash);
+        if (c.cash < 0) pay(-c.cash);
+        bumpHappy(p, c.happy || 0);
+        if (c.ok) S.correct += 1; else S.wrong += 1;
+        toast(c.note);
+      },
+    })),
+  };
+}
+function doTask(t){
+  const p = propById(t.propId);
+  switch (t.type){
+    case 'rent':
+      t.done = true;
+      earn(p.rent);
+      S.collected += 1;
+      bumpHappy(p, 3);
+      toast(p.resident + ' paid ' + money(p.rent) + '.');
+      break;
+    case 'repair':
+      openPanel({
+        title:'Repair · ' + p.addr,
+        body:'The bath fan died and the ceiling is spotting. Cheap work stays on the books. The real fix costs more and keeps the resident. Waiting makes the stain the next conversation.',
+        choices:[
+          {label:'Hardware-store fan · $220', apply(){ t.done = true; pay(220); bumpHappy(p, -8); S.repairs += 1; toast('The cheap fan is in. They are not impressed.'); }},
+          {label:'Fan and drywall · $540', apply(){ t.done = true; pay(540); bumpHappy(p, 8); S.repairs += 1; toast('Fixed properly.'); }},
+          {label:'Leave it until next month', apply(){ t.done = true; bumpHappy(p, -25); toast('You deferred ' + p.addr + '.'); }},
+        ],
+      });
+      break;
+    case 'vacancy':
+      openPanel({
+        title:'Vacancy · ' + p.addr,
+        body:'Three applications. One is complete, one needs a discount to start Friday, and one is an envelope with no history.',
+        choices:[
+          {label:'Avery Cole · full file · ' + money(p.rent), apply(){ t.done = true; p.occ = true; p.resident = 'Avery Cole'; p.happy = 78; earn(p.rent); S.filled += 1; S.correct += 1; toast('Avery Cole has the keys.'); }},
+          {label:'Billie Tran · rent drops $175', apply(){ t.done = true; p.occ = true; p.resident = 'Billie Tran'; p.happy = 64; p.rent = p.rent - 175; earn(p.rent); S.filled += 1; toast('Billie Tran is in at a discount.'); }},
+          {label:'Envelope, no paperwork, keys today', apply(){ t.done = true; p.occ = true; p.resident = 'No file'; p.happy = 36; earn(p.rent); S.filled += 1; S.wrong += 1; toast('You handed over keys with no file.'); }},
+        ],
+      });
+      break;
+    case 'lease':
+      openPanel(leasePanel(t));
+      break;
+    default: assertNever(t.type);
+  }
+}
+function doDesk(){
+  if (S.doors){ toast('Henderson and 5th are already on the route.'); return; }
+  openPanel({
+    title:"Henry's desk",
+    body:'North of Broadway the listings are dark: 908 Henderson and 44 5th stay off the morning route until the desk pays to open them. $1,500. Ferndale is not part of this. That call comes on its own.',
+    choices:[
+      {label: S.cash >= 1500 ? 'Open the north listings · $1,500' : 'Short $1,500', apply(){
+        if (S.cash < 1500){ toast('Not enough cash for the north listings.'); return; }
+        pay(1500); S.doors = true;
+        toast('Henderson and 5th join tomorrow\'s route.');
+      }},
+      {label:'Not this month', apply(){ toast('The north listings stay dark.'); }},
+    ],
+  });
+}
+function targets(){
+  const out = [];
+  if (S.phase === 'day' && !player.down){
+    for (const t of S.tasks){
+      if (t.done) continue;
+      const p = propById(t.propId);
+      out.push({x:p.door.x, z:p.door.z, label:labelFor(t), rank:0, act(){ doTask(t); }});
+    }
+    if (S.urgent && !S.urgent.done){
+      const s = urgentSpot();
+      out.push({x:s.x, z:s.z, label:s.label, rank:-1, act(){ doUrgent(); }});
+    }
+    out.push({x:0, z:-4.3, label:S.doors ? 'Desk · listings are open' : 'Desk · north listings $1,500', rank:1, act(){ doDesk(); }});
+  }
+  if (S.phase === 'night' && !player.down){
+    for (const pk of PICKUPS){
+      const owned = !!player.inv[pk.type];
+      out.push({x:pk.x, z:pk.z, label:(owned ? 'Ammo · ' : 'Pick up ') + WEAP[pk.type].name, rank:0, act(){ pickup(pk.type); }});
+    }
+  }
+  let best = null;
+  for (const t of out){
+    t.d = Math.hypot(t.x - player.x, t.z - player.z);
+    if (t.d > 2.35) continue;
+    if (!best || t.rank < best.rank || (t.rank === best.rank && t.d < best.d)) best = t;
+  }
+  return best;
+}
+function interact(){
+  if (S.mode !== 'play' || S.panel || player.down) return;
+  const t = targets();
+  if (t) t.act();
+}
+function failOpenTasks(){
+  for (const t of S.tasks){
+    if (t.done) continue;
+    const p = propById(t.propId);
+    switch (t.type){
+      case 'rent': bumpHappy(p, -14); toast('Missed rent at ' + p.addr + '.'); break;
+      case 'repair': bumpHappy(p, -25); toast('No repair at ' + p.addr + '.'); break;
+      case 'lease': bumpHappy(p, -8); toast('No answer at ' + p.addr + '.'); break;
+      case 'vacancy': toast(p.addr + ' stayed empty.'); break;
+      default: assertNever(t.type);
+    }
+    t.done = true;
+  }
+  if (S.urgent && !S.urgent.done){
+    S.urgent.done = true;
+    toast('The Ferndale signing expired.');
+  }
+}
+function homePoint(){ return {x:0, z:3.2, label:'Office'}; }
+function objectivePoint(){
+  if (player.down) return null;
+  if (S.phase === 'night') return inOffice() ? null : homePoint();
+  if (S.urgent && !S.urgent.done){
+    const s = urgentSpot();
+    return {x:s.x, z:s.z, label:s.label};
+  }
+  if (S.urgent && S.urgent.done && !inOffice()) return homePoint();
+  if (!inOffice() && S.left < DUSK_WARN) return homePoint();
+  let best = null;
+  for (const t of S.tasks){
+    if (t.done) continue;
+    const p = propById(t.propId);
+    const d = Math.hypot(p.door.x - player.x, p.door.z - player.z);
+    if (!best || d < best.d) best = {d, x:p.door.x, z:p.door.z, label:labelFor(t)};
+  }
+  return best;
+}
+
+function beginDay(){
+  S.phase = 'day';
+  S.left = DAY_LEN;
+  S.offered = false;
+  S.pendingOffer = false;
+  S.urgent = null;
+  hidePanel();
+  player.down = false;
+  player.hp = 100;
+  player.reloadT = 0;
+  player.fireCd = 0;
+  clearZombies();
+  resolveMoveOuts();
+  buildTasks();
+  toast(MONTHS[S.month] + '. The street is quiet. Work the route, then get inside.');
+  applySky();
+  updateHud();
+}
+function beginNight(){
+  const home = inOffice();
+  if (home) S.homeNights += 1; else S.caught += 1;
+  failOpenTasks();
+  hidePanel();
+  S.phase = 'night';
+  S.left = NIGHT_LEN;
+  S.trickle = 8;
+  clearZombies();
+  const n = Math.min(14, 7 + S.month);
+  for (let i = 0; i < n; i++){
+    let x = 0, z = 10, guard = 0;
+    do {
+      x = rand(-6, 6); z = rand(8, 150); guard += 1;
+    } while (guard < 30 && (Math.hypot(x - player.x, z - player.z) < 9 || pointInOffice(x, z) || hits(x, z, 0.5)));
+    makeZombie(x, z);
+  }
+  toast(home ? 'You made the office. Stay inside until dawn.' : 'Dusk caught you outside. Weapons are on the corners. The office is south.');
+  applySky();
+  updateHud();
+}
+function endNight(){
+  S.month += 1;
+  if (S.month >= 12){ yearEnd(); return; }
+  beginDay();
+}
+function yearEnd(){
+  resolveMoveOuts();
+  S.mode = 'year';
+  hidePanel();
+  if (document.pointerLockElement) document.exitPointerLock();
+  const occ = PROPS.filter(p => p.occ).length;
+  const score = Math.round(S.cash + occ * 1000 + S.homeNights * 500 - S.deaths * 800);
+  const rows = [
+    ['Cash', money(S.cash)],
+    ['Occupied units', occ + ' / ' + PROPS.length],
+    ['Rent and signatures', money(S.rentIn)],
+    ['Spent', money(S.spent)],
+    ['Rents collected', String(S.collected)],
+    ['Repairs made', String(S.repairs)],
+    ['Vacancies filled', String(S.filled)],
+    ['Sound calls', String(S.correct)],
+    ['Costly calls', String(S.wrong)],
+    ['Nights in before dusk', String(S.homeNights)],
+    ['Nights caught outside', String(S.caught)],
+    ['Deaths', String(S.deaths)],
+    ['Score', String(score)],
+  ];
+  el.yearstats.replaceChildren();
+  for (const [k, v] of rows){
+    const tr = document.createElement('tr');
+    const a = document.createElement('td'); a.textContent = k;
+    const b = document.createElement('td'); b.textContent = v;
+    tr.append(a, b); el.yearstats.append(tr);
+  }
+  el.yearformula.textContent = 'Score is cash plus 1,000 for each occupied unit, plus 500 for each night you were inside before dusk, minus 800 for each death.';
+  el.hud.classList.add('hidden');
+  el.year.classList.remove('hidden');
+  el.title.classList.add('hidden');
+}
+function setOverlays(){
+  el.hud.classList.toggle('hidden', S.mode !== 'play');
+  el.title.classList.toggle('hidden', S.mode !== 'title');
+  el.year.classList.toggle('hidden', S.mode !== 'year');
+}
+function fresh(){
+  S.mode = 'play';
+  S.month = 0;
+  S.cash = 4200;
+  S.doors = false;
+  S.homeNights = 0; S.caught = 0; S.deaths = 0;
+  S.collected = 0; S.repairs = 0; S.filled = 0; S.correct = 0; S.wrong = 0;
+  S.rentIn = 0; S.spent = 0;
+  qCursor = 0;
+  player.x = 0; player.z = -1; player.yaw = Math.PI; player.pitch = 0;
+  player.hp = 100; player.down = false;
+  player.inv = {pistol:null, shotgun:null, smg:null};
+  player.slot = null;
+  player.fireCd = 0; player.reloadT = 0; player.shoveT = 0;
+  el.feed.replaceChildren();
+  resetProps();
+  setOverlays();
+  beginDay();
+}
+function wantLock(){
+  if (TOUCH || AUTOTEST || S.panel || S.mode !== 'play') return;
+  const p = renderer.domElement.requestPointerLock();
+  if (p && p.catch) p.catch(() => {});
+}
+
+function clockParts(){
+  const len = phaseLen(S.phase);
+  const u = 1 - clamp(S.left / len, 0, 1);
+  let h0, span;
+  switch (S.phase){
+    case 'day': h0 = 8; span = 10; break;
+    case 'night': h0 = 18; span = 12; break;
+    default: return assertNever(S.phase);
+  }
+  let h = h0 + span * u;
+  if (h >= 24) h -= 24;
+  const hh = Math.floor(h);
+  const mm = Math.floor((h - hh) * 60);
+  const ap = hh >= 12 ? 'PM' : 'AM';
+  const h12 = hh % 12 || 12;
+  const sec = Math.max(0, Math.ceil(S.left));
+  const cd = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+  const tod = (S.phase === 'day' ? 'DAY' : 'NIGHT') + ' · ' + (MONTHS[S.month] || '') + ' · ' + h12 + ':' + String(mm).padStart(2, '0') + ' ' + ap;
+  return {cd, tod};
+}
+function updateHud(){
+  const c = clockParts();
+  el.count.textContent = c.cd;
+  el.tod.textContent = c.tod;
+  el.clock.classList.toggle('warn', S.phase === 'day' && S.left < DUSK_WARN);
+  el.clock.classList.toggle('night', S.phase === 'night');
+  el.cash.textContent = money(S.cash);
+  el.cash.style.color = S.cash < 0 ? '#ffb0a6' : '#f4efe6';
+  el.hpfill.style.width = clamp(player.hp, 0, 100) + '%';
+  const safe = S.phase === 'night' && inOffice();
+  el.hp.classList.toggle('safe', safe);
+  el.safe.classList.toggle('hidden', !safe);
+  el.downmsg.classList.toggle('hidden', !player.down);
+  if (player.down) el.downmsg.textContent = 'OUT COLD · back at the desk at dawn · −$1,500';
+  const night = S.phase === 'night';
+  el.xh.classList.toggle('hidden', !night || player.down);
+  el.ammo.classList.toggle('hidden', !night);
+  if (night){
+    const w = curW();
+    if (!w){ el.wname.textContent = 'Unarmed'; el.acount.textContent = '—'; }
+    else {
+      const def = WEAP[w.type];
+      el.wname.textContent = player.reloadT > 0 ? 'Reloading' : def.name;
+      const res = w.res === Infinity ? '∞' : String(w.res);
+      el.acount.textContent = w.mag + ' / ' + res;
+    }
+  }
+  if (S.phase === 'day' && !S.offered) el.hint.textContent = 'A Ferndale signing calls late. Be near the north end, or be ready to refuse it.';
+  else if (S.urgent && !S.urgent.done) el.hint.textContent = 'Sign, then sprint south. Only the office is safe at dusk.';
+  else if (night && !inOffice() && !player.down) el.hint.textContent = player.slot ? 'Get to 3109. Do not stop on the corners unless you need the gun.' : 'Guns are on the corners. The office is south.';
+  else if (night && inOffice()) el.hint.textContent = 'Safe until dawn. Step outside and the street takes you.';
+  else el.hint.textContent = 'Work south to north, then decide if Ferndale is worth the run.';
+  el.obj.replaceChildren();
+  if (S.urgent && !S.urgent.done){
+    const s = urgentSpot();
+    const d = document.createElement('div');
+    d.className = 'hot';
+    d.textContent = s.label + ' · ' + Math.round(Math.hypot(s.x - player.x, s.z - player.z)) + 'm';
+    el.obj.append(d);
+  }
+  for (const t of S.tasks){
+    if (t.done) continue;
+    const p = propById(t.propId);
+    const d = document.createElement('div');
+    d.textContent = labelFor(t) + ' · ' + Math.round(Math.hypot(p.door.x - player.x, p.door.z - player.z)) + 'm';
+    el.obj.append(d);
+  }
+  const goal = objectivePoint();
+  if (goal){
+    const dx = goal.x - player.x, dz = goal.z - player.z;
+    const dist = Math.hypot(dx, dz);
+    beam.visible = dist > 3;
+    beam.position.set(goal.x, 7, goal.z);
+    beamMat.color.setHex(S.phase === 'night' || (S.urgent && S.urgent.done) ? 0xff5544 : 0xffd56a);
+  } else beam.visible = false;
+  el.compass.replaceChildren();
+  if (!inOffice()){
+    const hx = 0 - player.x, hz = 3.2 - player.z;
+    const hdist = Math.hypot(hx, hz);
+    const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+    const rx = Math.cos(player.yaw), rz = -Math.sin(player.yaw);
+    const ang = Math.atan2((hx * rx + hz * rz) / (hdist || 1), (hx * fx + hz * fz) / (hdist || 1));
+    const span = document.createElement('span');
+    span.textContent = 'OFFICE ' + Math.round(hdist) + 'm';
+    const arr = document.createElement('i');
+    arr.className = 'arr';
+    arr.textContent = '▲';
+    arr.style.display = 'inline-block';
+    arr.style.transform = 'rotate(' + ang + 'rad)';
+    el.compass.append(span, arr);
+  }
+  const near = targets();
+  el.prompt.classList.toggle('hidden', !near);
+  if (near) el.prompt.textContent = (TOUCH ? 'USE' : 'E') + '  ' + near.label;
+  if (S.panel) el.panelclock.textContent = c.cd;
+  el.dmg.style.opacity = String(S.hurt);
+  for (let i = 0; i < PICKUPS.length; i++) pickupMeshes[i].visible = night;
+  fists.visible = night && !curW();
+  for (const type of ORDER) vmGuns[type].visible = night && player.slot === type && !player.down;
+}
+function skyColor(hex){ return new THREE.Color(hex); }
+const COL_DAY = skyColor(0xc5dff5), COL_DUSK = skyColor(0xe7a06a), COL_NIGHT = skyColor(0x070b14), COL_DAWN = skyColor(0xf0b48a);
+const tmp = new THREE.Color();
+function mixSky(a, b, t){ tmp.copy(a).lerp(b, clamp(t, 0, 1)); return tmp; }
+function applySky(){
+  let col = COL_DAY, dens = 0.011, nf = 0;
+  switch (S.phase){
+    case 'day': {
+      const u = S.left < DUSK_WARN ? 1 - S.left / DUSK_WARN : 0;
+      col = mixSky(COL_DAY, COL_DUSK, u);
+      dens = lerp(0.011, 0.02, u);
+      nf = u * 0.25;
+      break;
+    }
+    case 'night': {
+      const age = NIGHT_LEN - S.left;
+      if (age < 8){ col = mixSky(COL_DUSK, COL_NIGHT, age / 8); dens = lerp(0.02, 0.026, age / 8); nf = age / 8; }
+      else if (S.left < 18){ col = mixSky(COL_NIGHT, COL_DAWN, 1 - S.left / 18); dens = lerp(0.026, 0.018, 1 - S.left / 18); nf = S.left / 18; }
+      else { col = COL_NIGHT; dens = 0.026; nf = 1; }
+      break;
+    }
+    default: assertNever(S.phase);
+  }
+  scene.background.copy(col);
+  scene.fog.color.copy(col);
+  scene.fog.density = dens;
+  hemi.intensity = lerp(0.95, 0.42, nf);
+  sun.intensity = lerp(1.25, 0.16, nf);
+  officeLight.intensity = lerp(0.7, 2.4, nf);
+  for (const L of lamps) L.intensity = nf * 1.5;
+}
+function tickPlayer(dt){
+  player.fireCd = Math.max(0, player.fireCd - dt);
+  player.shoveT = Math.max(0, player.shoveT - dt);
+  if (player.reloadT > 0){
+    player.reloadT -= dt;
+    if (player.reloadT <= 0) finishReload();
+  }
+  if (S.phase === 'night' && inOffice() && !player.down && player.hp < 100) player.hp = Math.min(100, player.hp + 8 * dt);
+  S.hurt = Math.max(0, S.hurt - dt * 0.8);
+  S.muzzle = Math.max(0, S.muzzle - dt * 6);
+  const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+  muzzle.intensity = S.muzzle * 6;
+  muzzle.position.set(player.x + fx * 0.7, 1.45, player.z + fz * 0.7);
+  if (mouseLeft){
+    const w = curW();
+    if (w && WEAP[w.type].auto) fire();
+  }
+  if ((mouseRight || touchShove) && player.shoveT <= 0) shove();
+  if (!S.panel && !player.down){
+    let ix = stickX, iz = stickY;
+    if (keys.KeyW || keys.ArrowUp) iz += 1;
+    if (keys.KeyS || keys.ArrowDown) iz -= 1;
+    if (keys.KeyD || keys.ArrowRight) ix += 1;
+    if (keys.KeyA || keys.ArrowLeft) ix -= 1;
+    const fl = Math.hypot(ix, iz);
+    if (fl > 0){
+      ix /= fl; iz /= fl;
+      const sprint = keys.ShiftLeft || keys.ShiftRight || touchRun;
+      const sp = sprint ? SPRINT : WALK;
+      const rx = Math.cos(player.yaw), rz = -Math.sin(player.yaw);
+      moveCircle(player, (fx * iz + rx * ix) * sp * dt, (fz * iz + rz * ix) * sp * dt, 0.32);
+      player.bob += dt * (sprint ? 11 : 8);
+    }
+  }
+  const bob = Math.sin(player.bob) * (player.down ? 0 : 0.035);
+  camera.position.set(player.x, (player.down ? 0.7 : 1.62) + bob, player.z);
+  camera.rotation.set(player.down ? 0.5 : player.pitch, player.yaw, 0, 'YXZ');
+  vm.position.y = -0.26 + Math.sin(player.bob * 2) * 0.01;
+  vm.rotation.x = player.shoveT > 0.2 ? -0.8 : 0;
+}
+function tickClock(dt){
+  S.left -= dt;
+  if (S.phase === 'day' && !S.offered && S.left <= urgentAt()){
+    S.offered = true;
+    S.pendingOffer = true;
+    maybeOffer();
+  }
+  if (S.left > 0) return;
+  switch (S.phase){
+    case 'day': beginNight(); break;
+    case 'night': endNight(); break;
+    default: assertNever(S.phase);
+  }
+}
+function update(dt){
+  if (S.mode === 'title' || S.mode === 'year') return;
+  tickClock(dt);
+  if (S.mode !== 'play') return;
+  tickPlayer(dt);
+  if (S.phase === 'night') tickZombies(dt);
+  applySky();
+  updateHud();
+}
+
+function snapshot(){
+  const w = curW();
+  return {
+    mode:S.mode, phase:S.phase, left:S.left, month:S.month, monthName:MONTHS[S.month] || '',
+    cash:S.cash, hp:player.hp, down:player.down, inOffice:inOffice(), doors:S.doors,
+    homeNights:S.homeNights, caught:S.caught, deaths:S.deaths,
+    collected:S.collected, repairs:S.repairs, filled:S.filled, correct:S.correct, wrong:S.wrong,
+    panel:S.panel ? S.panel.title : '',
+    urgent:S.urgent ? {step:S.urgent.step, done:!!S.urgent.done, payout:S.urgent.payout} : null,
+    tasks:S.tasks.map(t => ({type:t.type, propId:t.propId, done:t.done})),
+    zombies:pool.filter(z => !z.dead).length,
+    slot:player.slot, x:player.x, z:player.z,
+    mag:w ? w.mag : 0, res:w ? w.res : 0,
+  };
+}
+function setPhase(p){
+  switch (p){
+    case 'night': if (S.phase !== 'night') beginNight(); break;
+    case 'day': if (S.phase !== 'day') endNight(); break;
+    default: assertNever(p);
+  }
+}
+function simulate(dt){
+  let left = dt;
+  while (left > 1e-6){
+    const d = Math.min(1 / 30, left);
+    update(d);
+    left -= d;
+  }
+}
+window.__rentor = {
+  get player(){ return player; },
+  get state(){ return snapshot(); },
+  get props(){ return PROPS; },
+  errors, DAY_LEN, NIGHT_LEN, FAST,
+  urgentAt, start:fresh, setPhase, setTime(s){ S.left = s; },
+  teleport(x, z){ player.x = x; player.z = z; },
+  interact, choose, simulate, fire, shove, pickup, cycleWeapon,
+  setKey(code, down){ keys[code] = down; },
+  clearZombies,
+  summon(x, z){ return makeZombie(x, z).id; },
+  zombie(id){ const z = pool.find(q => q.id === id); return z ? {hp:z.hp, x:z.x, z:z.z, dead:z.dead, stag:z.stag} : null; },
+  hits(x, z){ return hits(x, z, 0.32); },
+  inOffice,
+};
+$('playbtn').addEventListener('click', () => { fresh(); wantLock(); });
+$('againbtn').addEventListener('click', () => { fresh(); wantLock(); });
+renderer.domElement.addEventListener('click', () => { if (S.mode === 'play' && !S.panel) wantLock(); });
+renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('mousemove', e => {
+  if (document.pointerLockElement !== renderer.domElement || S.panel) return;
+  player.yaw -= e.movementX * 0.0022;
+  player.pitch = clamp(player.pitch - e.movementY * 0.0022, -1.15, 1.15);
+});
+document.addEventListener('mousedown', e => {
+  if (S.mode !== 'play') return;
+  if (e.button === 0){
+    mouseLeft = true;
+    const w = curW();
+    if (!w || !WEAP[w.type].auto) fire();
+  }
+  if (e.button === 2){ mouseRight = true; shove(); }
+});
+document.addEventListener('mouseup', e => {
+  if (e.button === 0) mouseLeft = false;
+  if (e.button === 2) mouseRight = false;
+});
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (S.mode !== 'play') return;
+  if (e.code === 'Escape'){ dismissPanel(); mouseLeft = false; mouseRight = false; }
+  if (e.code === 'KeyE' && !e.repeat) interact();
+  if (e.code === 'KeyR' && !e.repeat) startReload();
+  if (e.code === 'Digit1') selectWeapon('pistol');
+  if (e.code === 'Digit2') selectWeapon('shotgun');
+  if (e.code === 'Digit3') selectWeapon('smg');
+  if (e.code === 'Space') e.preventDefault();
+});
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+addEventListener('blur', () => {
+  mouseLeft = false; mouseRight = false; touchRun = false; touchShove = false;
+  for (const k of Object.keys(keys)) keys[k] = false;
+});
+
+let stickId = null, lookId = null, lookX = 0, lookY = 0;
+el.stickzone.addEventListener('pointerdown', e => {
+  stickId = e.pointerId;
+  el.stick.style.display = 'block';
+  el.stick.style.left = e.clientX + 'px';
+  el.stick.style.top = e.clientY + 'px';
+  el.knob.style.left = '38px'; el.knob.style.top = '38px';
+  el.stickzone.setPointerCapture(e.pointerId);
+});
+el.stickzone.addEventListener('pointermove', e => {
+  if (e.pointerId !== stickId) return;
+  const r = el.stick.getBoundingClientRect();
+  let dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+  const m = Math.hypot(dx, dy) || 1;
+  const lim = 46;
+  if (m > lim){ dx = dx / m * lim; dy = dy / m * lim; }
+  el.knob.style.left = (38 + dx) + 'px';
+  el.knob.style.top = (38 + dy) + 'px';
+  stickX = dx / lim;
+  stickY = -dy / lim;
+  touchRun = m > 40;
+});
+function endStick(e){
+  if (e.pointerId !== stickId) return;
+  stickId = null; stickX = 0; stickY = 0; touchRun = false;
+  el.stick.style.display = 'none';
+}
+el.stickzone.addEventListener('pointerup', endStick);
+el.stickzone.addEventListener('pointercancel', endStick);
+el.lookpad.addEventListener('pointerdown', e => {
+  lookId = e.pointerId; lookX = e.clientX; lookY = e.clientY;
+  el.lookpad.setPointerCapture(e.pointerId);
+});
+el.lookpad.addEventListener('pointermove', e => {
+  if (e.pointerId !== lookId || S.panel) return;
+  player.yaw -= (e.clientX - lookX) * 0.005;
+  player.pitch = clamp(player.pitch - (e.clientY - lookY) * 0.005, -1.15, 1.15);
+  lookX = e.clientX; lookY = e.clientY;
+});
+el.lookpad.addEventListener('pointerup', e => { if (e.pointerId === lookId) lookId = null; });
+for (const btn of document.querySelectorAll('#tbtns button')){
+  btn.addEventListener('pointerdown', e => {
+    e.stopPropagation(); e.preventDefault();
+    const act = btn.dataset.act;
+    switch (act){
+      case 'fire': mouseLeft = true; { const w = curW(); if (!w || !WEAP[w.type].auto) fire(); } break;
+      case 'shove': touchShove = true; shove(); break;
+      case 'use': interact(); break;
+      case 'reload': startReload(); break;
+      case 'gun': cycleWeapon(); break;
+      default: break;
+    }
+  });
+  btn.addEventListener('pointerup', e => {
+    e.stopPropagation();
+    if (btn.dataset.act === 'fire') mouseLeft = false;
+    if (btn.dataset.act === 'shove') touchShove = false;
+  });
+  btn.addEventListener('pointercancel', () => { mouseLeft = false; touchShove = false; });
+}
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  applyTouch();
+});
+applyTouch();
+camera.position.set(0, 1.62, -1);
+camera.rotation.set(0, Math.PI, 0, 'YXZ');
+applySky();
+
+let last = performance.now();
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  if (!AUTOTEST) update(dt);
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(frame);
+</script>
+</body></html>
