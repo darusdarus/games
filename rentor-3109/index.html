@@ -30,6 +30,9 @@ canvas{display:block}
 #acount{font-size:28px;font-weight:700}
 #compass{position:absolute;top:16px;right:16px;text-align:right;font-size:13px;text-shadow:0 1px 2px #000}
 #compass .arr{display:inline-block;width:18px;height:18px;margin-left:6px;vertical-align:-3px}
+#mapwrap{position:absolute;top:46px;right:16px;width:168px;background:rgba(8,10,14,.78);border:1px solid rgba(228,177,90,.5);border-radius:4px;padding:6px}
+#minimap{display:block;width:156px;height:156px;background:#14181f}
+#mapcap{margin-top:4px;text-align:center;font-size:10px;letter-spacing:2px;color:#e4b15a}
 #xh{position:absolute;left:50%;top:50%}
 #xh i{position:absolute;background:rgba(255,255,255,.88);box-shadow:0 0 2px #000}
 #xh .t,#xh .b{width:2px;height:8px;left:-1px}
@@ -93,7 +96,9 @@ body.touching #goal{top:70px;font-size:13px;max-width:94vw;padding:4px 8px}
 body.touching #hint{top:116px;font-size:12px;padding:0 12px}
 body.touching #obj{top:78px;max-width:46vw;font-size:12px}
 body.touching #compass{display:none}
-body.touching #ammo{top:calc(8px + env(safe-area-inset-top));right:8px;bottom:auto}
+body.touching #mapwrap{top:calc(6px + env(safe-area-inset-top));right:8px;width:108px;padding:4px}
+body.touching #minimap{width:100px;height:100px}
+body.touching #ammo{top:calc(8px + env(safe-area-inset-top));right:122px;bottom:auto}
 body.touching #vitals{bottom:calc(210px + env(safe-area-inset-bottom));width:min(46vw,200px)}
 body.touching #feed{display:none}
 @media (max-width:900px),(max-height:520px){
@@ -112,6 +117,7 @@ body.touching #feed{display:none}
  <div id="speed"></div>
  <div id="obj"></div>
  <div id="compass"></div>
+ <div id="mapwrap"><canvas id="minimap" width="312" height="312"></canvas><div id="mapcap">NORTH</div></div>
  <div id="feed"></div>
  <div id="vitals"><div id="cash"></div><div id="hp"><i id="hpfill"></i></div><div id="safe" class="hidden">SAFE · 3109</div></div>
  <div id="ammo" class="hidden"><div id="wname"></div><div id="acount"></div></div>
@@ -166,7 +172,7 @@ body.touching #feed{display:none}
   <section>
    <p class="rule">The route</p>
    <h3>Work the list</h3>
-   <p>Earn the rent. Each address on the left is a stop. The gold beam marks the next one. The line under the clock says what to do if the list is clear.</p>
+   <p>Earn the rent. Each address on the left is a stop. The gold beam marks the next one. The map in the corner is this street, north at the top. Gold is the stop. 3109 is the south edge.</p>
    <p>H Street ends at a circle in Ferndale. That is not a place to wait. Turn around. 3109 is south.</p>
   </section>
   <section>
@@ -179,7 +185,8 @@ body.touching #feed{display:none}
    <p class="rule">The desk</p>
    <h3>Answer, then drive</h3>
    <p>The question at the door is the work. A sound answer keeps the home. A costly one comes out of the drawer.</p>
-   <p>Henry's desk opens the north listings. The company car is out front. Get in, and get out the same way. Any empty car on the street can be taken. The far end of H Street is a drive.</p>
+   <p>Henry's desk opens the north listings. One stop is an owner who still runs the building alone. Listen before you name a fee. The signature is a management agreement.</p>
+   <p>The company car is out front. Get in, and get out the same way. Any empty car on the street can be taken. The far end of H Street is a drive.</p>
   </section>
  </div>
  <button class="big" id="guidebtn" type="button">OPEN THE OFFICE</button>
@@ -239,10 +246,12 @@ const PROPS = [
   {id:'fifth', addr:'44 5th', kind:'Victorian', resident:null, x:-10, z:118, hw:3.6, hd:4.6, h:5.4, rent:1890, occ:false, happy:0, color:0xd5c6c0, roof:0x3a2a28, side:-1, face:'x', hoard:true},
   {id:'hills', addr:'18 Hills', kind:'Victorian', resident:'Maeve Quinn', x:-16, z:172, hw:4.2, hd:5.0, h:6.4, rent:1750, occ:true, happy:74, color:0xe6d7c4, roof:0x4a2e28, side:-1, face:'x', route:false},
   {id:'clark', addr:'77 Clark', kind:'Victorian', resident:'Otto Clark', x:48, z:166, hw:4.6, hd:5.2, h:6.6, rent:1540, occ:true, happy:44, color:0xd8c8b0, roof:0x3a3030, side:1, face:'z', hoard:true, route:false},
+  {id:'buhne', addr:'512 Buhne', kind:'Fourplex', resident:'Ruth Okada', x:-42, z:160, hw:4.2, hd:5.0, h:5.8, rent:0, occ:true, happy:60, color:0xd8cfc2, roof:0x3a3030, side:1, face:'z', route:false, owner:true},
   {id:'fern', addr:'612 Main, Ferndale', kind:'Cottage', resident:null, x:0, z:218, hw:4.0, hd:5.0, h:3.8, rent:2300, occ:false, happy:0, color:0xd7c4a3, roof:0x6a3a2a, side:1, face:'z'},
 ];
 for (const p of PROPS){
   p.face = p.face || 'x';
+  p.managed = false;
   p.baseOcc = p.occ; p.baseHappy = p.happy; p.baseRent = p.rent; p.baseResident = p.resident;
   p.seen = {};
 }
@@ -323,7 +332,7 @@ const el = {
   dmg:$('dmg'), panel:$('panel'), panelclock:$('panelclock'), ptitle:$('ptitle'), pbody:$('pbody'),
   pchoices:$('pchoices'), pface:$('pface'), title:$('title'), guide:$('guide'), year:$('year'), yearstats:$('yearstats'), yearformula:$('yearformula'),
   touch:$('touch'), stickzone:$('stickzone'), lookpad:$('lookpad'), stick:$('stick'), knob:$('knob'),
-  goal:$('goal'), speed:$('speed'),
+  goal:$('goal'), speed:$('speed'), map:$('minimap'),
 };
 
 let TOUCH = false;
@@ -335,7 +344,7 @@ function applyTouch(){
 
 const S = {
   mode:'title', phase:'day', left:DAY_LEN, month:0, cash:4200, doors:false,
-  homeNights:0, caught:0, deaths:0, collected:0, repairs:0, filled:0, correct:0, wrong:0, rentIn:0, spent:0,
+  homeNights:0, caught:0, deaths:0, collected:0, repairs:0, filled:0, correct:0, wrong:0, signed:0, rentIn:0, spent:0,
   tasks:[], urgent:null, offered:false, pendingOffer:false, panel:null, trickle:8, hurt:0, muzzle:0,
 };
 let qCursor = 0;
@@ -1034,6 +1043,7 @@ function tickZombies(dt){
 function resetProps(){
   for (const p of PROPS){
     p.occ = p.baseOcc; p.happy = p.baseHappy; p.rent = p.baseRent; p.resident = p.baseResident;
+    p.managed = false;
   }
 }
 function nextQ(){ const i = qCursor % QUESTIONS.length; qCursor += 1; return i; }
@@ -1044,6 +1054,7 @@ function labelFor(t){
     case 'repair': return 'Repair · ' + p.addr;
     case 'lease': return 'Lease question · ' + p.addr;
     case 'vacancy': return 'Fill vacancy · ' + p.addr;
+    case 'sale': return 'Owner meeting · ' + p.addr;
     default: return assertNever(t.type);
   }
 }
@@ -1067,11 +1078,13 @@ function buildTasks(){
   if (rep) S.tasks.push({type:'repair', propId:rep.id, done:false});
   if (v) S.tasks.push({type:'vacancy', propId:v.id, done:false});
   if (lease) S.tasks.push({type:'lease', propId:lease.id, done:false, q:nextQ()});
+  const owner = PROPS.find(p => p.owner && !p.managed);
+  if (owner) S.tasks.push({type:'sale', propId:owner.id, done:false, step:0, trust:1});
   S.tasks.sort((a, b) => propById(a.propId).z - propById(b.propId).z);
 }
 function resolveMoveOuts(){
   for (const p of PROPS){
-    if (!p.occ || p.happy >= 30) continue;
+    if (!p.occ || p.owner || p.happy >= 30) continue;
     const name = p.resident || 'The resident';
     p.occ = false; p.resident = null; p.happy = 0;
     toast(name + ' left ' + p.addr + '.');
@@ -1232,6 +1245,99 @@ function leasePanel(t){
     })),
   };
 }
+function saleBeats(p, trust){
+  const heard = trust >= 2;
+  return [
+    {
+      title:'Owner visit · 1 of 4',
+      body:`${p.resident} still manages ${p.addr} herself. The calls come to her phone. She will give you one conversation, not a brochure.`,
+      choices:[
+        {label:'Ask what she is tired of doing herself.', trust:1, note:'She names the midnight calls and the empty unit.'},
+        {label:'Lead with what Rentor charges.', trust:-1, note:'The fee landed before the reason.'},
+        {label:'Tell her the building will not need her anymore.', trust:-1, note:'She did not like being dismissed.'},
+      ],
+    },
+    {
+      title:'What she carries · 2 of 4',
+      body: heard
+        ? `A unit at ${p.addr} sat empty for six weeks, and residents call after ten. She sleeps with the phone on.`
+        : `She is polite and brief. ${p.addr} is hers, and she is not sure you were listening.`,
+      choices:[
+        {label:'Say it back. Empty unit, after-hours calls, those leave her phone.', trust:1, note:'She nods. That is the work.'},
+        {label:'Skip ahead to a percentage.', trust:-1, note:'You priced a problem you had not named.'},
+        {label:'Say the residents are the real problem.', trust:-1, note:'She stopped offering details.'},
+      ],
+    },
+    {
+      title:'The agreement · 3 of 4',
+      body:`Rentor would collect the rent, fill the empty unit, and send the repairs. She keeps the building. The fee is a share of rent collected, in writing, from the desk at 3109.`,
+      choices:[
+        {label:'Fee on rent collected. She can leave with written notice.', trust:1, note:'The offer is a contract, not a promise of magic.'},
+        {label:'Guarantee every unit stays full.', trust:-1, note:'She has heard a guarantee before.'},
+        {label:'Waive the fee for a year so she signs today.', trust:0, note:'A free year is a discount, not a plan.'},
+      ],
+    },
+    {
+      title:'The last question · 4 of 4',
+      body:`She asks what happens when someone does not pay, and who approves a repair. ${heard ? 'She is still with you.' : 'The room is thin.'}`,
+      choices:[
+        {label:'Written notice, no lockout. She approves repairs over $400.', close:'sign'},
+        {label:'Cut the fee in half and skip the repair cap.', close:'discount'},
+        {label:'Say you will handle nonpayment however it takes.', close:'walk'},
+      ],
+    },
+  ];
+}
+function finishSale(t, kind){
+  const p = propById(t.propId);
+  t.done = true;
+  switch (kind){
+    case 'sign':
+      if (t.trust >= 2){
+        p.managed = true;
+        earn(1100);
+        S.signed += 1;
+        S.correct += 1;
+        toast(p.resident + ' signed the management agreement. Setup fee ' + money(1100) + '.');
+      } else {
+        S.wrong += 1;
+        toast(p.resident + ' wants another month. The meeting never earned the building.');
+      }
+      break;
+    case 'discount':
+      p.managed = true;
+      earn(400);
+      S.signed += 1;
+      S.wrong += 1;
+      toast('She signed a cheap agreement. ' + money(400) + '. The fee will be felt later.');
+      break;
+    case 'walk':
+      S.wrong += 1;
+      toast(p.resident + ' kept ' + p.addr + '. It stays off the book.');
+      break;
+    default: assertNever(kind);
+  }
+}
+function applyPitch(t, choice){
+  t.trust = clamp(t.trust + (choice.trust || 0), 0, 4);
+  if (choice.close){
+    finishSale(t, choice.close);
+    return;
+  }
+  t.step += 1;
+  toast(choice.note);
+  openPanel(salePanel(t));
+}
+function salePanel(t){
+  const p = propById(t.propId);
+  const beat = saleBeats(p, t.trust)[t.step];
+  return {
+    face: p.resident,
+    title: beat.title + ' · ' + p.addr,
+    body: beat.body,
+    choices: beat.choices.map(c => ({label:c.label, apply(){ applyPitch(t, c); }})),
+  };
+}
 function doTask(t){
   const p = propById(t.propId);
   switch (t.type){
@@ -1268,6 +1374,9 @@ function doTask(t){
       break;
     case 'lease':
       openPanel(leasePanel(t));
+      break;
+    case 'sale':
+      openPanel(salePanel(t));
       break;
     default: assertNever(t.type);
   }
@@ -1388,6 +1497,7 @@ function failOpenTasks(){
       case 'repair': bumpHappy(p, -25); toast('No repair at ' + p.addr + '.'); break;
       case 'lease': bumpHappy(p, -8); toast('No answer at ' + p.addr + '.'); break;
       case 'vacancy': toast(p.addr + ' stayed empty.'); break;
+      case 'sale': toast('No signature at ' + p.addr + '. The owner kept the building.'); break;
       default: assertNever(t.type);
     }
     t.done = true;
@@ -1494,6 +1604,7 @@ function yearEnd(){
     ['Rents collected', String(S.collected)],
     ['Repairs made', String(S.repairs)],
     ['Vacancies filled', String(S.filled)],
+    ['Owners signed', String(S.signed)],
     ['Sound calls', String(S.correct)],
     ['Costly calls', String(S.wrong)],
     ['Nights in before dusk', String(S.homeNights)],
@@ -1533,7 +1644,7 @@ function fresh(){
   S.cash = 4200;
   S.doors = false;
   S.homeNights = 0; S.caught = 0; S.deaths = 0;
-  S.collected = 0; S.repairs = 0; S.filled = 0; S.correct = 0; S.wrong = 0;
+  S.collected = 0; S.repairs = 0; S.filled = 0; S.correct = 0; S.wrong = 0; S.signed = 0;
   S.rentIn = 0; S.spent = 0;
   qCursor = 0;
   player.x = 0; player.z = -1; player.yaw = Math.PI; player.pitch = 0;
@@ -1572,6 +1683,70 @@ function clockParts(){
   const cd = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
   const tod = (S.phase === 'day' ? 'DAY' : 'NIGHT') + ' · ' + (MONTHS[S.month] || '') + ' · ' + h12 + ':' + String(mm).padStart(2, '0') + ' ' + ap;
   return {cd, tod};
+}
+function drawMap(){
+  const c = el.map;
+  if (!c) return;
+  const g = c.getContext('2d');
+  const w = c.width, h = c.height;
+  const X0 = -80, X1 = 80, Z0 = -14, Z1 = 224;
+  const pt = (x, z) => [(x - X0) / (X1 - X0) * w, h - (z - Z0) / (Z1 - Z0) * h];
+  g.clearRect(0, 0, w, h);
+  g.fillStyle = '#14181f';
+  g.fillRect(0, 0, w, h);
+  g.strokeStyle = '#4a4e57';
+  g.lineWidth = 14;
+  g.lineCap = 'butt';
+  g.beginPath();
+  let a = pt(0, 0), b = pt(0, 200);
+  g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]);
+  a = pt(-76, 148); b = pt(76, 148);
+  g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]);
+  g.stroke();
+  const cul = pt(0, 200);
+  g.beginPath();
+  g.arc(cul[0], cul[1], (16 / (X1 - X0)) * w, 0, Math.PI * 2);
+  g.stroke();
+  const office = pt(0, -2);
+  g.fillStyle = '#e4b15a';
+  g.fillRect(office[0] - 6, office[1] - 6, 12, 12);
+  for (const p of PROPS){
+    const q = pt(p.x, p.z);
+    const open = S.tasks.some(t => !t.done && t.propId === p.id);
+    g.fillStyle = open ? '#ffd56a' : (p.managed ? '#9a3412' : '#d9cbb8');
+    const s = p.owner ? 8 : 6;
+    g.fillRect(q[0] - s / 2, q[1] - s / 2, s, s);
+  }
+  const goal = objectivePoint();
+  if (goal){
+    const q = pt(goal.x, goal.z);
+    g.strokeStyle = '#ffd56a';
+    g.lineWidth = 2;
+    g.beginPath();
+    g.arc(q[0], q[1], 11, 0, Math.PI * 2);
+    g.stroke();
+  }
+  g.fillStyle = '#9ec7de';
+  for (const r of remotes.values()){
+    if (!r.mesh.visible) continue;
+    const q = pt(r.x, r.z);
+    g.beginPath();
+    g.arc(q[0], q[1], 4, 0, Math.PI * 2);
+    g.fill();
+  }
+  const yaw = player.car ? player.car.yaw : player.yaw;
+  const q = pt(player.x, player.z);
+  g.save();
+  g.translate(q[0], q[1]);
+  g.rotate(Math.atan2(-Math.sin(yaw), -Math.cos(yaw)));
+  g.fillStyle = '#f4efe6';
+  g.beginPath();
+  g.moveTo(0, -9);
+  g.lineTo(6, 7);
+  g.lineTo(-6, 7);
+  g.closePath();
+  g.fill();
+  g.restore();
 }
 function updateHud(){
   const c = clockParts();
@@ -1665,6 +1840,7 @@ function updateHud(){
   for (let i = 0; i < PICKUPS.length; i++) pickupMeshes[i].visible = night;
   fists.visible = night && !curW();
   for (const type of ORDER) vmGuns[type].visible = night && player.slot === type && !player.down;
+  drawMap();
 }
 function skyColor(hex){ return new THREE.Color(hex); }
 const COL_DAY = skyColor(0xc5dff5), COL_DUSK = skyColor(0xe7a06a), COL_NIGHT = skyColor(0x070b14), COL_DAWN = skyColor(0xf0b48a);
@@ -2075,7 +2251,7 @@ function snapshot(){
     mode:S.mode, phase:S.phase, left:S.left, month:S.month, monthName:MONTHS[S.month] || '',
     cash:S.cash, hp:player.hp, down:player.down, inOffice:inOffice(), doors:S.doors,
     homeNights:S.homeNights, caught:S.caught, deaths:S.deaths,
-    collected:S.collected, repairs:S.repairs, filled:S.filled, correct:S.correct, wrong:S.wrong,
+    collected:S.collected, repairs:S.repairs, filled:S.filled, signed:S.signed, correct:S.correct, wrong:S.wrong,
     driving:!!player.car, carId:player.car ? player.car.id : '',
     panel:S.panel ? S.panel.title : '',
     urgent:S.urgent ? {step:S.urgent.step, done:!!S.urgent.done, payout:S.urgent.payout} : null,
