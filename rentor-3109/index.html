@@ -13,7 +13,8 @@ canvas{display:block}
 #clock.warn{border-color:#ff5a4a;box-shadow:0 0 24px rgba(255,60,40,.35)}
 #clock.warn b{color:#ffb0a6}
 #clock.night{border-color:#7f96c4}
-#hint{position:absolute;top:108px;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:.4px;text-shadow:0 1px 2px #000;max-width:520px;text-align:center}
+#hint{position:absolute;top:168px;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:.4px;text-shadow:0 1px 2px #000;max-width:560px;text-align:center}
+#goal{position:absolute;top:112px;left:50%;transform:translateX(-50%);max-width:680px;text-align:center;font-size:18px;font-weight:700;letter-spacing:.2px;text-shadow:0 2px 8px #000;background:rgba(8,10,14,.55);border:1px solid rgba(228,177,90,.45);padding:6px 14px;border-radius:4px}
 #obj{position:absolute;top:16px;left:16px;max-width:320px;font-size:14px;line-height:1.45;text-shadow:0 1px 2px #000}
 #obj div{margin:0 0 4px}
 #obj .hot{color:#ffb15a}
@@ -29,6 +30,9 @@ canvas{display:block}
 #acount{font-size:28px;font-weight:700}
 #compass{position:absolute;top:16px;right:16px;text-align:right;font-size:13px;text-shadow:0 1px 2px #000}
 #compass .arr{display:inline-block;width:18px;height:18px;margin-left:6px;vertical-align:-3px}
+#mapwrap{position:absolute;top:46px;right:16px;width:168px;background:rgba(8,10,14,.78);border:1px solid rgba(228,177,90,.5);border-radius:4px;padding:6px}
+#minimap{display:block;width:156px;height:156px;background:#14181f}
+#mapcap{margin-top:4px;text-align:center;font-size:10px;letter-spacing:2px;color:#e4b15a}
 #xh{position:absolute;left:50%;top:50%}
 #xh i{position:absolute;background:rgba(255,255,255,.88);box-shadow:0 0 2px #000}
 #xh .t,#xh .b{width:2px;height:8px;left:-1px}
@@ -70,12 +74,31 @@ table.stats td:last-child{text-align:right;font-weight:700}
 #tbtns .trow{display:flex;gap:8px}
 #tbtns button{pointer-events:auto;touch-action:none;width:62px;height:62px;border-radius:50%;border:2px solid rgba(255,255,255,.45);background:rgba(0,0,0,.4);color:#fff;font:inherit;font-size:11px}
 #tbtns button.fire{width:86px;height:86px;background:rgba(154,52,18,.6);font-weight:700}
+#tbtns button.nightonly{display:none}
+body.afterdark #tbtns button.nightonly{display:inline-block}
+.manual{max-width:980px;margin:24px auto;padding:8px 18px 28px}
+.manual h2{letter-spacing:4px}
+.lead{font-size:17px;max-width:720px;margin:8px auto 16px;line-height:1.45}
+.cols{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;text-align:left}
+.cols section{background:#f4efe6;color:#1c1915;border-radius:8px;padding:14px 14px 16px;min-height:240px}
+.cols h3{margin:0 0 8px;font-family:Palatino,Georgia,serif;font-size:22px;letter-spacing:0;color:#9a3412}
+.cols p{margin:0 0 10px;font-size:14px;line-height:1.45}
+.cols .rule{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#9a3412;margin:0 0 4px}
+.cooprow{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.cooprow input{font:inherit;padding:10px 12px;border-radius:3px;border:1px solid #444;background:#111;color:#fff;width:140px}
+button.alt{background:#243044}
+#pface{width:72px;height:88px;border-radius:4px;background:#d9cbb8;float:left;margin:0 10px 8px 0;display:block}
+#speed{position:absolute;right:16px;bottom:92px;font-size:13px;letter-spacing:1px;text-shadow:0 1px 2px #000}
+@media (max-width:800px){.cols{grid-template-columns:1fr}.manual{padding-top:12px}}
 body.touching #clock{top:calc(8px + env(safe-area-inset-top));padding:6px 10px}
 body.touching #clock b{font-size:28px}
-body.touching #hint{top:78px;font-size:12px;padding:0 12px}
+body.touching #goal{top:70px;font-size:13px;max-width:94vw;padding:4px 8px}
+body.touching #hint{top:116px;font-size:12px;padding:0 12px}
 body.touching #obj{top:78px;max-width:46vw;font-size:12px}
 body.touching #compass{display:none}
-body.touching #ammo{top:calc(8px + env(safe-area-inset-top));right:8px;bottom:auto}
+body.touching #mapwrap{top:calc(6px + env(safe-area-inset-top));right:8px;width:108px;padding:4px}
+body.touching #minimap{width:100px;height:100px}
+body.touching #ammo{top:calc(8px + env(safe-area-inset-top));right:122px;bottom:auto}
 body.touching #vitals{bottom:calc(210px + env(safe-area-inset-bottom));width:min(46vw,200px)}
 body.touching #feed{display:none}
 @media (max-width:900px),(max-height:520px){
@@ -89,9 +112,12 @@ body.touching #feed{display:none}
 <div id="hud" class="hidden">
  <div id="dmg"></div>
  <div id="clock"><b id="count">5:00</b><span class="tod" id="tod">DAY · JANUARY · 8:00 AM</span></div>
+ <div id="goal"></div>
  <div id="hint"></div>
+ <div id="speed"></div>
  <div id="obj"></div>
  <div id="compass"></div>
+ <div id="mapwrap"><canvas id="minimap" width="312" height="312"></canvas><div id="mapcap">NORTH</div></div>
  <div id="feed"></div>
  <div id="vitals"><div id="cash"></div><div id="hp"><i id="hpfill"></i></div><div id="safe" class="hidden">SAFE · 3109</div></div>
  <div id="ammo" class="hidden"><div id="wname"></div><div id="acount"></div></div>
@@ -103,13 +129,14 @@ body.touching #feed{display:none}
  <div id="stickzone"></div><div id="lookpad"></div>
  <div id="stick"><div id="knob"></div></div>
  <div id="tbtns">
-  <div class="trow"><button type="button" data-act="gun">GUN</button><button type="button" data-act="reload">RELOAD</button></div>
-  <div class="trow"><button type="button" data-act="shove">SHOVE</button><button type="button" data-act="use">USE</button></div>
-  <button type="button" class="fire" data-act="fire">FIRE</button>
+  <div class="trow"><button type="button" class="nightonly" data-act="gun">GUN</button><button type="button" class="nightonly" data-act="reload">RELOAD</button></div>
+  <div class="trow"><button type="button" class="nightonly" data-act="shove">SHOVE</button><button type="button" data-act="use">USE</button></div>
+  <button type="button" class="fire nightonly" data-act="fire">FIRE</button>
  </div>
 </div>
 <div id="panel" class="hidden">
  <div id="panelclock"></div>
+ <canvas id="pface" class="hidden" width="72" height="88"></canvas>
  <h3 id="ptitle"></h3>
  <p id="pbody"></p>
  <div id="pchoices"></div>
@@ -118,16 +145,52 @@ body.touching #feed{display:none}
  <div class="kicker">3109 H STREET · EUREKA</div>
  <h1>RENTOR</h1>
  <h2>DAY SHIFT</h2>
- <p class="sub">Walk the rent route while the sun is up: collect, repair, fill an empty unit, answer the lease. Daylight lasts five minutes. Night lasts five. The office is the only safe room once the street turns. A late signing will try to strand you past dusk.</p>
+ <p class="sub">Five minutes of daylight to work the rent route from 3109 H Street. Collect, repair, fill an empty unit, and answer the lease. The best end to the day is being back inside the office before dark.</p>
  <div class="controls">
   <div><b>WASD</b>Move</div><div><b>MOUSE</b>Look</div><div><b>SHIFT</b>Sprint</div>
-  <div><b>E</b>Use</div><div><b>ESC</b>Close a note</div><div><b>CLICK</b>Capture mouse</div>
-  <div><b>L-CLICK</b>Fire at night</div><div><b>R-CLICK</b>Shove</div><div><b>R</b>Reload</div>
-  <div><b>1 2 3</b>Weapons</div>
+  <div><b>E</b>Door, car, desk</div><div><b>ESC</b>Close a note</div><div><b>CLICK</b>Capture mouse</div>
  </div>
- <p class="touchhelp">Left side moves, right side looks. USE talks to a door. At night, FIRE, SHOVE, and RELOAD. Hold the right side and drag to look. The clock never stops while a note is open.</p>
- <button class="big" id="playbtn" type="button">START THE ROUTE</button>
- <p class="tiny">The clock keeps running while you read. Sprint is how you make the door.<br>An original sim about the desk at <a href="https://www.rentor.com">Rentor</a>, 3109 H Street, Eureka. Not affiliated with Second Nature or Whimsy Games.</p>
+ <p class="touchhelp">Left side moves, right side looks. USE opens a door or a car. The clock never stops while a note is open. Be back at the office before dark.</p>
+ <button class="big" id="playbtn" type="button">READ THE DESK MANUAL</button>
+ <div class="cooprow">
+  <input id="pname" maxlength="16" placeholder="Your name" aria-label="Your name" autocomplete="off">
+  <button class="big alt" id="hostbtn" type="button">HOST STREET</button>
+  <button class="big alt" id="joinbtn" type="button">JOIN</button>
+ </div>
+ <div class="cooprow hidden" id="joinbox">
+  <input id="joincode" maxlength="4" placeholder="CODE" aria-label="Room code" autocomplete="off">
+  <button class="big alt" id="joingo" type="button">JOIN ROOM</button>
+ </div>
+ <p class="tiny" id="roomhint">Solo, or up to 24 people on the same street.</p>
+ <p class="tiny">An original sim about the desk at <a href="https://www.rentor.com">Rentor</a>, 3109 H Street, Eureka. Not affiliated with Second Nature or Whimsy Games.</p>
+</div></div>
+<div id="guide" class="screen hidden"><div class="manual">
+ <div class="kicker">3109 H STREET · DESK MANUAL</div>
+ <h2>HOW THE DAY WORKS</h2>
+ <p class="lead">Daylight lasts five minutes. Finish the stops, then get back inside the office before dark.</p>
+ <div class="cols">
+  <section>
+   <p class="rule">The route</p>
+   <h3>Work the list</h3>
+   <p>Earn the rent. Each address on the left is a stop. The gold beam marks the next one. The map in the corner is this street, north at the top. Gold is the stop. 3109 is the south edge.</p>
+   <p>H Street ends at a circle in Ferndale. That is not a place to wait. Turn around. 3109 is south.</p>
+  </section>
+  <section>
+   <p class="rule">The stops</p>
+   <h3>Go inside</h3>
+   <p>Step up to the door and go in. Some homes are ordinary. Some are packed to the ceiling. Look around, then talk to the resident.</p>
+   <p>A missed month cools them off. Another one and they leave, and the unit sits vacant until you place someone new.</p>
+  </section>
+  <section>
+   <p class="rule">The desk</p>
+   <h3>Answer, then drive</h3>
+   <p>The question at the door is the work. A sound answer keeps the home. A costly one comes out of the drawer.</p>
+   <p>Henry's desk opens the north listings. One stop is an owner who still runs the building alone. Listen before you name a fee. The signature is a management agreement.</p>
+   <p>The company car is out front. Get in, and get out the same way. Any empty car on the street can be taken. The far end of H Street is a drive.</p>
+  </section>
+ </div>
+ <button class="big" id="guidebtn" type="button">OPEN THE OFFICE</button>
+ <p class="tiny">The clock starts when the office opens, and it keeps running while you read a note. Up to 24 people can share the street.</p>
 </div></div>
 <div id="year" class="screen hidden"><div class="card">
  <div class="kicker">TWELVE MONTHS ON H STREET</div>
@@ -136,6 +199,7 @@ body.touching #feed{display:none}
  <p class="tiny" id="yearformula"></p>
  <button class="big" id="againbtn" type="button">RUN ANOTHER YEAR</button>
 </div></div>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js"></script>
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}</script>
 <script type="module">
 import * as THREE from 'three';
@@ -176,17 +240,23 @@ const PICKUPS = [
 const PROPS = [
   {id:'duplex', addr:'1412 H St', kind:'Duplex', resident:'Elena Voss', x:10, z:22, hw:3.5, hd:4.6, h:5.2, rent:1650, occ:true, happy:78, color:0xc4b49a, roof:0x6e3b2c, side:1},
   {id:'cottage', addr:'1620 H St', kind:'Cottage', resident:'Sam Ortega', x:-11, z:40, hw:3.3, hd:3.8, h:3.1, rent:1425, occ:true, happy:72, color:0xd9d3c5, roof:0x3e4a55, side:-1},
-  {id:'harris', addr:'1904 Harris', kind:'Bungalow', resident:null, x:12, z:58, hw:3.4, hd:4.0, h:3.2, rent:1280, occ:false, happy:0, color:0xb7c3a4, roof:0x4a3a32, side:1},
-  {id:'broadway', addr:'2108 Broadway', kind:'Fourplex', resident:'Priya Shah', x:-13, z:78, hw:4.0, hd:5.0, h:5.6, rent:2100, occ:true, happy:80, color:0xd8d2c8, roof:0x2c3338, side:-1},
-  {id:'henderson', addr:'908 Henderson', kind:'House', resident:'Jonah Reed', x:12.5, z:98, hw:3.4, hd:4.2, h:3.4, rent:1175, occ:true, happy:68, color:0xe0d2b8, roof:0x6a4030, side:1},
-  {id:'fifth', addr:'44 5th', kind:'Victorian', resident:null, x:-10, z:118, hw:3.6, hd:4.6, h:5.4, rent:1890, occ:false, happy:0, color:0xd5c6c0, roof:0x3a2a28, side:-1},
-  {id:'fern', addr:'612 Main, Ferndale', kind:'Cottage', resident:null, x:11, z:142, hw:3.6, hd:4.4, h:3.2, rent:2300, occ:false, happy:0, color:0xd7c4a3, roof:0x6a3a2a, side:1},
+  {id:'harris', addr:'1904 Harris', kind:'Bungalow', resident:null, x:12, z:58, hw:3.4, hd:4.0, h:3.2, rent:1280, occ:false, happy:0, color:0xb7c3a4, roof:0x4a3a32, side:1, face:'x', hoard:true},
+  {id:'broadway', addr:'2108 Broadway', kind:'Fourplex', resident:'Priya Shah', x:-13, z:78, hw:4.0, hd:5.0, h:5.6, rent:2100, occ:true, happy:80, color:0xd8d2c8, roof:0x2c3338, side:-1, face:'x'},
+  {id:'henderson', addr:'908 Henderson', kind:'House', resident:'Jonah Reed', x:12.5, z:98, hw:3.4, hd:4.2, h:3.4, rent:1175, occ:true, happy:68, color:0xe0d2b8, roof:0x6a4030, side:1, face:'x'},
+  {id:'fifth', addr:'44 5th', kind:'Victorian', resident:null, x:-10, z:118, hw:3.6, hd:4.6, h:5.4, rent:1890, occ:false, happy:0, color:0xd5c6c0, roof:0x3a2a28, side:-1, face:'x', hoard:true},
+  {id:'hills', addr:'18 Hills', kind:'Victorian', resident:'Maeve Quinn', x:-16, z:172, hw:4.2, hd:5.0, h:6.4, rent:1750, occ:true, happy:74, color:0xe6d7c4, roof:0x4a2e28, side:-1, face:'x', route:false},
+  {id:'clark', addr:'77 Clark', kind:'Victorian', resident:'Otto Clark', x:48, z:166, hw:4.6, hd:5.2, h:6.6, rent:1540, occ:true, happy:44, color:0xd8c8b0, roof:0x3a3030, side:1, face:'z', hoard:true, route:false},
+  {id:'buhne', addr:'512 Buhne', kind:'Fourplex', resident:'Ruth Okada', x:-42, z:160, hw:4.2, hd:5.0, h:5.8, rent:0, occ:true, happy:60, color:0xd8cfc2, roof:0x3a3030, side:1, face:'z', route:false, owner:true},
+  {id:'fern', addr:'612 Main, Ferndale', kind:'Cottage', resident:null, x:0, z:218, hw:4.0, hd:5.0, h:3.8, rent:2300, occ:false, happy:0, color:0xd7c4a3, roof:0x6a3a2a, side:1, face:'z'},
 ];
 for (const p of PROPS){
+  p.face = p.face || 'x';
+  p.managed = false;
   p.baseOcc = p.occ; p.baseHappy = p.happy; p.baseRent = p.rent; p.baseResident = p.resident;
+  p.seen = {};
 }
-const FERN_YARD = {x:11, z:148.8};
-const FERN_GARAGE = {x:15.2, z:133};
+const FERN_YARD = {x:11, z:218};
+const FERN_GARAGE = {x:-11.5, z:207};
 
 const QUESTIONS = [
   p => ({title:'Paint', body:`${p.resident} wants the south bedroom a deep red before family visits. The lease requires written approval, and the unit was just turned in warm white.`, choices:[
@@ -260,8 +330,9 @@ const el = {
   compass:$('compass'), feed:$('feed'), cash:$('cash'), hp:$('hp'), hpfill:$('hpfill'), safe:$('safe'),
   ammo:$('ammo'), wname:$('wname'), acount:$('acount'), xh:$('xh'), prompt:$('prompt'), downmsg:$('downmsg'),
   dmg:$('dmg'), panel:$('panel'), panelclock:$('panelclock'), ptitle:$('ptitle'), pbody:$('pbody'),
-  pchoices:$('pchoices'), title:$('title'), year:$('year'), yearstats:$('yearstats'), yearformula:$('yearformula'),
+  pchoices:$('pchoices'), pface:$('pface'), title:$('title'), guide:$('guide'), year:$('year'), yearstats:$('yearstats'), yearformula:$('yearformula'),
   touch:$('touch'), stickzone:$('stickzone'), lookpad:$('lookpad'), stick:$('stick'), knob:$('knob'),
+  goal:$('goal'), speed:$('speed'), map:$('minimap'),
 };
 
 let TOUCH = false;
@@ -273,7 +344,7 @@ function applyTouch(){
 
 const S = {
   mode:'title', phase:'day', left:DAY_LEN, month:0, cash:4200, doors:false,
-  homeNights:0, caught:0, deaths:0, collected:0, repairs:0, filled:0, correct:0, wrong:0, rentIn:0, spent:0,
+  homeNights:0, caught:0, deaths:0, collected:0, repairs:0, filled:0, correct:0, wrong:0, signed:0, rentIn:0, spent:0,
   tasks:[], urgent:null, offered:false, pendingOffer:false, panel:null, trickle:8, hurt:0, muzzle:0,
 };
 let qCursor = 0;
@@ -283,13 +354,13 @@ let stickX = 0, stickY = 0;
 const player = {
   x:0, z:-1, yaw:Math.PI, pitch:0, hp:100, down:false,
   inv:{pistol:null, shotgun:null, smg:null}, slot:null,
-  fireCd:0, reloadT:0, shoveT:0, bob:0,
+  fireCd:0, reloadT:0, shoveT:0, bob:0, car:null,
 };
 
 function curW(){ return player.slot ? player.inv[player.slot] : null; }
 function propById(id){ return PROPS.find(p => p.id === id); }
 function onRoute(p){
-  if (p.id === 'fern') return false;
+  if (p.route === false || p.id === 'fern') return false;
   if (p.z > 90 && !S.doors) return false;
   return true;
 }
@@ -324,8 +395,8 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.prepend(renderer.domElement);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xc5dff5);
-scene.fog = new THREE.FogExp2(0xc5dff5, 0.012);
-const camera = new THREE.PerspectiveCamera(78, innerWidth / innerHeight, 0.08, 420);
+scene.fog = new THREE.FogExp2(0xc5dff5, 0.0048);
+const camera = new THREE.PerspectiveCamera(78, innerWidth / innerHeight, 0.08, 700);
 camera.rotation.order = 'YXZ';
 scene.add(camera);
 const hemi = new THREE.HemisphereLight(0xcfe4f8, 0x3d4a32, 0.95);
@@ -374,13 +445,25 @@ function plane(w, h, tex, x, y, z, ry){
 
 const solids = [];
 function addSolid(minx, minz, maxx, maxz){ solids.push({minx, minz, maxx, maxz}); }
-function hits(x, z, r){
-  if (x < -22 || x > 22 || z < -12 || z > 158) return true;
+function hits(x, z, r, ignoreCar){
+  if (x < -96 || x > 96 || z < -16 || z > 226) return true;
   for (const s of solids){
     const cx = clamp(x, s.minx, s.maxx), cz = clamp(z, s.minz, s.maxz);
     if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r) return true;
   }
+  if (ignoreCar === true) return false;
+  for (const c of CARS){
+    if (c === ignoreCar || c.occupied === 'you') continue;
+    if (carBlocks(c, x, z, r)) return true;
+  }
   return false;
+}
+function carBlocks(c, x, z, r){
+  const dx = x - c.x, dz = z - c.z;
+  const cos = Math.cos(c.yaw), sin = Math.sin(c.yaw);
+  const lx = dx * cos + dz * (-sin);
+  const lz = dx * (-sin) + dz * (-cos);
+  return Math.abs(lx) < 0.95 + r && Math.abs(lz) < 2.05 + r;
 }
 function moveCircle(e, dx, dz, r){
   e.x += dx;
@@ -412,12 +495,220 @@ function raySolidDist(ox, oz, dx, dz, maxD){
   return best;
 }
 
+const texLoader = new THREE.TextureLoader();
+function loadTex(url){
+  const t = texLoader.load(url);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+const mansionTex = loadTex('../eureka-pulp-mill/tex/mansion.jpg');
+const officeTex = loadTex('../eureka-pulp-mill/tex/office.jpg');
+const streetTex = loadTex('../eureka-pulp-mill/tex/street.jpg');
+streetTex.repeat.set(4, 26);
+const streetMat = new THREE.MeshLambertMaterial({map:streetTex});
+function houseMat(){ return new THREE.MeshLambertMaterial({map:mansionTex}); }
+function hashStr(s){
+  let h = 0;
+  for (let i = 0; i < (s || '').length; i++) h = (h * 33 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+const SHIRT_COLORS = [0x9a3412, 0x1c3a5a, 0x2a4a32, 0x4a3a55, 0x6a5030, 0x243044];
+function paintName(sprite, text){
+  const c = sprite.userData.canvas;
+  const g = c.getContext('2d');
+  g.clearRect(0, 0, 256, 64);
+  g.fillStyle = 'rgba(20,16,12,0.82)';
+  g.fillRect(8, 8, 240, 48);
+  g.fillStyle = '#f4efe6';
+  g.font = '600 26px system-ui, sans-serif';
+  g.textAlign = 'center';
+  g.fillText(text || '', 128, 40);
+  sprite.userData.tex.needsUpdate = true;
+}
+function nameSprite(text){
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 64;
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true}));
+  s.scale.set(1.8, 0.45, 1);
+  s.position.set(0, 2.15, 0);
+  s.userData.canvas = c;
+  s.userData.tex = tex;
+  paintName(s, text);
+  return s;
+}
+function makePerson(shirtHex){
+  const g = new THREE.Group();
+  const shirt = new THREE.MeshLambertMaterial({color:shirtHex});
+  box(0.46, 0.72, 0.28, shirt, 0, 1.15, 0, g);
+  box(0.28, 0.28, 0.26, 0xd7b099, 0, 1.64, 0, g);
+  box(0.15, 0.58, 0.16, 0x2a2c33, -0.12, 0.36, 0, g);
+  box(0.15, 0.58, 0.16, 0x2a2c33, 0.12, 0.36, 0, g);
+  const sprite = nameSprite('');
+  g.add(sprite);
+  return {mesh:g, shirt, sprite};
+}
+function refreshAvatar(p){
+  if (!p.avatar) return;
+  const on = !!(p.occ && p.resident);
+  p.avatar.mesh.visible = on;
+  if (!on) return;
+  p.avatar.shirt.color.setHex(SHIRT_COLORS[hashStr(p.resident) % SHIRT_COLORS.length]);
+  paintName(p.avatar.sprite, p.resident);
+}
+function refreshAvatars(){ for (const p of PROPS) refreshAvatar(p); }
+function insideHouse(p, x, z){
+  return Math.abs(x - p.x) < p.hw - 0.45 && Math.abs(z - p.z) < p.hd - 0.45;
+}
+function placeDoor(p){
+  if (p.face === 'z') p.door = {x:p.x, z:p.z - p.side * (p.hd + 1.7)};
+  else p.door = {x:p.x - p.side * (p.hw + 1.7), z:p.z};
+}
+function labelYaw(p){
+  if (p.face === 'z') return p.side > 0 ? Math.PI : 0;
+  return p.side > 0 ? Math.PI / 2 : -Math.PI / 2;
+}
+function addWall(g, p, minx, minz, maxx, maxz, material){
+  const w = Math.max(0.08, maxx - minx), d = Math.max(0.08, maxz - minz);
+  box(w, p.h, d, material, (minx + maxx) / 2 - p.x, p.h / 2, (minz + maxz) / 2 - p.z, g);
+  addSolid(minx, minz, maxx, maxz);
+}
+function placePile(g, p, lx, lz, w, d, h){
+  const across = p.face === 'z' ? lx : lz;
+  if (Math.abs(across) < 1.05) return;
+  const color = h > 2 ? 0x5c4638 : 0x8a7460;
+  box(w, h, d, color, lx, h / 2, lz, g);
+  addSolid(p.x + lx - w / 2, p.z + lz - d / 2, p.x + lx + w / 2, p.z + lz + d / 2);
+  if (!p.block) p.block = {x:p.x + lx, z:p.z + lz};
+}
+function addHouse(p){
+  const g = new THREE.Group();
+  const wall = houseMat();
+  const x0 = p.x - p.hw, x1 = p.x + p.hw, z0 = p.z - p.hd, z1 = p.z + p.hd;
+  const t = 0.24, gap = 0.74;
+  if (p.face === 'x'){
+    addWall(g, p, x0, z0 - t, x1, z0 + t, wall);
+    addWall(g, p, x0, z1 - t, x1, z1 + t, wall);
+    const doorX = p.side > 0 ? x0 : x1;
+    const otherX = p.side > 0 ? x1 : x0;
+    addWall(g, p, otherX - t, z0, otherX + t, z1, wall);
+    addWall(g, p, doorX - t, z0, doorX + t, p.z - gap, wall);
+    addWall(g, p, doorX - t, p.z + gap, doorX + t, z1, wall);
+    box(0.28, Math.max(0.4, p.h - 2.3), gap * 2, wall, doorX - p.x, 2.3 + (p.h - 2.3) / 2, 0, g);
+  } else {
+    addWall(g, p, x0 - t, z0, x0 + t, z1, wall);
+    addWall(g, p, x1 - t, z0, x1 + t, z1, wall);
+    const doorZ = p.side > 0 ? z0 : z1;
+    const otherZ = p.side > 0 ? z1 : z0;
+    addWall(g, p, x0, otherZ - t, x1, otherZ + t, wall);
+    addWall(g, p, x0, doorZ - t, p.x - gap, doorZ + t, wall);
+    addWall(g, p, p.x + gap, doorZ - t, x1, doorZ + t, wall);
+    box(gap * 2, Math.max(0.4, p.h - 2.3), 0.28, wall, 0, 2.3 + (p.h - 2.3) / 2, doorZ - p.z, g);
+  }
+  box(p.hw * 2 + 0.7, 0.42, p.hd * 2 + 0.7, p.roof, 0, p.h + 0.12, 0, g);
+  box(p.hw * 2 - 0.55, 0.05, p.hd * 2 - 0.55, p.hoard ? 0x5a4636 : 0xc4b496, 0, 0.07, 0, g);
+  box(p.hw * 2 + 1.2, 0.05, p.hd * 2 + 1.2, 0x6d7a48, 0, 0.04, 0, g);
+  if (p.hoard){
+    const deep = p.face === 'z' ? p.hw : p.hd;
+    placePile(g, p, 0, -deep + 1.15, 1.5, 1.3, p.h * 0.72);
+    placePile(g, p, 0, deep - 1.2, 1.6, 1.4, p.h * 0.9);
+    placePile(g, p, -p.hw + 1.15, 0.2, 1.2, 1.5, p.h * 0.55);
+    placePile(g, p, p.hw - 1.15, -0.4, 1.3, 1.6, p.h * 0.8);
+    placePile(g, p, p.hw - 1.3, deep * 0.35, 1.1, 1.1, 1.2);
+  } else {
+    box(1.1, 0.5, 0.55, 0x6b422c, p.hw * 0.35, 0.32, -p.hd * 0.35, g);
+    box(0.7, 0.9, 0.08, 0x9ec7de, 0, p.h * 0.55, p.hd - 0.05, g);
+  }
+  const tenant = p.face === 'z'
+    ? {x:0, z:p.side > 0 ? p.hd - 1.15 : -p.hd + 1.15}
+    : {x:p.side > 0 ? p.hw - 1.15 : -p.hw + 1.15, z:0};
+  p.tenant = {x:p.x + tenant.x, z:p.z + tenant.z};
+  p.avatar = makePerson(SHIRT_COLORS[hashStr(p.resident || p.id) % SHIRT_COLORS.length]);
+  p.avatar.mesh.position.set(tenant.x, 0, tenant.z);
+  g.add(p.avatar.mesh);
+  refreshAvatar(p);
+  const hall = p.face === 'z'
+    ? {x:p.x, z:p.z - p.side * (p.hd * 0.35)}
+    : {x:p.x - p.side * (p.hw * 0.35), z:p.z};
+  p.checks = [
+    {id:'hall', x:hall.x, z:hall.z, label:'Inspect the hall', note:p.hoard ? 'The hall is a tunnel between stacks. This home is packed to the ceiling.' : 'The hall is clear. Floors and walls look sound.'},
+    {id:'room', x:p.x, z:p.z, label:'Inspect the main room', note:p.hoard ? 'The main room is a complete hoard. Paths stop where the stacks start.' : 'The main room is ordinary. No leak, no broken sash.'},
+  ];
+  g.position.set(p.x, 0, p.z);
+  scene.add(g);
+  placeDoor(p);
+  const label = signTex(p.addr.split(',')[0], p.hoard ? 'Full house' : p.kind, '#f4efe6', '#1c1915');
+  plane(1.8, 0.7, label, p.door.x, 2.15, p.door.z, labelYaw(p));
+}
+const CARS = [];
+const CAR_DEFS = [
+  {id:'company', x:-5.6, z:6.5, yaw:Math.PI, color:0x9a3412, traffic:false, label:'Company car'},
+  {id:'park-a', x:6.5, z:28, yaw:Math.PI, color:0x2c3440, traffic:false, label:'Parked car'},
+  {id:'park-b', x:-6.5, z:46, yaw:0, color:0x4a3030, traffic:false, label:'Parked car'},
+  {id:'park-c', x:6.5, z:66, yaw:Math.PI, color:0x243028, traffic:false, label:'Parked car'},
+  {id:'park-d', x:-6.5, z:86, yaw:0, color:0x3a3a44, traffic:false, label:'Parked car'},
+  {id:'park-e', x:6.5, z:126, yaw:Math.PI, color:0x2a3a4a, traffic:false, label:'Parked car'},
+  {id:'park-north', x:8.4, z:186, yaw:Math.PI, color:0x5a4030, traffic:false, label:'Parked car'},
+  {id:'park-cross', x:30, z:154.6, yaw:Math.PI / 2, color:0x333844, traffic:false, label:'Parked car'},
+  {id:'t1', x:2.15, z:18, yaw:Math.PI, color:0xc4b49a, traffic:true, lane:'north', cruise:9, label:'Traffic'},
+  {id:'t2', x:2.15, z:78, yaw:Math.PI, color:0x8a3030, traffic:true, lane:'north', cruise:11, label:'Traffic'},
+  {id:'t3', x:2.15, z:138, yaw:Math.PI, color:0x2a4a6a, traffic:true, lane:'north', cruise:8, label:'Traffic'},
+  {id:'t4', x:-2.15, z:42, yaw:0, color:0xd8d2c8, traffic:true, lane:'south', cruise:10, label:'Traffic'},
+  {id:'t5', x:-2.15, z:104, yaw:0, color:0x3e4a28, traffic:true, lane:'south', cruise:9, label:'Traffic'},
+  {id:'t6', x:-2.15, z:164, yaw:0, color:0x4a3a55, traffic:true, lane:'south', cruise:12, label:'Traffic'},
+  {id:'t7', x:-46, z:146.15, yaw:-Math.PI / 2, color:0x6a5030, traffic:true, lane:'east', cruise:8, label:'Traffic'},
+  {id:'t8', x:54, z:149.85, yaw:Math.PI / 2, color:0x303840, traffic:true, lane:'west', cruise:8, label:'Traffic'},
+];
+function buildCarMesh(color){
+  const g = new THREE.Group();
+  box(1.8, 0.5, 4.1, color, 0, 0.48, 0, g);
+  box(1.55, 0.42, 1.7, 0x9ec7de, 0, 0.92, 0.5, g);
+  box(0.28, 0.16, 0.12, 0xf4efe6, -0.55, 0.62, -1.85, g);
+  box(0.28, 0.16, 0.12, 0xf4efe6, 0.55, 0.62, -1.85, g);
+  return g;
+}
+function spawnCar(def){
+  const mesh = buildCarMesh(def.color);
+  mesh.position.set(def.x, 0, def.z);
+  mesh.rotation.y = -def.yaw;
+  scene.add(mesh);
+  const c = {
+    id:def.id, x:def.x, z:def.z, yaw:def.yaw, color:def.color, label:def.label,
+    traffic:def.traffic, lane:def.lane || '', cruise:def.cruise || 0,
+    homeX:def.x, homeZ:def.z, homeYaw:def.yaw, homeTraffic:def.traffic,
+    occupied:null, speed:0, mesh,
+  };
+  CARS.push(c);
+  return c;
+}
+function resetCars(){
+  player.car = null;
+  for (const c of CARS){
+    c.x = c.homeX; c.z = c.homeZ; c.yaw = c.homeYaw;
+    c.speed = 0; c.traffic = c.homeTraffic; c.occupied = null;
+    c.mesh.position.set(c.x, 0, c.z);
+    c.mesh.rotation.y = -c.yaw;
+  }
+}
+
 function buildWorld(){
-  box(420, 0.2, 420, 0x3d5a34, 0, -0.12, 70);
-  box(9.2, 0.08, 160, 0x3a3d44, 0, 0.02, 74);
-  box(2.2, 0.04, 160, 0xb7b1a6, -5.6, 0.05, 74);
-  box(2.2, 0.04, 160, 0xb7b1a6, 5.6, 0.05, 74);
-  for (let z = 8; z < 150; z += 8) box(0.16, 0.02, 2.2, 0xd8d4cc, 0, 0.08, z);
+  box(240, 0.2, 280, 0x3d5a34, 0, -0.12, 106);
+  box(9.2, 0.08, 208, streetMat, 0, 0.02, 102);
+  box(2.2, 0.04, 208, 0xb7b1a6, -5.7, 0.05, 102);
+  box(2.2, 0.04, 208, 0xb7b1a6, 5.7, 0.05, 102);
+  for (let z = 8; z < 198; z += 8) box(0.16, 0.02, 2.2, 0xd8d4cc, 0, 0.08, z);
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(16, 16, 0.09, 28), mat(0x3a3d44));
+  disc.position.set(0, 0.05, 200);
+  scene.add(disc);
+  box(168, 0.08, 9.2, streetMat, 0, 0.035, 148);
+  box(168, 0.04, 2.0, 0xb7b1a6, 0, 0.05, 143.2);
+  box(168, 0.04, 2.0, 0xb7b1a6, 0, 0.05, 152.8);
+  for (let x = -72; x <= 72; x += 8){
+    if (Math.abs(x) < 8) continue;
+    box(2.2, 0.02, 0.16, 0xd8d4cc, x, 0.09, 148);
+  }
   addSolid(-4.3, -8.3, 4.3, -7.65);
   addSolid(-4.3, -8.3, -3.65, 2.25);
   addSolid(3.65, -8.3, 4.3, 2.25);
@@ -434,37 +725,19 @@ function buildWorld(){
   box(2.4, 0.78, 1.2, 0x6b422c, 0, 0.45, -5.3);
   box(1.3, 0.9, 0.5, 0x3a3a3a, 0, 0.5, -4.2);
   plane(3.4, 1.7, signTex('RENTOR', '3109 H ST', '#14202c', '#e4b15a'), 0, 2.7, 2.28, 0);
+  plane(3.6, 2.4, officeTex, 0, 1.7, 2.16, 0);
   plane(2.2, 1.1, signTex('707.444.3835', 'SINCE 1989', '#1c1915', '#f4efe6'), 0, 2.2, -7.7, Math.PI);
-  for (const p of PROPS){
-    const g = new THREE.Group();
-    box(p.hw * 2, p.h, p.hd * 2, p.color, 0, p.h / 2, 0, g);
-    box(p.hw * 2 + 0.5, 0.45, p.hd * 2 + 0.5, p.roof, 0, p.h + 0.15, 0, g);
-    const face = -p.side * p.hw;
-    box(0.16, 2.15, 0.92, 0x4a3428, face - p.side * 0.02, 1.1, 0, g);
-    box(0.7, 0.9, 0.08, 0x9ec7de, face - p.side * 0.02, p.h * 0.62, 1.4, g);
-    box(0.7, 0.9, 0.08, 0x9ec7de, face - p.side * 0.02, p.h * 0.62, -1.4, g);
-    box(p.hw * 2 + 1.4, 0.05, p.hd * 2 + 1.4, 0x6d7a48, 0, 0.06, 0, g);
-    g.position.set(p.x, 0, p.z);
-    scene.add(g);
-    addSolid(p.x - p.hw, p.z - p.hd, p.x + p.hw, p.z + p.hd);
-    p.door = {x: p.x - p.side * (p.hw + 1.7), z: p.z};
-    const label = signTex(p.addr.split(',')[0], p.kind, '#f4efe6', '#1c1915');
-    plane(1.8, 0.7, label, p.door.x, 2.15, p.door.z, p.side > 0 ? -Math.PI / 2 : Math.PI / 2);
-  }
-  addSolid(16, 131.2, 19, 134.8);
-  box(3, 2.4, 3.6, 0x8a6248, 17.5, 1.2, 133);
-  box(3.3, 0.3, 3.9, 0x4a3428, 17.5, 2.5, 133);
-  const cars = [{x:5.4, z:30}, {x:-5.4, z:47}, {x:5.4, z:70}, {x:-5.4, z:93}, {x:5.4, z:116}];
-  for (const c of cars){
-    addSolid(c.x - 0.9, c.z - 2.1, c.x + 0.9, c.z + 2.1);
-    box(1.7, 0.7, 4, 0x2c3440, c.x, 0.55, c.z);
-    box(1.5, 0.55, 2, 0x8eb4c9, c.x, 1.05, c.z);
-  }
-  for (const [x, z] of [[-8.4, 16], [8.6, 34], [-8.4, 52], [8.6, 74], [-8.4, 96], [8.6, 124], [-8.4, 148]]){
+  for (const p of PROPS) addHouse(p);
+  addSolid(-16.2, 205, -13.4, 209.6);
+  box(2.8, 2.3, 4.4, 0x8a6248, -14.8, 1.15, 207.3);
+  box(3.1, 0.28, 4.7, 0x4a3428, -14.8, 2.4, 207.3);
+  plane(7.2, 2.6, signTex('H STREET ENDS', 'TURN AROUND · 3109 IS SOUTH', '#14202c', '#e4b15a'), 9.2, 2.5, 198, Math.PI);
+  for (const def of CAR_DEFS) spawnCar(def);
+  for (const [x, z] of [[-8.6, 16], [8.8, 34], [-8.6, 52], [8.8, 74], [-8.6, 96], [8.8, 124], [-8.6, 156], [8.8, 178], [-22, 172], [36, 160], [12, 208]]){
     box(0.35, 2.4, 0.35, 0x4a3428, x, 1.2, z);
     box(2.4, 1.8, 2.4, 0x2d6a3c, x, 3.0, z);
   }
-  const lampSpots = [[7.2, 8], [-7.2, 30], [-7.2, 55], [7.2, 78], [7.2, 100], [-7.2, 120], [7.2, 142]];
+  const lampSpots = [[7.2, 8], [-7.2, 30], [-7.2, 55], [7.2, 78], [7.2, 100], [-7.2, 120], [7.2, 156], [-7.2, 184], [7.2, 204], [-40, 144], [40, 152]];
   const lamps = [];
   for (const [x, z] of lampSpots){
     box(0.18, 4.4, 0.18, 0x2a2e33, x, 2.2, z);
@@ -692,6 +965,11 @@ function hurt(n){
 }
 function die(){
   if (player.down) return;
+  if (player.car){
+    player.car.occupied = null;
+    player.car.speed = 0;
+    player.car = null;
+  }
   player.down = true;
   player.hp = 0;
   S.deaths += 1;
@@ -731,8 +1009,8 @@ function tickZombies(dt){
       if (sd < 0.75 && sd > 0.001){ z.x += sx / sd * 0.6 * dt; z.z += sz / sd * 0.6 * dt; }
     }
     if (hits(z.x, z.z, 0.38)){
-      z.x = clamp(z.x, -6, 6);
-      if (hits(z.x, z.z, 0.38)) z.z += 0.4;
+      z.x += z.x >= 0 ? 0.8 : -0.8;
+      if (hits(z.x, z.z, 0.38)) z.z += 0.5;
     }
     if (!safe && d < 1.28 && z.atk <= 0 && z.stag <= 0){
       z.atk = 0.7;
@@ -755,7 +1033,7 @@ function tickZombies(dt){
       const alive = pool.filter(z => !z.dead).length;
       if (alive < Math.min(14, 7 + S.month)){
         const dir = Math.random() < 0.65 ? -1 : 1;
-        makeZombie(rand(-1.5, 1.5), clamp(player.z + dir * rand(14, 22), 8, 152));
+        makeZombie(rand(-1.5, 1.5), clamp(player.z + dir * rand(14, 22), 8, 210));
       }
     }
   }
@@ -765,6 +1043,7 @@ function tickZombies(dt){
 function resetProps(){
   for (const p of PROPS){
     p.occ = p.baseOcc; p.happy = p.baseHappy; p.rent = p.baseRent; p.resident = p.baseResident;
+    p.managed = false;
   }
 }
 function nextQ(){ const i = qCursor % QUESTIONS.length; qCursor += 1; return i; }
@@ -775,6 +1054,7 @@ function labelFor(t){
     case 'repair': return 'Repair · ' + p.addr;
     case 'lease': return 'Lease question · ' + p.addr;
     case 'vacancy': return 'Fill vacancy · ' + p.addr;
+    case 'sale': return 'Owner meeting · ' + p.addr;
     default: return assertNever(t.type);
   }
 }
@@ -798,22 +1078,45 @@ function buildTasks(){
   if (rep) S.tasks.push({type:'repair', propId:rep.id, done:false});
   if (v) S.tasks.push({type:'vacancy', propId:v.id, done:false});
   if (lease) S.tasks.push({type:'lease', propId:lease.id, done:false, q:nextQ()});
+  const owner = PROPS.find(p => p.owner && !p.managed);
+  if (owner) S.tasks.push({type:'sale', propId:owner.id, done:false, step:0, trust:1});
   S.tasks.sort((a, b) => propById(a.propId).z - propById(b.propId).z);
 }
 function resolveMoveOuts(){
   for (const p of PROPS){
-    if (!p.occ || p.happy >= 30) continue;
+    if (!p.occ || p.owner || p.happy >= 30) continue;
     const name = p.resident || 'The resident';
     p.occ = false; p.resident = null; p.happy = 0;
     toast(name + ' left ' + p.addr + '.');
   }
+  refreshAvatars();
 }
-function hidePanel(){ S.panel = null; el.panel.classList.add('hidden'); }
+function hidePanel(){ S.panel = null; el.panel.classList.add('hidden'); el.pface.classList.add('hidden'); }
+function drawFace(name){
+  const c = el.pface;
+  const g = c.getContext('2d');
+  const h = hashStr(name || 'Resident');
+  g.fillStyle = '#d9cbb8';
+  g.fillRect(0, 0, 72, 88);
+  g.fillStyle = ['#6b422c', '#3a2a22', '#c4a06a', '#2a2428', '#8a4030'][h % 5];
+  g.fillRect(8, 8, 56, 26);
+  g.fillStyle = ['#e0b090', '#c48a62', '#8d5a3c', '#f0c8a8'][h % 4];
+  g.fillRect(16, 26, 40, 36);
+  g.fillStyle = '#1c1915';
+  g.fillRect(26, 40, 5, 5);
+  g.fillRect(42, 40, 5, 5);
+  g.fillRect(32, 54, 10, 3);
+  g.fillStyle = ['#9a3412', '#1c3a5a', '#2a4a32', '#243044'][h % 4];
+  g.fillRect(18, 64, 36, 20);
+  c.classList.remove('hidden');
+}
 function openPanel(spec){
   S.panel = spec;
   el.panel.classList.remove('hidden');
   el.ptitle.textContent = spec.title;
   el.pbody.textContent = spec.body;
+  if (spec.face) drawFace(spec.face);
+  else el.pface.classList.add('hidden');
   el.pchoices.replaceChildren();
   spec.choices.forEach((c, i) => {
     const b = document.createElement('button');
@@ -830,6 +1133,7 @@ function choose(i){
   const fn = spec.choices[i].apply;
   hidePanel();
   fn();
+  refreshAvatars();
   maybeOffer();
 }
 function dismissPanel(){
@@ -848,7 +1152,7 @@ function maybeOffer(){
   const pay = p.occ ? 1800 : 2400;
   openPanel({
     title: p.occ ? 'Ferndale renewal' : 'Ferndale is waiting',
-    body: p.addr + ' is ' + meters + 'm out. Sign before dusk and the desk clears ' + money(pay) + '. Reading this does not stop the clock. From the office this is a sprint, not a meeting. Still outside when the day ends, and the street is not yours.',
+    body: p.addr + ' is at the end of H Street, ' + meters + 'm out. Sign before dusk and the desk clears ' + money(pay) + '. The clock keeps running. The company car out front is how you get there and still get back inside 3109.',
     choices:[
       {label:'Take it · ' + money(pay), apply(){ armUrgent(pay); }},
       {label:'Stay in. Let it ring.', apply(){ toast('You let Ferndale ring out.'); }},
@@ -883,6 +1187,7 @@ function fernPanel(){
   const p = propById('fern');
   const renew = p.occ;
   return {
+    face: renew ? (p.resident || 'Resident') : 'Pell family',
     title: renew ? 'Renew 612 Main' : 'Sign 612 Main',
     body: renew
       ? 'The Pell renewal is clean and the rent holds. Cutting it fills nothing you do not already have. Refusing means the long run home was for the air.'
@@ -924,6 +1229,7 @@ function leasePanel(t){
   const p = propById(t.propId);
   const q = QUESTIONS[t.q](p);
   return {
+    face: p.resident || 'Resident',
     title: q.title + ' · ' + p.addr,
     body: q.body,
     choices: q.choices.map(c => ({
@@ -939,6 +1245,99 @@ function leasePanel(t){
     })),
   };
 }
+function saleBeats(p, trust){
+  const heard = trust >= 2;
+  return [
+    {
+      title:'Owner visit · 1 of 4',
+      body:`${p.resident} still manages ${p.addr} herself. The calls come to her phone. She will give you one conversation, not a brochure.`,
+      choices:[
+        {label:'Ask what she is tired of doing herself.', trust:1, note:'She names the midnight calls and the empty unit.'},
+        {label:'Lead with what Rentor charges.', trust:-1, note:'The fee landed before the reason.'},
+        {label:'Tell her the building will not need her anymore.', trust:-1, note:'She did not like being dismissed.'},
+      ],
+    },
+    {
+      title:'What she carries · 2 of 4',
+      body: heard
+        ? `A unit at ${p.addr} sat empty for six weeks, and residents call after ten. She sleeps with the phone on.`
+        : `She is polite and brief. ${p.addr} is hers, and she is not sure you were listening.`,
+      choices:[
+        {label:'Say it back. Empty unit, after-hours calls, those leave her phone.', trust:1, note:'She nods. That is the work.'},
+        {label:'Skip ahead to a percentage.', trust:-1, note:'You priced a problem you had not named.'},
+        {label:'Say the residents are the real problem.', trust:-1, note:'She stopped offering details.'},
+      ],
+    },
+    {
+      title:'The agreement · 3 of 4',
+      body:`Rentor would collect the rent, fill the empty unit, and send the repairs. She keeps the building. The fee is a share of rent collected, in writing, from the desk at 3109.`,
+      choices:[
+        {label:'Fee on rent collected. She can leave with written notice.', trust:1, note:'The offer is a contract, not a promise of magic.'},
+        {label:'Guarantee every unit stays full.', trust:-1, note:'She has heard a guarantee before.'},
+        {label:'Waive the fee for a year so she signs today.', trust:0, note:'A free year is a discount, not a plan.'},
+      ],
+    },
+    {
+      title:'The last question · 4 of 4',
+      body:`She asks what happens when someone does not pay, and who approves a repair. ${heard ? 'She is still with you.' : 'The room is thin.'}`,
+      choices:[
+        {label:'Written notice, no lockout. She approves repairs over $400.', close:'sign'},
+        {label:'Cut the fee in half and skip the repair cap.', close:'discount'},
+        {label:'Say you will handle nonpayment however it takes.', close:'walk'},
+      ],
+    },
+  ];
+}
+function finishSale(t, kind){
+  const p = propById(t.propId);
+  t.done = true;
+  switch (kind){
+    case 'sign':
+      if (t.trust >= 2){
+        p.managed = true;
+        earn(1100);
+        S.signed += 1;
+        S.correct += 1;
+        toast(p.resident + ' signed the management agreement. Setup fee ' + money(1100) + '.');
+      } else {
+        S.wrong += 1;
+        toast(p.resident + ' wants another month. The meeting never earned the building.');
+      }
+      break;
+    case 'discount':
+      p.managed = true;
+      earn(400);
+      S.signed += 1;
+      S.wrong += 1;
+      toast('She signed a cheap agreement. ' + money(400) + '. The fee will be felt later.');
+      break;
+    case 'walk':
+      S.wrong += 1;
+      toast(p.resident + ' kept ' + p.addr + '. It stays off the book.');
+      break;
+    default: assertNever(kind);
+  }
+}
+function applyPitch(t, choice){
+  t.trust = clamp(t.trust + (choice.trust || 0), 0, 4);
+  if (choice.close){
+    finishSale(t, choice.close);
+    return;
+  }
+  t.step += 1;
+  toast(choice.note);
+  openPanel(salePanel(t));
+}
+function salePanel(t){
+  const p = propById(t.propId);
+  const beat = saleBeats(p, t.trust)[t.step];
+  return {
+    face: p.resident,
+    title: beat.title + ' · ' + p.addr,
+    body: beat.body,
+    choices: beat.choices.map(c => ({label:c.label, apply(){ applyPitch(t, c); }})),
+  };
+}
 function doTask(t){
   const p = propById(t.propId);
   switch (t.type){
@@ -951,6 +1350,7 @@ function doTask(t){
       break;
     case 'repair':
       openPanel({
+        face: p.resident || 'Resident',
         title:'Repair · ' + p.addr,
         body:'The bath fan died and the ceiling is spotting. Cheap work stays on the books. The real fix costs more and keeps the resident. Waiting makes the stain the next conversation.',
         choices:[
@@ -962,6 +1362,7 @@ function doTask(t){
       break;
     case 'vacancy':
       openPanel({
+        face: 'Applicant',
         title:'Vacancy · ' + p.addr,
         body:'Three applications. One is complete, one needs a discount to start Friday, and one is an envelope with no history.',
         choices:[
@@ -974,11 +1375,14 @@ function doTask(t){
     case 'lease':
       openPanel(leasePanel(t));
       break;
+    case 'sale':
+      openPanel(salePanel(t));
+      break;
     default: assertNever(t.type);
   }
 }
 function doDesk(){
-  if (S.doors){ toast('Henderson and 5th are already on the route.'); return; }
+  if (S.doors) return;
   openPanel({
     title:"Henry's desk",
     body:'North of Broadway the listings are dark: 908 Henderson and 44 5th stay off the morning route until the desk pays to open them. $1,500. Ferndale is not part of this. That call comes on its own.',
@@ -1003,8 +1407,32 @@ function targets(){
     if (S.urgent && !S.urgent.done){
       const s = urgentSpot();
       out.push({x:s.x, z:s.z, label:s.label, rank:-1, act(){ doUrgent(); }});
+    } else if (!S.offered){
+      const fern = propById('fern');
+      out.push({x:fern.door.x, z:fern.door.z, label:'Ferndale · street ends here', rank:2, act(){
+        toast('H Street ends here. Turn around. Be inside 3109 before dark.');
+      }});
     }
-    out.push({x:0, z:-4.3, label:S.doors ? 'Desk · listings are open' : 'Desk · north listings $1,500', rank:1, act(){ doDesk(); }});
+    if (!S.doors) out.push({x:0, z:-4.3, label:'Desk · north listings $1,500', rank:1, act(){ doDesk(); }});
+    for (const p of PROPS){
+      if (!insideHouse(p, player.x, player.z)) continue;
+      const task = S.tasks.find(t => !t.done && t.propId === p.id);
+      if (p.occ && p.resident && p.tenant){
+        out.push({
+          x:p.tenant.x, z:p.tenant.z,
+          label: task ? labelFor(task) : ('Talk · ' + p.resident),
+          rank: task ? 0 : 1,
+          act(){
+            if (task) doTask(task);
+            else toast(p.resident + (p.hoard ? ' is home. The rooms are packed in.' : ' is home. The rooms look ordinary.'));
+          },
+        });
+      }
+      for (const ck of p.checks || []){
+        if (p.seen[ck.id]) continue;
+        out.push({x:ck.x, z:ck.z, label:ck.label, rank:1, act(){ p.seen[ck.id] = true; toast(ck.note); }});
+      }
+    }
   }
   if (S.phase === 'night' && !player.down){
     for (const pk of PICKUPS){
@@ -1020,10 +1448,45 @@ function targets(){
   }
   return best;
 }
+function nearestCar(maxD){
+  let best = null, bestD = maxD;
+  for (const c of CARS){
+    if (c.occupied && c.occupied !== 'you') continue;
+    const d = Math.hypot(c.x - player.x, c.z - player.z);
+    if (d < bestD){ best = c; bestD = d; }
+  }
+  return best;
+}
+function enterCar(c){
+  if (!c || (c.occupied && c.occupied !== 'you')) return;
+  if (player.car) return;
+  if (c.traffic){ c.traffic = false; toast('You took the car.'); }
+  else toast(c.id === 'company' ? 'Company car.' : 'In the car.');
+  c.occupied = 'you';
+  c.speed = 0;
+  player.car = c;
+  player.x = c.x;
+  player.z = c.z;
+}
+function exitCar(){
+  const c = player.car;
+  if (!c) return;
+  const rx = Math.cos(c.yaw), rz = -Math.sin(c.yaw);
+  let sx = c.x + rx * 2.3, sz = c.z + rz * 2.3;
+  if (hits(sx, sz, 0.32, c)){ sx = c.x - rx * 2.3; sz = c.z - rz * 2.3; }
+  if (hits(sx, sz, 0.32, c)){ toast('Too tight to step out.'); return; }
+  player.x = sx; player.z = sz;
+  c.occupied = null;
+  c.speed = 0;
+  player.car = null;
+}
 function interact(){
   if (S.mode !== 'play' || S.panel || player.down) return;
+  if (player.car){ exitCar(); return; }
   const t = targets();
-  if (t) t.act();
+  if (t){ t.act(); return; }
+  const c = nearestCar(3);
+  if (c) enterCar(c);
 }
 function failOpenTasks(){
   for (const t of S.tasks){
@@ -1034,6 +1497,7 @@ function failOpenTasks(){
       case 'repair': bumpHappy(p, -25); toast('No repair at ' + p.addr + '.'); break;
       case 'lease': bumpHappy(p, -8); toast('No answer at ' + p.addr + '.'); break;
       case 'vacancy': toast(p.addr + ' stayed empty.'); break;
+      case 'sale': toast('No signature at ' + p.addr + '. The owner kept the building.'); break;
       default: assertNever(t.type);
     }
     t.done = true;
@@ -1043,7 +1507,7 @@ function failOpenTasks(){
     toast('The Ferndale signing expired.');
   }
 }
-function homePoint(){ return {x:0, z:3.2, label:'Office'}; }
+function homePoint(){ return {x:0, z:3.2, label:'Office · get inside before dark'}; }
 function objectivePoint(){
   if (player.down) return null;
   if (S.phase === 'night') return inOffice() ? null : homePoint();
@@ -1051,8 +1515,6 @@ function objectivePoint(){
     const s = urgentSpot();
     return {x:s.x, z:s.z, label:s.label};
   }
-  if (S.urgent && S.urgent.done && !inOffice()) return homePoint();
-  if (!inOffice() && S.left < DUSK_WARN) return homePoint();
   let best = null;
   for (const t of S.tasks){
     if (t.done) continue;
@@ -1060,7 +1522,26 @@ function objectivePoint(){
     const d = Math.hypot(p.door.x - player.x, p.door.z - player.z);
     if (!best || d < best.d) best = {d, x:p.door.x, z:p.door.z, label:labelFor(t)};
   }
-  return best;
+  if (best) return best;
+  if (!inOffice()) return homePoint();
+  return null;
+}
+function goalLine(){
+  if (player.down) return 'Down until dawn. You wake at the desk.';
+  if (net.role === 'client' && (!net.latest || !net.latest.playing)) return 'Waiting for the host to open the day.';
+  if (S.phase === 'night') return inOffice() ? 'Stay inside 3109 until dawn.' : 'Get inside 3109. The office is south.';
+  if (S.urgent && !S.urgent.done) return urgentSpot().label + '. Then get back inside 3109 before dark.';
+  const open = S.tasks.some(t => !t.done);
+  if (open){
+    const g = objectivePoint();
+    return g ? g.label : 'Work the list, then get inside before dark.';
+  }
+  if (inOffice()){
+    if (!S.offered) return 'You are inside. A late Ferndale call can still ring. Drive back before dark if you take it.';
+    return 'You are inside 3109. Stay until the day closes.';
+  }
+  if (player.z > 175) return 'H Street ends here. Turn around. Be inside 3109 before dark.';
+  return 'Stops are done. Turn around. Be inside 3109 before dark.';
 }
 
 function beginDay(){
@@ -1075,6 +1556,7 @@ function beginDay(){
   player.reloadT = 0;
   player.fireCd = 0;
   clearZombies();
+  for (const p of PROPS) p.seen = {};
   resolveMoveOuts();
   buildTasks();
   toast(MONTHS[S.month] + '. The street is quiet. Work the route, then get inside.');
@@ -1122,6 +1604,7 @@ function yearEnd(){
     ['Rents collected', String(S.collected)],
     ['Repairs made', String(S.repairs)],
     ['Vacancies filled', String(S.filled)],
+    ['Owners signed', String(S.signed)],
     ['Sound calls', String(S.correct)],
     ['Costly calls', String(S.wrong)],
     ['Nights in before dusk', String(S.homeNights)],
@@ -1137,14 +1620,23 @@ function yearEnd(){
     tr.append(a, b); el.yearstats.append(tr);
   }
   el.yearformula.textContent = 'Score is cash plus 1,000 for each occupied unit, plus 500 for each night you were inside before dusk, minus 800 for each death.';
-  el.hud.classList.add('hidden');
-  el.year.classList.remove('hidden');
-  el.title.classList.add('hidden');
+  setOverlays();
 }
 function setOverlays(){
-  el.hud.classList.toggle('hidden', S.mode !== 'play');
+  const play = S.mode === 'play';
+  el.hud.classList.toggle('hidden', !play);
   el.title.classList.toggle('hidden', S.mode !== 'title');
+  el.guide.classList.toggle('hidden', S.mode !== 'guide');
   el.year.classList.toggle('hidden', S.mode !== 'year');
+  if (!play) document.body.classList.remove('afterdark');
+}
+function openGuide(){
+  S.mode = 'guide';
+  setOverlays();
+  const tiny = el.guide.querySelector('.tiny');
+  if (!tiny) return;
+  if (net.role === 'host' && net.code) tiny.textContent = 'Room ' + net.code + '. The clock starts when the office opens and keeps running while you read a note. Up to 24 people can share the street.';
+  else if (net.role === 'client') tiny.textContent = 'You are on a shared street. The host owns the clock. Up to 24 people.';
 }
 function fresh(){
   S.mode = 'play';
@@ -1152,7 +1644,7 @@ function fresh(){
   S.cash = 4200;
   S.doors = false;
   S.homeNights = 0; S.caught = 0; S.deaths = 0;
-  S.collected = 0; S.repairs = 0; S.filled = 0; S.correct = 0; S.wrong = 0;
+  S.collected = 0; S.repairs = 0; S.filled = 0; S.correct = 0; S.wrong = 0; S.signed = 0;
   S.rentIn = 0; S.spent = 0;
   qCursor = 0;
   player.x = 0; player.z = -1; player.yaw = Math.PI; player.pitch = 0;
@@ -1162,6 +1654,7 @@ function fresh(){
   player.fireCd = 0; player.reloadT = 0; player.shoveT = 0;
   el.feed.replaceChildren();
   resetProps();
+  resetCars();
   setOverlays();
   beginDay();
 }
@@ -1191,6 +1684,70 @@ function clockParts(){
   const tod = (S.phase === 'day' ? 'DAY' : 'NIGHT') + ' · ' + (MONTHS[S.month] || '') + ' · ' + h12 + ':' + String(mm).padStart(2, '0') + ' ' + ap;
   return {cd, tod};
 }
+function drawMap(){
+  const c = el.map;
+  if (!c) return;
+  const g = c.getContext('2d');
+  const w = c.width, h = c.height;
+  const X0 = -80, X1 = 80, Z0 = -14, Z1 = 224;
+  const pt = (x, z) => [(x - X0) / (X1 - X0) * w, h - (z - Z0) / (Z1 - Z0) * h];
+  g.clearRect(0, 0, w, h);
+  g.fillStyle = '#14181f';
+  g.fillRect(0, 0, w, h);
+  g.strokeStyle = '#4a4e57';
+  g.lineWidth = 14;
+  g.lineCap = 'butt';
+  g.beginPath();
+  let a = pt(0, 0), b = pt(0, 200);
+  g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]);
+  a = pt(-76, 148); b = pt(76, 148);
+  g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]);
+  g.stroke();
+  const cul = pt(0, 200);
+  g.beginPath();
+  g.arc(cul[0], cul[1], (16 / (X1 - X0)) * w, 0, Math.PI * 2);
+  g.stroke();
+  const office = pt(0, -2);
+  g.fillStyle = '#e4b15a';
+  g.fillRect(office[0] - 6, office[1] - 6, 12, 12);
+  for (const p of PROPS){
+    const q = pt(p.x, p.z);
+    const open = S.tasks.some(t => !t.done && t.propId === p.id);
+    g.fillStyle = open ? '#ffd56a' : (p.managed ? '#9a3412' : '#d9cbb8');
+    const s = p.owner ? 8 : 6;
+    g.fillRect(q[0] - s / 2, q[1] - s / 2, s, s);
+  }
+  const goal = objectivePoint();
+  if (goal){
+    const q = pt(goal.x, goal.z);
+    g.strokeStyle = '#ffd56a';
+    g.lineWidth = 2;
+    g.beginPath();
+    g.arc(q[0], q[1], 11, 0, Math.PI * 2);
+    g.stroke();
+  }
+  g.fillStyle = '#9ec7de';
+  for (const r of remotes.values()){
+    if (!r.mesh.visible) continue;
+    const q = pt(r.x, r.z);
+    g.beginPath();
+    g.arc(q[0], q[1], 4, 0, Math.PI * 2);
+    g.fill();
+  }
+  const yaw = player.car ? player.car.yaw : player.yaw;
+  const q = pt(player.x, player.z);
+  g.save();
+  g.translate(q[0], q[1]);
+  g.rotate(Math.atan2(-Math.sin(yaw), -Math.cos(yaw)));
+  g.fillStyle = '#f4efe6';
+  g.beginPath();
+  g.moveTo(0, -9);
+  g.lineTo(6, 7);
+  g.lineTo(-6, 7);
+  g.closePath();
+  g.fill();
+  g.restore();
+}
 function updateHud(){
   const c = clockParts();
   el.count.textContent = c.cd;
@@ -1218,11 +1775,16 @@ function updateHud(){
       el.acount.textContent = w.mag + ' / ' + res;
     }
   }
-  if (S.phase === 'day' && !S.offered) el.hint.textContent = 'A Ferndale signing calls late. Be near the north end, or be ready to refuse it.';
-  else if (S.urgent && !S.urgent.done) el.hint.textContent = 'Sign, then sprint south. Only the office is safe at dusk.';
-  else if (night && !inOffice() && !player.down) el.hint.textContent = player.slot ? 'Get to 3109. Do not stop on the corners unless you need the gun.' : 'Guns are on the corners. The office is south.';
-  else if (night && inOffice()) el.hint.textContent = 'Safe until dawn. Step outside and the street takes you.';
-  else el.hint.textContent = 'Work south to north, then decide if Ferndale is worth the run.';
+  const line = goalLine();
+  el.goal.textContent = line;
+  el.goal.classList.toggle('hidden', !line);
+  if (S.phase === 'day' && !S.offered) el.hint.textContent = 'A Ferndale signing calls late. The list comes first. Be inside 3109 before dark.';
+  else if (S.urgent && !S.urgent.done) el.hint.textContent = 'The cottage is at the end of H Street. Take a car, sign, and get back inside.';
+  else if (night && !inOffice() && !player.down) el.hint.textContent = player.slot ? 'Get to 3109. The office is south.' : 'The office is south. Corners hold what you need after dark.';
+  else if (night && inOffice()) el.hint.textContent = 'Safe until dawn. Stay inside.';
+  else el.hint.textContent = 'Work the list from south to north. The gold line is the next stop.';
+  document.body.classList.toggle('afterdark', night && !player.down);
+  el.speed.textContent = player.car ? ('DRIVING ' + Math.round(Math.abs(player.car.speed))) : '';
   el.obj.replaceChildren();
   if (S.urgent && !S.urgent.done){
     const s = urgentSpot();
@@ -1262,14 +1824,23 @@ function updateHud(){
     arr.style.transform = 'rotate(' + ang + 'rad)';
     el.compass.append(span, arr);
   }
-  const near = targets();
-  el.prompt.classList.toggle('hidden', !near);
-  if (near) el.prompt.textContent = (TOUCH ? 'USE' : 'E') + '  ' + near.label;
+  const near = player.car ? null : targets();
+  const ride = player.car ? null : nearestCar(3);
+  const prompt = player.car
+    ? ((TOUCH ? 'USE' : 'E') + '  Exit car')
+    : near
+      ? ((TOUCH ? 'USE' : 'E') + '  ' + near.label)
+      : ride
+        ? ((TOUCH ? 'USE' : 'E') + '  ' + (ride.traffic ? 'Take car' : ride.label))
+        : '';
+  el.prompt.classList.toggle('hidden', !prompt);
+  if (prompt) el.prompt.textContent = prompt;
   if (S.panel) el.panelclock.textContent = c.cd;
   el.dmg.style.opacity = String(S.hurt);
   for (let i = 0; i < PICKUPS.length; i++) pickupMeshes[i].visible = night;
   fists.visible = night && !curW();
   for (const type of ORDER) vmGuns[type].visible = night && player.slot === type && !player.down;
+  drawMap();
 }
 function skyColor(hex){ return new THREE.Color(hex); }
 const COL_DAY = skyColor(0xc5dff5), COL_DUSK = skyColor(0xe7a06a), COL_NIGHT = skyColor(0x070b14), COL_DAWN = skyColor(0xf0b48a);
@@ -1281,15 +1852,15 @@ function applySky(){
     case 'day': {
       const u = S.left < DUSK_WARN ? 1 - S.left / DUSK_WARN : 0;
       col = mixSky(COL_DAY, COL_DUSK, u);
-      dens = lerp(0.011, 0.02, u);
+      dens = lerp(0.0048, 0.012, u);
       nf = u * 0.25;
       break;
     }
     case 'night': {
       const age = NIGHT_LEN - S.left;
-      if (age < 8){ col = mixSky(COL_DUSK, COL_NIGHT, age / 8); dens = lerp(0.02, 0.026, age / 8); nf = age / 8; }
-      else if (S.left < 18){ col = mixSky(COL_NIGHT, COL_DAWN, 1 - S.left / 18); dens = lerp(0.026, 0.018, 1 - S.left / 18); nf = S.left / 18; }
-      else { col = COL_NIGHT; dens = 0.026; nf = 1; }
+      if (age < 8){ col = mixSky(COL_DUSK, COL_NIGHT, age / 8); dens = lerp(0.012, 0.016, age / 8); nf = age / 8; }
+      else if (S.left < 18){ col = mixSky(COL_NIGHT, COL_DAWN, 1 - S.left / 18); dens = lerp(0.016, 0.01, 1 - S.left / 18); nf = S.left / 18; }
+      else { col = COL_NIGHT; dens = 0.016; nf = 1; }
       break;
     }
     default: assertNever(S.phase);
@@ -1301,6 +1872,77 @@ function applySky(){
   sun.intensity = lerp(1.25, 0.16, nf);
   officeLight.intensity = lerp(0.7, 2.4, nf);
   for (const L of lamps) L.intensity = nf * 1.5;
+}
+function driveCar(dt){
+  const c = player.car;
+  if (!c) return;
+  let throttle = 0;
+  if (keys.KeyW || keys.ArrowUp || stickY > 0.2) throttle += 1;
+  if (keys.KeyS || keys.ArrowDown || stickY < -0.2) throttle -= 0.55;
+  const boost = keys.ShiftLeft || keys.ShiftRight || touchRun;
+  const max = boost ? 24 : 16;
+  const target = throttle * max;
+  c.speed = lerp(c.speed, target, 1 - Math.exp(-dt * (throttle === 0 ? 3.4 : 2.5)));
+  let steer = 0;
+  if (keys.KeyA || keys.ArrowLeft || stickX < -0.2) steer += 1;
+  if (keys.KeyD || keys.ArrowRight || stickX > 0.2) steer -= 1;
+  if (Math.abs(c.speed) > 0.2){
+    const dir = c.speed < -0.3 ? -1 : 1;
+    c.yaw -= steer * dt * 1.45 * dir * clamp(Math.abs(c.speed) / 8, 0.35, 1);
+  }
+  const fx = -Math.sin(c.yaw), fz = -Math.cos(c.yaw);
+  const nx = c.x + fx * c.speed * dt;
+  const nz = c.z + fz * c.speed * dt;
+  if (hits(nx, nz, 0.9, c)) c.speed *= -0.35;
+  else { c.x = nx; c.z = nz; }
+  c.mesh.position.set(c.x, 0, c.z);
+  c.mesh.rotation.y = -c.yaw;
+  player.x = c.x;
+  player.z = c.z;
+}
+function playerAhead(c){
+  if (player.car) return false;
+  const fx = -Math.sin(c.yaw), fz = -Math.cos(c.yaw);
+  const dx = player.x - c.x, dz = player.z - c.z;
+  const along = dx * fx + dz * fz;
+  const side = Math.abs(dx * fz - dz * fx);
+  return along > 0 && along < 9 && side < 1.8;
+}
+function tickTraffic(dt){
+  if (net.role === 'client') return;
+  for (const c of CARS){
+    if (!c.traffic || c.occupied) continue;
+    if (playerAhead(c)) continue;
+    const sp = c.cruise || 8;
+    const fx = -Math.sin(c.yaw), fz = -Math.cos(c.yaw);
+    const nx = c.x + fx * sp * dt;
+    const nz = c.z + fz * sp * dt;
+    let blocked = hits(nx, nz, 0.9, true);
+    if (!blocked){
+      for (const o of CARS){
+        if (o === c) continue;
+        const dx = o.x - c.x, dz = o.z - c.z;
+        const along = dx * fx + dz * fz;
+        const side = Math.abs(dx * fz - dz * fx);
+        if (along > 0 && along < 7 && side < 1.7) blocked = true;
+      }
+    }
+    if (!blocked){ c.x = nx; c.z = nz; }
+    if (!player.car && carBlocks(c, player.x, player.z, 0.3)){
+      const rx = Math.cos(c.yaw), rz = -Math.sin(c.yaw);
+      const sx = player.x + rx * 0.4, sz = player.z + rz * 0.4;
+      if (!hits(sx, sz, 0.32, true)){ player.x = sx; player.z = sz; }
+    }
+    switch (c.lane){
+      case 'north': if (c.z > 192) c.z = 14; break;
+      case 'south': if (c.z < 12) c.z = 188; break;
+      case 'east': if (c.x > 72) c.x = -72; break;
+      case 'west': if (c.x < -72) c.x = 72; break;
+      default: assertNever(c.lane);
+    }
+    c.mesh.position.set(c.x, 0, c.z);
+    c.mesh.rotation.y = -c.yaw;
+  }
 }
 function tickPlayer(dt){
   player.fireCd = Math.max(0, player.fireCd - dt);
@@ -1320,7 +1962,8 @@ function tickPlayer(dt){
     if (w && WEAP[w.type].auto) fire();
   }
   if ((mouseRight || touchShove) && player.shoveT <= 0) shove();
-  if (!S.panel && !player.down){
+  if (!S.panel && !player.down && player.car) driveCar(dt);
+  else if (!S.panel && !player.down){
     let ix = stickX, iz = stickY;
     if (keys.KeyW || keys.ArrowUp) iz += 1;
     if (keys.KeyS || keys.ArrowDown) iz -= 1;
@@ -1336,13 +1979,15 @@ function tickPlayer(dt){
       player.bob += dt * (sprint ? 11 : 8);
     }
   }
-  const bob = Math.sin(player.bob) * (player.down ? 0 : 0.035);
-  camera.position.set(player.x, (player.down ? 0.7 : 1.62) + bob, player.z);
+  const bob = Math.sin(player.bob) * (player.down || player.car ? 0 : 0.035);
+  const eye = player.down ? 0.7 : player.car ? 1.48 : 1.62;
+  camera.position.set(player.x, eye + bob, player.z);
   camera.rotation.set(player.down ? 0.5 : player.pitch, player.yaw, 0, 'YXZ');
   vm.position.y = -0.26 + Math.sin(player.bob * 2) * 0.01;
   vm.rotation.x = player.shoveT > 0.2 ? -0.8 : 0;
 }
 function tickClock(dt){
+  if (net.role === 'client') return;
   S.left -= dt;
   if (S.phase === 'day' && !S.offered && S.left <= urgentAt()){
     S.offered = true;
@@ -1357,13 +2002,247 @@ function tickClock(dt){
   }
 }
 function update(dt){
-  if (S.mode === 'title' || S.mode === 'year') return;
+  tickNet(dt);
+  if (S.mode === 'title' || S.mode === 'year' || S.mode === 'guide') return;
   tickClock(dt);
   if (S.mode !== 'play') return;
+  tickTraffic(dt);
   tickPlayer(dt);
   if (S.phase === 'night') tickZombies(dt);
   applySky();
   updateHud();
+}
+
+const MAX_PLAYERS = 24;
+const ICE = {iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
+const net = {
+  role:'solo', id:'local', name:'Walker', code:'',
+  peer:null, link:null, conns:[], poses:new Map(),
+  acc:0, silence:0, latest:null, warned:false,
+};
+const remotes = new Map();
+function cleanName(){
+  const raw = ($('pname').value || '').replace(/[^\w .'-]/g, '').trim().slice(0, 16);
+  return raw || 'Walker';
+}
+function makeCode(){
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for (let i = 0; i < 4; i++) s += alphabet[Math.floor(Math.random() * alphabet.length)];
+  return s;
+}
+function setRoomHint(s){ const n = $('roomhint'); if (n) n.textContent = s; }
+function ensureRemote(p){
+  let r = remotes.get(p.id);
+  if (!r){
+    const person = makePerson(SHIRT_COLORS[hashStr(p.name || p.id) % SHIRT_COLORS.length]);
+    paintName(person.sprite, p.name || 'Walker');
+    scene.add(person.mesh);
+    r = {id:p.id, mesh:person.mesh, sprite:person.sprite, x:p.x || 0, z:p.z || 0, tx:p.x || 0, tz:p.z || 0, tyaw:p.yaw || 0};
+    remotes.set(p.id, r);
+  }
+  return r;
+}
+function syncRemotes(people){
+  const seen = new Set();
+  for (const p of people || []){
+    if (!p || p.id === net.id) continue;
+    seen.add(p.id);
+    const r = ensureRemote(p);
+    r.tx = p.x; r.tz = p.z; r.tyaw = p.yaw || 0;
+    r.mesh.visible = true;
+    if (p.name) paintName(r.sprite, p.name);
+  }
+  for (const [id, r] of remotes){
+    if (!seen.has(id) && !String(id).startsWith('bot')) r.mesh.visible = false;
+  }
+}
+function tickRemotes(dt){
+  const k = 1 - Math.exp(-dt * 10);
+  for (const r of remotes.values()){
+    if (!r.mesh.visible) continue;
+    r.x = lerp(r.x, r.tx, k);
+    r.z = lerp(r.z, r.tz, k);
+    r.mesh.position.set(r.x, 0, r.z);
+    r.mesh.rotation.y = r.tyaw;
+  }
+}
+function myPose(){ return {id:net.id, name:net.name, x:player.x, z:player.z, yaw:player.yaw, pitch:player.pitch}; }
+function carSnap(){
+  return CARS.map(c => ({
+    id:c.id, x:c.x, z:c.z, yaw:c.yaw, traffic:c.traffic,
+    occupied:c.occupied === 'you' ? net.id : c.occupied,
+  }));
+}
+function applyCars(list){
+  if (!list) return;
+  for (const snap of list){
+    const c = CARS.find(q => q.id === snap.id);
+    if (!c || c.occupied === 'you') continue;
+    c.x = snap.x; c.z = snap.z; c.yaw = snap.yaw; c.traffic = !!snap.traffic;
+    c.occupied = snap.occupied === net.id ? 'you' : (snap.occupied || null);
+    c.mesh.position.set(c.x, 0, c.z);
+    c.mesh.rotation.y = -c.yaw;
+  }
+}
+function applyNetWorld(msg){
+  net.latest = msg;
+  net.silence = 0;
+  syncRemotes(msg.people);
+  applyCars(msg.cars);
+  if (S.mode !== 'play' || net.role !== 'client') return;
+  const prev = S.phase;
+  if (msg.phase !== prev){
+    if (msg.phase === 'night') beginNight();
+    else if (prev === 'night'){
+      S.month = msg.month;
+      if (S.month >= 12) yearEnd();
+      else beginDay();
+    }
+  }
+  S.left = msg.left;
+  if (typeof msg.month === 'number') S.month = msg.month;
+}
+function onData(conn, msg){
+  if (!msg || typeof msg.t !== 'string') return;
+  if (msg.t === 'hello'){
+    conn.send({t:'welcome', left:S.left, phase:S.phase, month:S.month, playing:S.mode === 'play'});
+    return;
+  }
+  if (msg.t === 'welcome'){
+    net.role = 'client';
+    setRoomHint('Joined. The host owns the clock. Up to 24 people.');
+    return;
+  }
+  if (msg.t === 'full'){
+    setRoomHint('That street is full (24). You can still work a solo route.');
+    toast('That street is full.');
+    net.role = 'solo';
+    return;
+  }
+  if (msg.t === 'pose'){
+    net.poses.set(conn.peer, {id:conn.peer, name:msg.name || 'Walker', x:msg.x, z:msg.z, yaw:msg.yaw, pitch:msg.pitch});
+    return;
+  }
+  if (msg.t === 'world') applyNetWorld(msg);
+}
+function dropConn(conn){
+  net.conns = net.conns.filter(c => c !== conn);
+  net.poses.delete(conn.peer);
+}
+function acceptConn(conn){
+  if (net.conns.length >= MAX_PLAYERS - 1){
+    const refuse = () => { try { conn.send({t:'full'}); conn.close(); } catch (err) { errors.push(String(err)); } };
+    if (conn.open) refuse();
+    else conn.on('open', refuse);
+    return;
+  }
+  net.conns.push(conn);
+  conn.on('data', data => onData(conn, data));
+  conn.on('close', () => dropConn(conn));
+}
+function sendWorld(){
+  const people = [myPose()];
+  for (const c of net.conns){
+    const p = net.poses.get(c.peer);
+    if (p) people.push(p);
+  }
+  const cars = carSnap();
+  for (const c of net.conns){
+    if (!c.open) continue;
+    c.send({
+      t:'world', left:S.left, phase:S.phase, month:S.month, playing:S.mode === 'play',
+      people:people.filter(p => p.id !== c.peer), cars,
+    });
+  }
+  syncRemotes(people.filter(p => p.id !== net.id));
+}
+function tickNet(dt){
+  tickRemotes(dt);
+  if (net.role === 'host'){
+    net.acc += dt;
+    if (net.acc >= 0.15){ net.acc = 0; sendWorld(); }
+    return;
+  }
+  if (net.role !== 'client') return;
+  net.silence += dt;
+  if (net.silence > 8 && S.mode === 'play' && !net.warned){
+    net.warned = true;
+    net.role = 'solo';
+    toast('Lost the street link. Your clock is local now.');
+  }
+  net.acc += dt;
+  if (net.acc >= 0.1 && net.link && net.link.open){
+    net.acc = 0;
+    net.link.send({t:'pose', name:net.name, x:player.x, z:player.z, yaw:player.yaw, pitch:player.pitch});
+  }
+}
+function startHost(){
+  net.name = cleanName();
+  if (!window.Peer){ setRoomHint('No street link in this browser. You can still work the route alone.'); return; }
+  const code = makeCode();
+  net.code = code;
+  net.role = 'host';
+  try {
+    net.peer = new window.Peer('rentor3109-' + code, {config:ICE});
+  } catch (err) {
+    errors.push(String(err));
+    net.role = 'solo';
+    setRoomHint('Could not open a room. Solo still works.');
+    return;
+  }
+  net.peer.on('open', id => { net.id = id; setRoomHint('Room ' + code + ' · you are the clock · up to 24.'); });
+  net.peer.on('connection', conn => acceptConn(conn));
+  net.peer.on('error', err => {
+    setRoomHint('Could not open a room. Solo still works.');
+    errors.push(String(err && err.type || err));
+    net.role = 'solo';
+  });
+}
+function startJoin(code){
+  const room = (code || '').trim().toUpperCase();
+  net.name = cleanName();
+  if (!window.Peer){ setRoomHint('No street link in this browser. You can still work the route alone.'); return; }
+  if (!/^[A-Z0-9]{4}$/.test(room)){ setRoomHint('Enter the four-character room code.'); return; }
+  net.role = 'client';
+  try {
+    net.peer = new window.Peer(undefined, {config:ICE});
+  } catch (err) {
+    errors.push(String(err));
+    net.role = 'solo';
+    setRoomHint('Could not join that room. Solo still works.');
+    return;
+  }
+  net.peer.on('open', id => {
+    net.id = id;
+    const conn = net.peer.connect('rentor3109-' + room, {reliable:true});
+    net.link = conn;
+    conn.on('open', () => conn.send({t:'hello', name:net.name}));
+    conn.on('data', data => onData(conn, data));
+    conn.on('error', () => { setRoomHint('Could not join that room. Solo still works.'); net.role = 'solo'; });
+  });
+  net.peer.on('error', err => {
+    setRoomHint('Could not join that room. Solo still works.');
+    errors.push(String(err && err.type || err));
+    net.role = 'solo';
+  });
+}
+function debugPeer(n){
+  const cap = Math.min(Math.max(0, n | 0), MAX_PLAYERS - 1);
+  for (const [id, r] of remotes){
+    if (String(id).startsWith('bot') && Number(String(id).slice(3)) >= cap) r.mesh.visible = false;
+  }
+  for (let i = 0; i < cap; i++){
+    const p = {id:'bot' + i, name:'Walker ' + (i + 1), x:-6 + (i % 8) * 1.6, z:12 + i * 3.2, yaw:0};
+    const r = ensureRemote(p);
+    r.tx = p.x; r.tz = p.z; r.tyaw = 0; r.x = p.x; r.z = p.z;
+    r.mesh.position.set(p.x, 0, p.z);
+    r.mesh.visible = true;
+    paintName(r.sprite, p.name);
+  }
+  let visible = 0;
+  for (const r of remotes.values()) if (r.mesh.visible) visible += 1;
+  return visible;
 }
 
 function snapshot(){
@@ -1372,7 +2251,8 @@ function snapshot(){
     mode:S.mode, phase:S.phase, left:S.left, month:S.month, monthName:MONTHS[S.month] || '',
     cash:S.cash, hp:player.hp, down:player.down, inOffice:inOffice(), doors:S.doors,
     homeNights:S.homeNights, caught:S.caught, deaths:S.deaths,
-    collected:S.collected, repairs:S.repairs, filled:S.filled, correct:S.correct, wrong:S.wrong,
+    collected:S.collected, repairs:S.repairs, filled:S.filled, signed:S.signed, correct:S.correct, wrong:S.wrong,
+    driving:!!player.car, carId:player.car ? player.car.id : '',
     panel:S.panel ? S.panel.title : '',
     urgent:S.urgent ? {step:S.urgent.step, done:!!S.urgent.done, payout:S.urgent.payout} : null,
     tasks:S.tasks.map(t => ({type:t.type, propId:t.propId, done:t.done})),
@@ -1400,9 +2280,9 @@ window.__rentor = {
   get player(){ return player; },
   get state(){ return snapshot(); },
   get props(){ return PROPS; },
-  errors, DAY_LEN, NIGHT_LEN, FAST,
+  errors, DAY_LEN, NIGHT_LEN, FAST, MAX:MAX_PLAYERS,
   urgentAt, start:fresh, setPhase, setTime(s){ S.left = s; },
-  teleport(x, z){ player.x = x; player.z = z; },
+  teleport(x, z){ player.x = x; player.z = z; if (player.car){ player.car.x = x; player.car.z = z; player.car.mesh.position.set(x, 0, z); } },
   interact, choose, simulate, fire, shove, pickup, cycleWeapon,
   setKey(code, down){ keys[code] = down; },
   clearZombies,
@@ -1410,8 +2290,22 @@ window.__rentor = {
   zombie(id){ const z = pool.find(q => q.id === id); return z ? {hp:z.hp, x:z.x, z:z.z, dead:z.dead, stag:z.stag} : null; },
   hits(x, z){ return hits(x, z, 0.32); },
   inOffice,
+  cars(){ return CARS.map(c => ({id:c.id, x:c.x, z:c.z, yaw:c.yaw, traffic:!!c.traffic, occupied:c.occupied, speed:c.speed})); },
+  enter(id){ const c = CARS.find(q => q.id === id); if (c) enterCar(c); },
+  exit(){ exitCar(); },
+  goal(){ return el.goal.textContent; },
+  clearTasks(){ for (const t of S.tasks) t.done = true; updateHud(); },
+  debugPeer,
+  inside(id){ const p = propById(id); return !!(p && insideHouse(p, player.x, player.z)); },
+  avatar(id){ const p = propById(id); return p ? {visible:!!(p.avatar && p.avatar.mesh.visible), name:p.resident || '', hoard:!!p.hoard} : null; },
+  block(id){ const p = propById(id); return p && p.block ? {x:p.block.x, z:p.block.z} : null; },
+  fernSpots(){ return {yard:{x:FERN_YARD.x, z:FERN_YARD.z}, garage:{x:FERN_GARAGE.x, z:FERN_GARAGE.z}}; },
 };
-$('playbtn').addEventListener('click', () => { fresh(); wantLock(); });
+$('playbtn').addEventListener('click', () => { openGuide(); });
+$('guidebtn').addEventListener('click', () => { fresh(); wantLock(); });
+$('hostbtn').addEventListener('click', startHost);
+$('joinbtn').addEventListener('click', () => $('joinbox').classList.remove('hidden'));
+$('joingo').addEventListener('click', () => startJoin($('joincode').value));
 $('againbtn').addEventListener('click', () => { fresh(); wantLock(); });
 renderer.domElement.addEventListener('click', () => { if (S.mode === 'play' && !S.panel) wantLock(); });
 renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
