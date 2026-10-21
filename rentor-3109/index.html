@@ -14,7 +14,7 @@ canvas{display:block}
 #clock.warn b{color:#ffb0a6}
 #clock.night{border-color:#7f96c4}
 #hint{position:absolute;top:168px;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:.4px;text-shadow:0 1px 2px #000;max-width:560px;text-align:center}
-#goal{position:absolute;top:112px;left:50%;transform:translateX(-50%);max-width:680px;text-align:center;font-size:18px;font-weight:700;letter-spacing:.2px;text-shadow:0 2px 8px #000;background:rgba(8,10,14,.55);border:1px solid rgba(228,177,90,.45);padding:6px 14px;border-radius:4px}
+#goal{position:absolute;top:108px;left:50%;transform:translateX(-50%);max-width:min(680px,92vw);text-align:center;font-size:17px;font-weight:700;letter-spacing:.2px;line-height:1.35;text-shadow:0 2px 8px #000;background:rgba(8,10,14,.72);border:1px solid rgba(228,177,90,.7);padding:8px 14px;border-radius:6px}
 #obj{position:absolute;top:16px;left:16px;max-width:320px;font-size:14px;line-height:1.45;text-shadow:0 1px 2px #000}
 #obj div{margin:0 0 4px}
 #obj .hot{color:#ffb15a}
@@ -41,13 +41,23 @@ canvas{display:block}
 #prompt{position:absolute;top:62%;left:50%;transform:translateX(-50%);background:rgba(8,10,14,.7);border:1px solid rgba(228,177,90,.5);padding:6px 14px;border-radius:3px;letter-spacing:.4px}
 #downmsg{position:absolute;top:38%;width:100%;text-align:center;font-size:28px;letter-spacing:2px;color:#ffb0a6;text-shadow:0 2px 8px #000}
 #dmg{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(120,0,0,.85));opacity:0}
-#panel{position:fixed;right:20px;top:132px;width:min(440px,calc(100vw - 32px));z-index:8;background:#f4efe6;color:#1c1915;border-radius:6px;padding:16px 16px 12px;box-shadow:0 16px 50px rgba(0,0,0,.45)}
+#talkdim{position:fixed;inset:0;z-index:7;background:rgba(6,8,12,.62);pointer-events:none}
+#panel{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(540px,calc(100vw - 24px));max-height:min(86vh,760px);overflow:auto;z-index:8;background:#f4efe6;color:#1c1915;border-radius:10px;padding:18px 20px 14px;box-shadow:0 24px 70px rgba(0,0,0,.55);text-align:center}
 #panel h3{margin:0 0 6px;font-size:18px;letter-spacing:.3px}
-#panelclock{float:right;font-variant-numeric:tabular-nums;color:#9a3412;font-weight:700}
-#pbody{margin:0 0 12px;line-height:1.45;font-size:15px}
+#panelclock{position:absolute;right:14px;top:12px;font-variant-numeric:tabular-nums;color:#9a3412;font-weight:700}
+#pspeaker{font-family:Palatino,Georgia,serif;font-size:26px;margin:2px 0 4px}
+#pyou{font-size:13px;letter-spacing:.2px;color:#5c5146;margin:0 0 6px}
+#pheard{margin:0 0 10px;font-family:Palatino,Georgia,serif;font-size:20px;line-height:1.35;color:#9a3412}
+#pbody{margin:0 0 12px;line-height:1.45;font-size:16px}
 #pchoices{display:flex;flex-direction:column;gap:8px}
-#pchoices button{font:inherit;text-align:left;padding:10px 12px;border-radius:4px;border:1px solid #c8bba6;background:#fffaf3;cursor:pointer}
-#pchoices button:hover{border-color:#9a3412}
+#pchoices button{font:inherit;text-align:center;padding:12px 14px;border-radius:6px;border:1px solid #c8bba6;background:#fffaf3;cursor:pointer;font-size:15px}
+#pchoices button:hover{border-color:#9a3412;background:#fff}
+#pkey{margin:10px 0 0;font-size:12px;letter-spacing:.4px;color:#6b5e52}
+#reply{position:fixed;left:50%;top:46%;transform:translate(-50%,-50%);width:min(480px,calc(100vw - 24px));z-index:8;background:#f4efe6;color:#1c1915;border-radius:10px;padding:18px 18px 16px;box-shadow:0 24px 70px rgba(0,0,0,.55);text-align:center;cursor:pointer}
+#rname{font-family:Palatino,Georgia,serif;font-size:26px;margin:2px 0 6px}
+#rline{margin:0;font-size:18px;line-height:1.4}
+#ryou{margin:0 0 6px;font-size:13px;color:#5c5146}
+#banner{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);z-index:5;max-width:min(560px,92vw);background:rgba(8,10,14,.88);border:2px solid #e4b15a;color:#f4efe6;border-radius:8px;padding:14px 18px;text-align:center;font-size:22px;font-weight:700;letter-spacing:.2px;line-height:1.3}
 .screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,rgba(12,16,24,.35),rgba(6,8,12,.88));z-index:10}
 .card{max-width:760px;padding:28px 34px;text-align:center}
 .kicker{letter-spacing:4px;font-size:12px;color:#e4b15a}
@@ -87,9 +97,10 @@ body.afterdark #tbtns button.nightonly{display:inline-block}
 .cooprow{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
 .cooprow input{font:inherit;padding:10px 12px;border-radius:3px;border:1px solid #444;background:#111;color:#fff;width:140px}
 button.alt{background:#243044}
-#pface{width:72px;height:88px;border-radius:4px;background:#d9cbb8;float:left;margin:0 10px 8px 0;display:block}
+#pface,#rface{width:168px;height:202px;border-radius:12px;background:#d9cbb8;display:block;margin:6px auto 4px;border:3px solid #1c1915}
 #speed{position:absolute;right:16px;bottom:92px;font-size:13px;letter-spacing:1px;text-shadow:0 1px 2px #000}
 #pop{position:absolute;left:18px;bottom:86px;font-size:22px;font-weight:700;letter-spacing:.4px;text-shadow:0 2px 8px #000;opacity:0}
+body.talking #feed{opacity:0}
 @media (max-width:800px){.cols{grid-template-columns:1fr}.manual{padding-top:12px}}
 body.touching #clock{top:calc(8px + env(safe-area-inset-top));padding:6px 10px}
 body.touching #clock b{font-size:28px}
@@ -107,7 +118,9 @@ body.touching #feed{display:none}
  .screen{overflow:auto;align-items:flex-start;padding:16px 0}
  h1{font-size:46px;letter-spacing:4px}
  .controls{grid-template-columns:1fr 1fr}
- #panel{top:auto;bottom:12px;right:12px;left:12px;width:auto;max-height:46vh;overflow:auto}
+ #panel,#reply{width:min(540px,calc(100vw - 16px));max-height:78vh}
+ #pface,#rface{width:120px;height:144px}
+ #banner{font-size:16px;top:40%}
 }
 @media (max-width:640px){.controls{display:none}.touchhelp{display:block;margin:8px auto 12px;max-width:420px;font-size:14px}}
 </style></head><body>
@@ -115,6 +128,7 @@ body.touching #feed{display:none}
  <div id="dmg"></div>
  <div id="clock"><b id="count">5:00</b><span class="tod" id="tod">DAY · JANUARY · 8:00 AM</span></div>
  <div id="goal"></div>
+ <div id="banner" class="hidden"></div>
  <div id="hint"></div>
  <div id="speed"></div>
  <div id="obj"></div>
@@ -137,12 +151,23 @@ body.touching #feed{display:none}
   <button type="button" class="fire nightonly" data-act="fire">FIRE</button>
  </div>
 </div>
+<div id="talkdim" class="hidden"></div>
 <div id="panel" class="hidden">
  <div id="panelclock"></div>
- <canvas id="pface" class="hidden" width="72" height="88"></canvas>
+ <canvas id="pface" class="hidden" width="220" height="264"></canvas>
+ <div id="pspeaker"></div>
+ <div id="pyou" class="hidden"></div>
+ <p id="pheard" class="hidden"></p>
  <h3 id="ptitle"></h3>
  <p id="pbody"></p>
  <div id="pchoices"></div>
+ <p id="pkey">Click the line you will say. Keys 1, 2, and 3 do the same.</p>
+</div>
+<div id="reply" class="hidden">
+ <canvas id="rface" width="220" height="264"></canvas>
+ <div id="rname"></div>
+ <div id="ryou" class="hidden"></div>
+ <p id="rline"></p>
 </div>
 <div id="title" class="screen"><div class="card">
  <div class="kicker">3109 H STREET · EUREKA</div>
@@ -175,13 +200,13 @@ body.touching #feed{display:none}
   <section>
    <p class="rule">The route</p>
    <h3>Work the list</h3>
-   <p>Earn the rent. Each address on the left is a stop. The gold beam marks the next one. The map in the corner is this street, north at the top. Gold is the stop. 3109 is the south edge.</p>
+   <p>Earn the rent. The card at the top names the next stop. The gold pin on the corner map is that door, and a line runs from you to it. North is the top of the map. 3109 is the south edge.</p>
    <p>H Street ends at a circle in Ferndale. That is not a place to wait. Turn around. 3109 is south.</p>
   </section>
   <section>
    <p class="rule">The stops</p>
    <h3>Go inside</h3>
-   <p>Step up to the door and go in. Some homes are ordinary. Some are packed to the ceiling. Look around, then talk to the resident.</p>
+   <p>Step up to the door and go in. Some homes are ordinary. Some are packed to the ceiling. Look around, then talk. The person stands in the center of the screen. Their answer stays on that card. The street has its own noise, and a talk is spoken.</p>
    <p>A missed month cools them off. Another one and they leave, and the unit sits vacant until you place someone new.</p>
   </section>
   <section>
@@ -333,7 +358,9 @@ const el = {
   compass:$('compass'), feed:$('feed'), cash:$('cash'), hp:$('hp'), hpfill:$('hpfill'), safe:$('safe'),
   ammo:$('ammo'), wname:$('wname'), acount:$('acount'), xh:$('xh'), prompt:$('prompt'), downmsg:$('downmsg'),
   dmg:$('dmg'), panel:$('panel'), panelclock:$('panelclock'), ptitle:$('ptitle'), pbody:$('pbody'),
-  pchoices:$('pchoices'), pface:$('pface'), title:$('title'), guide:$('guide'), year:$('year'), yearstats:$('yearstats'), yearformula:$('yearformula'),
+  pchoices:$('pchoices'), pface:$('pface'), pspeaker:$('pspeaker'), pyou:$('pyou'), pheard:$('pheard'),
+  reply:$('reply'), rface:$('rface'), rname:$('rname'), ryou:$('ryou'), rline:$('rline'), talkdim:$('talkdim'), banner:$('banner'),
+  title:$('title'), guide:$('guide'), year:$('year'), yearstats:$('yearstats'), yearformula:$('yearformula'),
   touch:$('touch'), stickzone:$('stickzone'), lookpad:$('lookpad'), stick:$('stick'), knob:$('knob'),
   goal:$('goal'), speed:$('speed'), map:$('minimap'),
 };
@@ -397,13 +424,14 @@ function tickPop(dt){
   node.style.opacity = String(Math.min(1, popLife * 3.2));
   node.style.transform = 'translateY(' + ((1 - u) * -34) + 'px)';
 }
-function earn(n){ S.cash += n; S.rentIn += n; popCash(n); }
-function pay(n){ S.cash -= n; S.spent += n; popCash(-n); }
+function earn(n){ S.cash += n; S.rentIn += n; popCash(n); sfx('cash'); }
+function pay(n){ S.cash -= n; S.spent += n; popCash(-n); sfx('pay'); }
 function toast(s){
   const d = document.createElement('div');
   d.textContent = s;
   el.feed.prepend(d);
   while (el.feed.children.length > 5) el.feed.lastChild.remove();
+  sfx('click');
 }
 
 /* ---------- scene ---------- */
@@ -1974,6 +2002,7 @@ function fire(){
   w.mag -= 1;
   player.fireCd = def.rate;
   S.muzzle = 1;
+  sfx('shot');
   const origin = new THREE.Vector3(player.x, 1.5, player.z);
   for (let i = 0; i < def.pellets; i++){
     const dir = aimDir(def.spread);
@@ -2005,6 +2034,7 @@ function shove(){
   if (!canFight()) return;
   if (player.shoveT > 0) return;
   player.shoveT = 0.45;
+  sfx('shove');
   const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
   for (const z of pool){
     if (z.dead) continue;
@@ -2180,48 +2210,326 @@ function resolveMoveOuts(){
   }
   refreshAvatars();
 }
-function hidePanel(){ S.panel = null; el.panel.classList.add('hidden'); el.pface.classList.add('hidden'); }
-function drawFace(name){
-  const c = el.pface;
-  const g = c.getContext('2d');
-  const h = hashStr(name || 'Resident');
-  g.fillStyle = '#d9cbb8';
-  g.fillRect(0, 0, 72, 88);
-  g.fillStyle = ['#6b422c', '#3a2a22', '#c4a06a', '#2a2428', '#8a4030'][h % 5];
-  g.fillRect(8, 8, 56, 26);
-  g.fillStyle = ['#e0b090', '#c48a62', '#8d5a3c', '#f0c8a8'][h % 4];
-  g.fillRect(16, 26, 40, 36);
+let pendingYou = '';
+let pendingWho = '';
+let replyLife = 0;
+let bannerLife = 0;
+let shownObj = '';
+let audioCtx = null;
+let noiseBuf = null;
+let amb = null;
+let stepAcc = 0;
+let birdIn = 2.5;
+let whooshIn = 4;
+let audioFault = false;
+function ac(){
+  if (AUTOTEST || audioFault) return null;
+  try {
+    if (!audioCtx){
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      audioCtx = new Ctx();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+    return audioCtx;
+  } catch (err) {
+    audioFault = true;
+    errors.push(String(err));
+    return null;
+  }
+}
+function unlockAudio(){
+  try {
+    const ctx = ac();
+    if (!ctx) return;
+    startAmbience();
+  } catch (err) {
+    if (!audioFault){ audioFault = true; errors.push(String(err)); }
+  }
+}
+function startAmbience(){
+  const ctx = ac();
+  if (!ctx || amb) return;
+  noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+  const data = noiseBuf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  const master = ctx.createGain();
+  master.gain.value = 0.9;
+  master.connect(ctx.destination);
+  const bed = ctx.createBufferSource();
+  bed.buffer = noiseBuf;
+  bed.loop = true;
+  const bedFilter = ctx.createBiquadFilter();
+  bedFilter.type = 'lowpass';
+  bedFilter.frequency.value = 420;
+  const bedGain = ctx.createGain();
+  bedGain.gain.value = 0.08;
+  bed.connect(bedFilter).connect(bedGain).connect(master);
+  bed.start();
+  const engine = ctx.createOscillator();
+  engine.type = 'sawtooth';
+  engine.frequency.value = 55;
+  const engFilter = ctx.createBiquadFilter();
+  engFilter.type = 'lowpass';
+  engFilter.frequency.value = 220;
+  const engineGain = ctx.createGain();
+  engineGain.gain.value = 0;
+  engine.connect(engFilter).connect(engineGain).connect(master);
+  engine.start();
+  amb = {master, bedFilter, bedGain, engine, engineGain};
+}
+function blip(freq, dur, gain, type){
+  const ctx = ac();
+  if (!ctx) return;
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = type || 'sine';
+  o.frequency.value = freq;
+  g.gain.setValueAtTime(gain, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+  o.connect(g).connect(ctx.destination);
+  o.start();
+  o.stop(ctx.currentTime + dur + 0.02);
+}
+function noiseHit(dur, freq, gain){
+  const ctx = ac();
+  if (!ctx || !noiseBuf) return;
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuf;
+  const f = ctx.createBiquadFilter();
+  f.type = 'lowpass';
+  f.frequency.value = freq;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(gain, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+  src.connect(f).connect(g).connect(ctx.destination);
+  src.start();
+  src.stop(ctx.currentTime + dur + 0.02);
+}
+function sfx(kind){
+  switch (kind){
+    case 'click': blip(640, 0.05, 0.045); break;
+    case 'open': blip(520, 0.08, 0.05); blip(780, 0.1, 0.035); break;
+    case 'cash': blip(523, 0.09, 0.06); blip(659, 0.12, 0.05); blip(784, 0.16, 0.045); break;
+    case 'pay': blip(294, 0.12, 0.06, 'triangle'); blip(196, 0.18, 0.05, 'triangle'); break;
+    case 'bad': blip(180, 0.16, 0.06, 'triangle'); break;
+    case 'step': noiseHit(0.05, 240, 0.05); break;
+    case 'shot': noiseHit(0.09, 900, 0.08); break;
+    case 'shove': noiseHit(0.08, 420, 0.07); break;
+    default: assertNever(kind);
+  }
+}
+function chirp(){
+  const ctx = ac();
+  if (!ctx) return;
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  const now = ctx.currentTime;
+  o.type = 'sine';
+  o.frequency.setValueAtTime(1400 + Math.random() * 400, now);
+  o.frequency.exponentialRampToValueAtTime(2200 + Math.random() * 500, now + 0.12);
+  g.gain.setValueAtTime(0.03, now);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+  o.connect(g).connect(ctx.destination);
+  o.start();
+  o.stop(now + 0.22);
+}
+function passBy(){
+  const ctx = ac();
+  if (!ctx || !noiseBuf) return;
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuf;
+  const f = ctx.createBiquadFilter();
+  const g = ctx.createGain();
+  const now = ctx.currentTime;
+  f.type = 'bandpass';
+  f.Q.value = 0.7;
+  f.frequency.setValueAtTime(200, now);
+  f.frequency.exponentialRampToValueAtTime(1800, now + 0.8);
+  g.gain.setValueAtTime(0.0001, now);
+  g.gain.linearRampToValueAtTime(0.08, now + 0.25);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + 0.9);
+  src.connect(f).connect(g).connect(ctx.destination);
+  src.start();
+  src.stop(now + 0.95);
+}
+function tickAudio(dt){
+  if (bannerLife > 0) bannerLife -= dt;
+  if (replyLife > 0){
+    replyLife -= dt;
+    if (replyLife <= 0){
+      el.reply.classList.add('hidden');
+      syncTalk();
+    }
+  }
+  if (!audioCtx || !amb || audioCtx.state !== 'running') return;
+  try {
+    const talking = !el.panel.classList.contains('hidden') || (window.speechSynthesis && speechSynthesis.speaking);
+    const outside = !inOffice();
+    const driving = !!player.car;
+    const night = S.phase === 'night';
+    const bed = talking ? 0.02 : inOffice() ? 0.035 : night ? 0.05 : driving ? 0.04 : 0.11;
+    amb.bedGain.gain.setTargetAtTime(bed, audioCtx.currentTime, 0.2);
+    amb.bedFilter.frequency.setTargetAtTime(inOffice() ? 240 : night ? 320 : 700, audioCtx.currentTime, 0.3);
+    const spd = driving ? Math.abs(player.car.speed) : 0;
+    amb.engine.frequency.setTargetAtTime(46 + spd * 7, audioCtx.currentTime, 0.1);
+    amb.engineGain.gain.setTargetAtTime(driving ? 0.03 + spd * 0.004 : 0, audioCtx.currentTime, 0.1);
+    if (outside && !night && !talking){
+      birdIn -= dt;
+      if (birdIn <= 0){ birdIn = 3 + Math.random() * 5; chirp(); }
+    }
+    if (outside && !talking){
+      whooshIn -= dt;
+      if (whooshIn <= 0){ whooshIn = 7 + Math.random() * 8; passBy(); }
+    }
+  } catch (err) {
+    if (!audioFault){ audioFault = true; errors.push(String(err)); }
+  }
+}
+function speak(text, who, fresh){
+  if (AUTOTEST || !text || !window.speechSynthesis) return;
+  try {
+    if (fresh) speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(String(text));
+    u.rate = 1;
+    const pitchBase = 0.82 + (hashStr(who || 'rentor') % 7) * 0.05;
+    u.pitch = pitchBase;
+    const voices = speechSynthesis.getVoices().filter(v => /en/i.test(v.lang));
+    if (voices.length) u.voice = voices[hashStr(who || 'rentor') % voices.length];
+    speechSynthesis.speak(u);
+  } catch (err) {
+    errors.push(String(err));
+  }
+}
+function syncTalk(){
+  const on = !el.panel.classList.contains('hidden') || !el.reply.classList.contains('hidden');
+  document.body.classList.toggle('talking', on);
+  el.talkdim.classList.toggle('hidden', !on);
+}
+function drawFace(canvas, name){
+  const g = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const n = hashStr(name || 'Resident');
+  g.fillStyle = '#cbbba6';
+  g.fillRect(0, 0, w, h);
+  g.fillStyle = '#8d7a64';
+  g.fillRect(0, h * 0.7, w, h * 0.3);
+  g.fillStyle = ['#2a211c', '#6b422c', '#c4a06a', '#1c1915', '#8a4030', '#3a2a22'][n % 6];
+  g.beginPath();
+  g.ellipse(w / 2, h * 0.36, w * 0.34, h * 0.26, 0, Math.PI, 0);
+  g.fill();
+  g.fillStyle = ['#e0b090', '#c48a62', '#8d5a3c', '#f0c8a8', '#a56b48'][n % 5];
+  g.beginPath();
+  g.ellipse(w / 2, h * 0.48, w * 0.26, h * 0.26, 0, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = '#f7f4ee';
+  g.beginPath(); g.ellipse(w * 0.4, h * 0.46, w * 0.055, h * 0.028, 0, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.ellipse(w * 0.6, h * 0.46, w * 0.055, h * 0.028, 0, 0, Math.PI * 2); g.fill();
   g.fillStyle = '#1c1915';
-  g.fillRect(26, 40, 5, 5);
-  g.fillRect(42, 40, 5, 5);
-  g.fillRect(32, 54, 10, 3);
-  g.fillStyle = ['#9a3412', '#1c3a5a', '#2a4a32', '#243044'][h % 4];
-  g.fillRect(18, 64, 36, 20);
-  c.classList.remove('hidden');
+  g.beginPath(); g.arc(w * 0.41, h * 0.465, w * 0.018, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.arc(w * 0.61, h * 0.465, w * 0.018, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = '#2a211c';
+  g.lineWidth = Math.max(2, w * 0.012);
+  g.beginPath();
+  g.moveTo(w * 0.32, h * 0.4); g.lineTo(w * 0.46, h * 0.385);
+  g.moveTo(w * 0.54, h * 0.385); g.lineTo(w * 0.68, h * 0.4);
+  g.stroke();
+  g.strokeStyle = 'rgba(90,48,36,0.55)';
+  g.beginPath();
+  g.moveTo(w * 0.5, h * 0.48); g.lineTo(w * 0.47, h * 0.55); g.lineTo(w * 0.54, h * 0.55);
+  g.stroke();
+  g.strokeStyle = '#6a3030';
+  g.lineWidth = Math.max(2, w * 0.01);
+  g.beginPath();
+  const smile = ((n % 3) - 1) * 0.02;
+  g.moveTo(w * 0.42, h * 0.61);
+  g.quadraticCurveTo(w * 0.5, h * (0.64 + smile), w * 0.58, h * 0.61);
+  g.stroke();
+  g.fillStyle = ['#9a3412', '#1c3a5a', '#2a4a32', '#243044', '#6a5030'][n % 5];
+  g.fillRect(w * 0.16, h * 0.74, w * 0.68, h * 0.26);
+  g.fillStyle = '#f4efe6';
+  g.beginPath();
+  g.moveTo(w * 0.42, h * 0.74); g.lineTo(w * 0.5, h * 0.86); g.lineTo(w * 0.58, h * 0.74);
+  g.fill();
+}
+function showReply(who, line, yours){
+  if (who){
+    el.rface.classList.remove('hidden');
+    drawFace(el.rface, who);
+    el.rname.textContent = who;
+  } else {
+    el.rface.classList.add('hidden');
+    el.rname.textContent = 'Note';
+  }
+  el.ryou.textContent = yours ? ('You — ' + yours) : '';
+  el.ryou.classList.toggle('hidden', !yours);
+  el.rline.textContent = line;
+  el.reply.classList.remove('hidden');
+  replyLife = who ? 6 : 3.4;
+  syncTalk();
+}
+function say(who, line){
+  toast(line);
+  speak(line, who || pendingWho, true);
+  if (S.panel) return;
+  showReply(who || pendingWho, line, pendingYou);
+}
+function notice(line){
+  toast(line);
+  showReply('', line, '');
+}
+function hidePanel(){
+  S.panel = null;
+  el.panel.classList.add('hidden');
+  el.pface.classList.add('hidden');
+  syncTalk();
 }
 function openPanel(spec){
   S.panel = spec;
+  el.reply.classList.add('hidden');
+  replyLife = 0;
   el.panel.classList.remove('hidden');
+  el.pspeaker.textContent = spec.face || '';
+  el.pyou.textContent = spec.yours ? ('You — ' + spec.yours) : '';
+  el.pyou.classList.toggle('hidden', !spec.yours);
+  if (spec.heard){
+    el.pheard.textContent = '“' + spec.heard + '”';
+    el.pheard.classList.remove('hidden');
+  } else {
+    el.pheard.textContent = '';
+    el.pheard.classList.add('hidden');
+  }
   el.ptitle.textContent = spec.title;
   el.pbody.textContent = spec.body;
-  if (spec.face) drawFace(spec.face);
-  else el.pface.classList.add('hidden');
+  if (spec.face){
+    drawFace(el.pface, spec.face);
+    el.pface.classList.remove('hidden');
+  } else el.pface.classList.add('hidden');
   el.pchoices.replaceChildren();
   spec.choices.forEach((c, i) => {
     const b = document.createElement('button');
     b.type = 'button';
-    b.textContent = c.label;
+    b.textContent = (i + 1) + '.  ' + c.label;
     b.addEventListener('click', () => choose(i));
     el.pchoices.appendChild(b);
   });
+  sfx('open');
+  if (spec.heard) speak(spec.heard, spec.face, true);
+  speak(spec.body, spec.face || 'Rentor', !spec.heard);
+  syncTalk();
   if (document.pointerLockElement) document.exitPointerLock();
 }
 function choose(i){
   const spec = S.panel;
   if (!spec || !spec.choices[i]) return;
-  const fn = spec.choices[i].apply;
+  const choice = spec.choices[i];
+  pendingYou = choice.label;
+  pendingWho = spec.face || '';
+  sfx('click');
   hidePanel();
-  fn();
+  choice.apply();
+  pendingYou = '';
+  pendingWho = '';
   refreshAvatars();
   maybeOffer();
 }
@@ -2240,11 +2548,12 @@ function maybeOffer(){
   const meters = Math.round(Math.hypot(p.door.x - player.x, p.door.z - player.z));
   const pay = p.occ ? 1800 : 2400;
   openPanel({
+    face:'Ferndale',
     title: p.occ ? 'Ferndale renewal' : 'Ferndale is waiting',
     body: p.addr + ' is at the end of H Street, ' + meters + 'm out. Sign before dusk and the desk clears ' + money(pay) + '. The clock keeps running. The company car out front is how you get there and still get back inside 3109.',
     choices:[
       {label:'Take it · ' + money(pay), apply(){ armUrgent(pay); }},
-      {label:'Stay in. Let it ring.', apply(){ toast('You let Ferndale ring out.'); }},
+      {label:'Stay in. Let it ring.', apply(){ say('Ferndale', 'You let Ferndale ring out.'); }},
     ],
     onDismiss(){ toast('You let Ferndale ring out.'); },
   });
@@ -2266,8 +2575,8 @@ function urgentSpot(){
 function doUrgent(){
   const step = S.urgent.step;
   switch (step){
-    case 0: S.urgent.step = 1; toast('The fence is behind the cottage.'); break;
-    case 1: S.urgent.step = 2; toast('The packet is in the garage.'); break;
+    case 0: S.urgent.step = 1; notice('The fence is behind the cottage.'); break;
+    case 1: S.urgent.step = 2; notice('The packet is in the garage.'); break;
     case 2: openPanel(fernPanel()); break;
     default: assertNever(step);
   }
@@ -2297,7 +2606,7 @@ function finishUrgent(kind){
       S.correct += 1;
       if (!p.occ){ p.occ = true; p.happy = 74; p.resident = 'The Pell family'; S.filled += 1; }
       else bumpHappy(p, 6);
-      toast('Signed. ' + money(S.urgent.payout) + '. Get inside.');
+      say(p.resident || 'The Pell family', 'Signed. ' + money(S.urgent.payout) + '. Get inside.');
       break;
     case 'cut': {
       const pay = Math.round(S.urgent.payout * 0.45);
@@ -2305,11 +2614,11 @@ function finishUrgent(kind){
       S.wrong += 1;
       p.rent = Math.round(p.baseRent * 0.8);
       if (!p.occ){ p.occ = true; p.happy = 58; p.resident = 'The Pell family'; S.filled += 1; }
-      toast('You discounted Ferndale. ' + money(pay) + '. Run.');
+      say(p.resident || 'The Pell family', 'You discounted Ferndale. ' + money(pay) + '. Run.');
       break;
     }
     case 'walk':
-      toast('No signature. The door is still a long way south.');
+      say(p.resident || 'The Pell family', 'No signature. The door is still a long way south.');
       break;
     default: assertNever(kind);
   }
@@ -2328,8 +2637,8 @@ function leasePanel(t){
         if (c.cash > 0) earn(c.cash);
         if (c.cash < 0) pay(-c.cash);
         bumpHappy(p, c.happy || 0);
-        if (c.ok) S.correct += 1; else S.wrong += 1;
-        toast(c.note);
+        if (c.ok) S.correct += 1; else { S.wrong += 1; sfx('bad'); }
+        say(p.resident || 'Resident', c.note);
       },
     })),
   };
@@ -2387,10 +2696,11 @@ function finishSale(t, kind){
         earn(1100);
         S.signed += 1;
         S.correct += 1;
-        toast(p.resident + ' signed the management agreement. Setup fee ' + money(1100) + '.');
+        say(p.resident, p.resident + ' signed the management agreement. Setup fee ' + money(1100) + '.');
       } else {
         S.wrong += 1;
-        toast(p.resident + ' wants another month. The meeting never earned the building.');
+        sfx('bad');
+        say(p.resident, p.resident + ' wants another month. The meeting never earned the building.');
       }
       break;
     case 'discount':
@@ -2398,11 +2708,12 @@ function finishSale(t, kind){
       earn(400);
       S.signed += 1;
       S.wrong += 1;
-      toast('She signed a cheap agreement. ' + money(400) + '. The fee will be felt later.');
+      say(p.resident, 'She signed a cheap agreement. ' + money(400) + '. The fee will be felt later.');
       break;
     case 'walk':
       S.wrong += 1;
-      toast(p.resident + ' kept ' + p.addr + '. It stays off the book.');
+      sfx('bad');
+      say(p.resident, p.resident + ' kept ' + p.addr + '. It stays off the book.');
       break;
     default: assertNever(kind);
   }
@@ -2414,8 +2725,11 @@ function applyPitch(t, choice){
     return;
   }
   t.step += 1;
+  const next = salePanel(t);
+  next.heard = choice.note;
+  next.yours = choice.label;
   toast(choice.note);
-  openPanel(salePanel(t));
+  openPanel(next);
 }
 function salePanel(t){
   const p = propById(t.propId);
@@ -2435,7 +2749,7 @@ function doTask(t){
       earn(p.rent);
       S.collected += 1;
       bumpHappy(p, 3);
-      toast(p.resident + ' paid ' + money(p.rent) + '.');
+      say(p.resident, p.resident + ' paid ' + money(p.rent) + '.');
       break;
     case 'repair':
       openPanel({
@@ -2443,9 +2757,9 @@ function doTask(t){
         title:'Repair · ' + p.addr,
         body:'The bath fan died and the ceiling is spotting. Cheap work stays on the books. The real fix costs more and keeps the resident. Waiting makes the stain the next conversation.',
         choices:[
-          {label:'Hardware-store fan · $220', apply(){ t.done = true; pay(220); bumpHappy(p, -8); S.repairs += 1; toast('The cheap fan is in. They are not impressed.'); }},
-          {label:'Fan and drywall · $540', apply(){ t.done = true; pay(540); bumpHappy(p, 8); S.repairs += 1; toast('Fixed properly.'); }},
-          {label:'Leave it until next month', apply(){ t.done = true; bumpHappy(p, -25); toast('You deferred ' + p.addr + '.'); }},
+          {label:'Hardware-store fan · $220', apply(){ t.done = true; pay(220); bumpHappy(p, -8); S.repairs += 1; say(p.resident, 'The cheap fan is in. They are not impressed.'); }},
+          {label:'Fan and drywall · $540', apply(){ t.done = true; pay(540); bumpHappy(p, 8); S.repairs += 1; say(p.resident, 'Fixed properly.'); }},
+          {label:'Leave it until next month', apply(){ t.done = true; bumpHappy(p, -25); sfx('bad'); say(p.resident, 'You deferred ' + p.addr + '.'); }},
         ],
       });
       break;
@@ -2455,9 +2769,9 @@ function doTask(t){
         title:'Vacancy · ' + p.addr,
         body:'Three applications. One is complete, one needs a discount to start Friday, and one is an envelope with no history.',
         choices:[
-          {label:'Avery Cole · full file · ' + money(p.rent), apply(){ t.done = true; p.occ = true; p.resident = 'Avery Cole'; p.happy = 78; earn(p.rent); S.filled += 1; S.correct += 1; toast('Avery Cole has the keys.'); }},
-          {label:'Billie Tran · rent drops $175', apply(){ t.done = true; p.occ = true; p.resident = 'Billie Tran'; p.happy = 64; p.rent = p.rent - 175; earn(p.rent); S.filled += 1; toast('Billie Tran is in at a discount.'); }},
-          {label:'Envelope, no paperwork, keys today', apply(){ t.done = true; p.occ = true; p.resident = 'No file'; p.happy = 36; earn(p.rent); S.filled += 1; S.wrong += 1; toast('You handed over keys with no file.'); }},
+          {label:'Avery Cole · full file · ' + money(p.rent), apply(){ t.done = true; p.occ = true; p.resident = 'Avery Cole'; p.happy = 78; earn(p.rent); S.filled += 1; S.correct += 1; say('Avery Cole', 'Avery Cole has the keys.'); }},
+          {label:'Billie Tran · rent drops $175', apply(){ t.done = true; p.occ = true; p.resident = 'Billie Tran'; p.happy = 64; p.rent = p.rent - 175; earn(p.rent); S.filled += 1; say('Billie Tran', 'Billie Tran is in at a discount.'); }},
+          {label:'Envelope, no paperwork, keys today', apply(){ t.done = true; p.occ = true; p.resident = 'No file'; p.happy = 36; earn(p.rent); S.filled += 1; S.wrong += 1; sfx('bad'); say('No file', 'You handed over keys with no file.'); }},
         ],
       });
       break;
@@ -2473,15 +2787,16 @@ function doTask(t){
 function doDesk(){
   if (S.doors) return;
   openPanel({
+    face:'Henry Hammacher',
     title:"Henry's desk",
     body:'North of Broadway the listings are dark: 908 Henderson and 44 5th stay off the morning route until the desk pays to open them. $1,500. Ferndale is not part of this. That call comes on its own.',
     choices:[
       {label: S.cash >= 1500 ? 'Open the north listings · $1,500' : 'Short $1,500', apply(){
-        if (S.cash < 1500){ toast('Not enough cash for the north listings.'); return; }
+        if (S.cash < 1500){ say('Henry Hammacher', 'Not enough cash for the north listings.'); return; }
         pay(1500); S.doors = true;
-        toast('Henderson and 5th join tomorrow\'s route.');
+        say('Henry Hammacher', 'Henderson and 5th join tomorrow\'s route.');
       }},
-      {label:'Not this month', apply(){ toast('The north listings stay dark.'); }},
+      {label:'Not this month', apply(){ say('Henry Hammacher', 'The north listings stay dark.'); }},
     ],
   });
 }
@@ -2499,7 +2814,7 @@ function targets(){
     } else if (!S.offered){
       const fern = propById('fern');
       out.push({x:fern.door.x, z:fern.door.z, label:'Ferndale · street ends here', rank:2, act(){
-        toast('H Street ends here. Turn around. Be inside 3109 before dark.');
+        notice('H Street ends here. Turn around. Be inside 3109 before dark.');
       }});
     }
     if (!S.doors) out.push({x:0, z:-4.3, label:'Desk · north listings $1,500', rank:1, act(){ doDesk(); }});
@@ -2519,7 +2834,7 @@ function targets(){
       }
       for (const ck of p.checks || []){
         if (p.seen[ck.id]) continue;
-        out.push({x:ck.x, z:ck.z, label:ck.label, rank:1, act(){ p.seen[ck.id] = true; toast(ck.note); }});
+        out.push({x:ck.x, z:ck.z, label:ck.label, rank:1, act(){ p.seen[ck.id] = true; notice(ck.note); }});
       }
     }
   }
@@ -2568,6 +2883,7 @@ function exitCar(){
   c.occupied = null;
   c.speed = 0;
   player.car = null;
+  sfx('click');
 }
 function interact(){
   if (S.mode !== 'play' || S.panel || player.down) return;
@@ -2576,6 +2892,7 @@ function interact(){
   if (t){ t.act(); return; }
   const c = nearestCar(3);
   if (c) enterCar(c);
+  else sfx('bad');
 }
 function failOpenTasks(){
   for (const t of S.tasks){
@@ -2597,6 +2914,21 @@ function failOpenTasks(){
   }
 }
 function homePoint(){ return {x:0, z:3.2, label:'Office · get inside before dark'}; }
+function bearingWord(dx, dz){
+  const names = ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest'];
+  const norm = (Math.atan2(dx, dz) + Math.PI * 2) % (Math.PI * 2);
+  return names[Math.round(norm / (Math.PI / 4)) % 8];
+}
+function nextSentence(){
+  const base = goalLine();
+  const g = objectivePoint();
+  if (!g || player.down) return base;
+  const dx = g.x - player.x, dz = g.z - player.z;
+  const dist = Math.round(Math.hypot(dx, dz));
+  const tail = dist + 'm ' + bearingWord(dx, dz) + '. Follow the gold pin.';
+  if (S.tasks.some(t => !t.done) || (S.urgent && !S.urgent.done)) return g.label + '. ' + tail;
+  return base + ' ' + tail;
+}
 function objectivePoint(){
   if (player.down) return null;
   if (S.phase === 'night') return inOffice() ? null : homePoint();
@@ -2634,6 +2966,7 @@ function goalLine(){
 }
 
 function beginDay(){
+  shownObj = '';
   S.phase = 'day';
   S.left = DAY_LEN;
   S.offered = false;
@@ -2653,6 +2986,7 @@ function beginDay(){
   updateHud();
 }
 function beginNight(){
+  shownObj = '';
   const home = inOffice();
   if (home) S.homeNights += 1; else S.caught += 1;
   failOpenTasks();
@@ -2805,15 +3139,36 @@ function drawMap(){
     g.fillStyle = open ? '#ffd56a' : (p.managed ? '#9a3412' : '#d9cbb8');
     const s = p.owner ? 8 : 6;
     g.fillRect(q[0] - s / 2, q[1] - s / 2, s, s);
+    if (open){
+      const idx = S.tasks.filter(t => !t.done).findIndex(t => t.propId === p.id);
+      g.fillStyle = '#1c1915';
+      g.font = 'bold 16px sans-serif';
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillText(String(idx + 1), q[0], q[1]);
+    }
   }
   const goal = objectivePoint();
   if (goal){
     const q = pt(goal.x, goal.z);
+    const you = pt(player.x, player.z);
     g.strokeStyle = '#ffd56a';
-    g.lineWidth = 2;
+    g.lineWidth = 3;
+    g.setLineDash([10, 7]);
     g.beginPath();
-    g.arc(q[0], q[1], 11, 0, Math.PI * 2);
+    g.moveTo(you[0], you[1]);
+    g.lineTo(q[0], q[1]);
     g.stroke();
+    g.setLineDash([]);
+    const pulse = 12 + Math.sin(performance.now() / 180) * 4;
+    g.lineWidth = 3;
+    g.beginPath();
+    g.arc(q[0], q[1], pulse, 0, Math.PI * 2);
+    g.stroke();
+    g.fillStyle = '#ffd56a';
+    g.beginPath();
+    g.arc(q[0], q[1], 4, 0, Math.PI * 2);
+    g.fill();
   }
   g.fillStyle = '#9ec7de';
   for (const r of remotes.values()){
@@ -2864,14 +3219,26 @@ function updateHud(){
       el.acount.textContent = w.mag + ' / ' + res;
     }
   }
-  const line = goalLine();
+  const line = nextSentence();
   el.goal.textContent = line;
   el.goal.classList.toggle('hidden', !line);
-  if (S.phase === 'day' && !S.offered) el.hint.textContent = 'A Ferndale signing calls late. The list comes first. Be inside 3109 before dark.';
-  else if (S.urgent && !S.urgent.done) el.hint.textContent = 'The cottage is at the end of H Street. Take a car, sign, and get back inside.';
-  else if (night && !inOffice() && !player.down) el.hint.textContent = player.slot ? 'Get to 3109. The office is south.' : 'The office is south. Corners hold what you need after dark.';
+  const mark = objectivePoint();
+  const markKey = mark ? mark.label : '';
+  if (markKey !== shownObj){
+    shownObj = markKey;
+    if (markKey){
+      el.banner.textContent = 'Next · ' + markKey;
+      bannerLife = 3.4;
+    }
+  }
+  if (bannerLife > 0 && !S.panel){
+    el.banner.classList.remove('hidden');
+  } else el.banner.classList.add('hidden');
+  if (S.phase === 'day' && !S.offered) el.hint.textContent = 'A Ferndale signing calls late. Finish the gold pin first.';
+  else if (S.urgent && !S.urgent.done) el.hint.textContent = 'Take a car to the gold pin, then get back inside 3109.';
+  else if (night && !inOffice() && !player.down) el.hint.textContent = 'The gold pin is 3109. Get inside.';
   else if (night && inOffice()) el.hint.textContent = 'Safe until dawn. Stay inside.';
-  else el.hint.textContent = 'Work the list from south to north. The gold line is the next stop.';
+  else el.hint.textContent = 'The gold pin is the next door. Press E when you reach it.';
   document.body.classList.toggle('afterdark', night && !player.down);
   el.speed.textContent = player.car ? ('DRIVING ' + Math.round(Math.abs(player.car.speed))) : '';
   el.obj.replaceChildren();
@@ -2886,7 +3253,9 @@ function updateHud(){
     if (t.done) continue;
     const p = propById(t.propId);
     const d = document.createElement('div');
-    d.textContent = labelFor(t) + ' · ' + Math.round(Math.hypot(p.door.x - player.x, p.door.z - player.z)) + 'm';
+    const near = mark && Math.hypot(p.door.x - mark.x, p.door.z - mark.z) < 1.2;
+    if (near) d.className = 'hot';
+    d.textContent = (near ? 'NEXT · ' : '') + labelFor(t) + ' · ' + Math.round(Math.hypot(p.door.x - player.x, p.door.z - player.z)) + 'm';
     el.obj.append(d);
   }
   const goal = objectivePoint();
@@ -2898,14 +3267,14 @@ function updateHud(){
     beamMat.color.setHex(S.phase === 'night' || (S.urgent && S.urgent.done) ? 0xff5544 : 0xffd56a);
   } else beam.visible = false;
   el.compass.replaceChildren();
-  if (!inOffice()){
-    const hx = 0 - player.x, hz = 3.2 - player.z;
+  if (mark && markKey){
+    const hx = mark.x - player.x, hz = mark.z - player.z;
     const hdist = Math.hypot(hx, hz);
     const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
     const rx = Math.cos(player.yaw), rz = -Math.sin(player.yaw);
     const ang = Math.atan2((hx * rx + hz * rz) / (hdist || 1), (hx * fx + hz * fz) / (hdist || 1));
     const span = document.createElement('span');
-    span.textContent = 'OFFICE ' + Math.round(hdist) + 'm';
+    span.textContent = 'NEXT ' + Math.round(hdist) + 'm';
     const arr = document.createElement('i');
     arr.className = 'arr';
     arr.textContent = '▲';
@@ -3073,7 +3442,9 @@ function tickPlayer(dt){
       const rx = Math.cos(player.yaw), rz = -Math.sin(player.yaw);
       moveCircle(player, (fx * iz + rx * ix) * sp * dt, (fz * iz + rz * ix) * sp * dt, 0.32);
       player.bob += dt * (sprint ? 11 : 8);
-    }
+      stepAcc += dt;
+      if (stepAcc > (sprint ? 0.28 : 0.42)){ stepAcc = 0; sfx('step'); }
+    } else stepAcc = 0;
   }
   const bob = Math.sin(player.bob) * (player.down || player.car ? 0 : 0.035);
   let ride = 0;
@@ -3118,6 +3489,7 @@ function update(dt){
   tickTraffic(dt);
   tickWalkers(dt);
   tickPop(dt);
+  tickAudio(dt);
   tickPlayer(dt);
   if (S.phase === 'night') tickZombies(dt);
   applySky();
@@ -3404,7 +3776,7 @@ window.__rentor = {
   cars(){ return CARS.map(c => ({id:c.id, x:c.x, z:c.z, yaw:c.yaw, traffic:!!c.traffic, occupied:c.occupied, speed:c.speed})); },
   enter(id){ const c = CARS.find(q => q.id === id); if (c) enterCar(c); },
   exit(){ exitCar(); },
-  goal(){ return el.goal.textContent; },
+  goal(){ return goalLine(); },
   clearTasks(){ for (const t of S.tasks) t.done = true; updateHud(); },
   debugPeer,
   inside(id){ const p = propById(id); return !!(p && insideHouse(p, player.x, player.z)); },
@@ -3447,15 +3819,27 @@ document.addEventListener('mouseup', e => {
   if (e.button === 0) mouseLeft = false;
   if (e.button === 2) mouseRight = false;
 });
+el.reply.addEventListener('click', () => {
+  replyLife = 0;
+  el.reply.classList.add('hidden');
+  syncTalk();
+  sfx('click');
+});
+document.addEventListener('pointerdown', () => unlockAudio());
 document.addEventListener('keydown', e => {
+  unlockAudio();
   keys[e.code] = true;
   if (S.mode !== 'play') return;
   if (e.code === 'Escape'){ dismissPanel(); mouseLeft = false; mouseRight = false; }
   if (e.code === 'KeyE' && !e.repeat) interact();
   if (e.code === 'KeyR' && !e.repeat) startReload();
-  if (e.code === 'Digit1') selectWeapon('pistol');
-  if (e.code === 'Digit2') selectWeapon('shotgun');
-  if (e.code === 'Digit3') selectWeapon('smg');
+  if (S.panel && !e.repeat && (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3')){
+    choose(e.code === 'Digit1' ? 0 : e.code === 'Digit2' ? 1 : 2);
+  } else {
+    if (e.code === 'Digit1') selectWeapon('pistol');
+    if (e.code === 'Digit2') selectWeapon('shotgun');
+    if (e.code === 'Digit3') selectWeapon('smg');
+  }
   if (e.code === 'Space') e.preventDefault();
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
