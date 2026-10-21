@@ -54,6 +54,13 @@ canvas{display:block}
 #pchoices button:hover{border-color:#9a3412;background:#fff}
 #pkey{margin:10px 0 0;font-size:12px;letter-spacing:.4px;color:#6b5e52}
 #reply{position:fixed;left:50%;top:46%;transform:translate(-50%,-50%);width:min(480px,calc(100vw - 24px));z-index:8;background:#f4efe6;color:#1c1915;border-radius:10px;padding:18px 18px 16px;box-shadow:0 24px 70px rgba(0,0,0,.55);text-align:center;cursor:pointer}
+#phone{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;width:min(300px,calc(100vw - 24px));background:#1c1915;color:#f4efe6;border-radius:28px;padding:16px 16px 14px;box-shadow:0 24px 70px rgba(0,0,0,.55);text-align:center;border:2px solid #3a342c}
+#phonename{font-size:12px;letter-spacing:2px;color:#e4b15a;margin:0 0 4px}
+#phonenum{font-variant-numeric:tabular-nums;font-size:28px;letter-spacing:1px;min-height:40px;margin:0}
+#phonekeys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+#phonekeys button{font:inherit;padding:12px 0;border-radius:10px;border:0;background:#2c2824;color:#f4efe6;cursor:pointer}
+#phonekeys button:hover{background:#3d3832}
+#phonehint{margin:10px 0 0;font-size:12px;line-height:1.4;color:#d9cbb8}
 #rname{font-family:Palatino,Georgia,serif;font-size:26px;margin:2px 0 6px}
 #rline{margin:0;font-size:18px;line-height:1.4}
 #ryou{margin:0 0 6px;font-size:13px;color:#5c5146}
@@ -148,8 +155,15 @@ body.touching #feed{display:none}
  <div id="tbtns">
   <div class="trow"><button type="button" class="nightonly" data-act="gun">GUN</button><button type="button" class="nightonly" data-act="reload">RELOAD</button></div>
   <div class="trow"><button type="button" class="nightonly" data-act="shove">SHOVE</button><button type="button" data-act="use">USE</button></div>
+  <div class="trow"><button type="button" data-act="grab">GRAB</button><button type="button" data-act="phone">PHONE</button></div>
   <button type="button" class="fire nightonly" data-act="fire">FIRE</button>
  </div>
+</div>
+<div id="phone" class="hidden">
+ <p id="phonename">DESK PHONE</p>
+ <p id="phonenum">—</p>
+ <div id="phonekeys"></div>
+ <p id="phonehint">The cops pick up anyone you have thrown in the street. Station 444-0191. They go to debtors' jail.</p>
 </div>
 <div id="talkdim" class="hidden"></div>
 <div id="panel" class="hidden">
@@ -176,9 +190,10 @@ body.touching #feed{display:none}
  <p class="sub">Five minutes of daylight to work the rent route from 3109 H Street. Collect, repair, fill an empty unit, and answer the lease. The best end to the day is being back inside the office before dark.</p>
  <div class="controls">
   <div><b>WASD</b>Move</div><div><b>MOUSE</b>Look</div><div><b>SHIFT</b>Sprint</div>
-  <div><b>E</b>Door, car, desk</div><div><b>ESC</b>Close a note</div><div><b>CLICK</b>Capture mouse</div>
+  <div><b>E</b>Door, car, desk</div><div><b>F</b>Grab, throw</div><div><b>P</b>Phone</div>
+  <div><b>ESC</b>Close a note</div><div><b>CLICK</b>Capture mouse</div>
  </div>
- <p class="touchhelp">Left side moves, right side looks. USE opens a door or a car. The clock never stops while a note is open. Be back at the office before dark.</p>
+ <p class="touchhelp">Left side moves, right side looks. USE opens a door or a car. GRAB takes a person. PHONE dials the station. The clock never stops while a note is open. Be back at the office before dark.</p>
  <button class="big" id="playbtn" type="button">READ THE DESK MANUAL</button>
  <div class="cooprow">
   <input id="pname" maxlength="16" placeholder="Your name" aria-label="Your name" autocomplete="off">
@@ -207,6 +222,7 @@ body.touching #feed{display:none}
    <p class="rule">The stops</p>
    <h3>Go inside</h3>
    <p>Step up to the door and go in. Some homes are ordinary. Some are packed to the ceiling. Look around, then talk. The person stands in the center of the screen. Their answer stays on that card. The street has its own noise, and a talk is spoken.</p>
+   <p>Ask for the rent first. If they will not pay, grab them, walk them outside, and throw them into the street. P opens the phone. Dial 444-0191. The cops put them in the wagon and take them to debtors' jail.</p>
    <p>A missed month cools them off. Another one and they leave, and the unit sits vacant until you place someone new.</p>
   </section>
   <section>
@@ -285,6 +301,8 @@ for (const p of PROPS){
 }
 const FERN_YARD = {x:11, z:218};
 const FERN_GARAGE = {x:-11.5, z:207};
+const JAIL = {x:-58, z:28, door:null, cell:null};
+const STATION_NO = '4440191';
 
 const QUESTIONS = [
   p => ({title:'Paint', body:`${p.resident} wants the south bedroom a deep red before family visits. The lease requires written approval, and the unit was just turned in warm white.`, choices:[
@@ -360,6 +378,7 @@ const el = {
   dmg:$('dmg'), panel:$('panel'), panelclock:$('panelclock'), ptitle:$('ptitle'), pbody:$('pbody'),
   pchoices:$('pchoices'), pface:$('pface'), pspeaker:$('pspeaker'), pyou:$('pyou'), pheard:$('pheard'),
   reply:$('reply'), rface:$('rface'), rname:$('rname'), ryou:$('ryou'), rline:$('rline'), talkdim:$('talkdim'), banner:$('banner'),
+  phone:$('phone'), phonenum:$('phonenum'), phonekeys:$('phonekeys'),
   title:$('title'), guide:$('guide'), year:$('year'), yearstats:$('yearstats'), yearformula:$('yearformula'),
   touch:$('touch'), stickzone:$('stickzone'), lookpad:$('lookpad'), stick:$('stick'), knob:$('knob'),
   goal:$('goal'), speed:$('speed'), map:$('minimap'),
@@ -376,7 +395,12 @@ const S = {
   mode:'title', phase:'day', left:DAY_LEN, month:0, cash:4200, doors:false,
   homeNights:0, caught:0, deaths:0, collected:0, repairs:0, filled:0, correct:0, wrong:0, signed:0, rentIn:0, spent:0,
   tasks:[], urgent:null, offered:false, pendingOffer:false, panel:null, trickle:8, hurt:0, muzzle:0,
+  haul:null, removed:0,
 };
+let phoneOn = false;
+let phoneDigits = '';
+let wagon = null;
+let siren = null;
 let qCursor = 0;
 const keys = {};
 let mouseLeft = false, mouseRight = false, touchRun = false, touchShove = false;
@@ -384,7 +408,7 @@ let stickX = 0, stickY = 0;
 const player = {
   x:0, z:-1, yaw:Math.PI, pitch:0, hp:100, down:false,
   inv:{pistol:null, shotgun:null, smg:null}, slot:null,
-  fireCd:0, reloadT:0, shoveT:0, bob:0, lean:0, car:null,
+  fireCd:0, reloadT:0, shoveT:0, bob:0, lean:0, car:null, hold:null,
 };
 
 function curW(){ return player.slot ? player.inv[player.slot] : null; }
@@ -1275,11 +1299,19 @@ function addTurret(g, p, siding){
 }
 function refreshAvatar(p){
   if (!p.avatar) return;
-  const on = !!(p.occ && p.resident);
-  p.avatar.mesh.visible = on;
-  if (!on) return;
+  const held = player.hold && player.hold.prop === p;
+  const on = held || p.jailed || !!(p.occ && p.resident);
+  p.avatar.mesh.visible = !!on;
+  if (!p.resident) return;
   p.avatar.shirt.color.setHex(SHIRT_COLORS[hashStr(p.resident) % SHIRT_COLORS.length]);
   paintName(p.avatar.sprite, p.resident);
+}
+function seatResident(p){
+  p.jailed = false;
+  if (!p.avatar || !p.tenant) return;
+  p.avatar.mesh.position.set(p.tenant.x, 0, p.tenant.z);
+  p.avatar.mesh.rotation.set(0, p.homeYaw || 0, 0);
+  refreshAvatar(p);
 }
 function refreshAvatars(){ for (const p of PROPS) refreshAvatar(p); }
 function insideHouse(p, x, z){
@@ -1376,6 +1408,7 @@ function addHouse(p){
   p.avatar.mesh.rotation.y = p.face === 'z'
     ? (p.side > 0 ? Math.PI : 0)
     : (p.side > 0 ? -Math.PI / 2 : Math.PI / 2);
+  p.homeYaw = p.avatar.mesh.rotation.y;
   g.add(p.avatar.mesh);
   refreshAvatar(p);
   const hall = p.face === 'z'
@@ -1607,14 +1640,14 @@ function addWalkers(){
     person.sprite.visible = false;
     person.mesh.position.set(s.x, 0, s.z);
     scene.add(person.mesh);
-    WALKERS.push({mesh:person.mesh, x:s.x, z:s.z, dir:s.dir, phase:i * 1.7});
+    WALKERS.push({mesh:person.mesh, x:s.x, z:s.z, dir:s.dir, homeX:s.x, homeZ:s.z, homeDir:s.dir, phase:i * 1.7});
   });
 }
 function tickWalkers(dt){
   const day = S.phase === 'day';
   for (const w of WALKERS){
     w.mesh.visible = day;
-    if (!day) continue;
+    if (!day || w.held) continue;
     w.z += w.dir * 1.15 * dt;
     if (w.z > 190){ w.z = 190; w.dir = -1; }
     if (w.z < 12){ w.z = 12; w.dir = 1; }
@@ -1711,7 +1744,9 @@ function buildWorld(){
   waterMesh = paved(96, 260, waterMap, 7, -158, 0.03, 90);
   paved(40, 170, sandMap, 5, -208, 0.08, 120);
   addStreetDressing();
+  addJail();
   addWalkers();
+  makeWagon();
   return lamps;
 }
 let waterMesh = null;
@@ -2158,11 +2193,478 @@ function tickZombies(dt){
   }
 }
 
+function addJail(){
+  const x = JAIL.x, z = JAIL.z, hw = 3.4, hd = 4.2, h = 3.8;
+  const x0 = x - hw, x1 = x + hw, z0 = z - hd, z1 = z + hd;
+  const wall = new THREE.MeshLambertMaterial({map:cloneMap(brickTex, 6, 4), color:0xd7c4b4});
+  const t = 0.28, gap = 0.85;
+  function wallBox(minx, minz, maxx, maxz){
+    const w = Math.max(0.08, maxx - minx), d = Math.max(0.08, maxz - minz);
+    box(w, h, d, wall, (minx + maxx) / 2, h / 2, (minz + maxz) / 2);
+    addSolid(minx, minz, maxx, maxz);
+  }
+  wallBox(x0, z0, x0 + t, z1);
+  wallBox(x0, z0, x1, z0 + t);
+  wallBox(x0, z1 - t, x1, z1);
+  wallBox(x1 - t, z0, x1, z - gap);
+  wallBox(x1 - t, z + gap, x1, z1);
+  box(t, Math.max(0.4, h - 2.4), gap * 2, wall, x1 - t / 2, 2.4 + (h - 2.4) / 2, z);
+  box(hw * 2 - 0.5, 0.08, hd * 2 - 0.5, 0x4a4038, x, 0.08, z);
+  box(hw * 2 + 0.5, 0.16, hd * 2 + 0.5, 0x2a2e32, x, h + 0.04, z);
+  for (let i = -3; i <= 3; i++) cyl(0.045, 0.045, 2.15, 0x1a1c1e, x - 0.35, 1.15, z + i * 0.42);
+  box(0.08, 0.08, 2.6, 0x1a1c1e, x - 0.35, 2.25, z);
+  box(1.3, 0.42, 0.46, 0x3a322c, x - 1.7, 0.32, z);
+  plane(2.6, 0.85, signTex("DEBTORS' JAIL", 'The station wagon', '#f4efe6', '#1c1915'), x1 + 0.16, 2.7, z, -Math.PI / 2);
+  const bulb = sph(0.14, 0.08, 0.14, bulbMat, x, h - 0.45, z);
+  bulb.castShadow = false;
+  const lamp = new THREE.PointLight(0xffe1b0, 2.4, 16, 2);
+  lamp.position.set(x, h - 0.7, z);
+  scene.add(lamp);
+  JAIL.door = {x:x1 + 2.4, z};
+  JAIL.cell = {x:x - 1.7, z};
+}
+function makeWagon(){
+  const mesh = buildCarMesh(0x1a2744);
+  const redMat = new THREE.MeshLambertMaterial({color:0xff2a2a, emissive:0xff2a2a, emissiveIntensity:0.2});
+  const blueMat = new THREE.MeshLambertMaterial({color:0x2a62ff, emissive:0x2a62ff, emissiveIntensity:0.2});
+  const red = box(0.24, 0.1, 0.22, redMat, -0.2, 1.48, -0.05, mesh);
+  const blue = box(0.24, 0.1, 0.22, blueMat, 0.2, 1.48, -0.05, mesh);
+  box(0.7, 0.06, 0.28, 0xf4efe6, 0, 1.4, -0.05, mesh);
+  mesh.visible = false;
+  scene.add(mesh);
+  const cop = makePerson(0x1a2744);
+  cop.sprite.visible = false;
+  cop.mesh.visible = false;
+  scene.add(cop.mesh);
+  wagon = {on:false, step:'toScene', goal:'pickup', x:-2.2, z:6, yaw:Math.PI, speed:0, mesh, red, blue, cop, copX:0, copZ:0, propId:'', wait:0, points:[]};
+}
+function setSiren(on){
+  const ctx = ac();
+  if (!ctx) return;
+  if (!siren){
+    const a = ctx.createOscillator();
+    const b = ctx.createOscillator();
+    const g = ctx.createGain();
+    a.frequency.value = 640;
+    b.frequency.value = 520;
+    g.gain.value = 0;
+    a.connect(g); b.connect(g); g.connect(ctx.destination);
+    a.start(); b.start();
+    siren = {a, b, g};
+  }
+  siren.g.gain.setTargetAtTime(on ? 0.035 : 0, ctx.currentTime, 0.08);
+}
+function flashBar(){
+  if (!wagon) return;
+  const blink = Math.sin(performance.now() / 80) > 0;
+  wagon.red.material.emissiveIntensity = blink ? 0.9 : 0.05;
+  wagon.blue.material.emissiveIntensity = blink ? 0.05 : 0.9;
+  if (siren && wagon.on && (wagon.step === 'toScene' || wagon.step === 'toJail')){
+    const ctx = ac();
+    if (ctx){
+      siren.a.frequency.setTargetAtTime(blink ? 760 : 560, ctx.currentTime, 0.05);
+      siren.b.frequency.setTargetAtTime(blink ? 540 : 720, ctx.currentTime, 0.05);
+    }
+  }
+}
+function sidePos(){
+  return {x:wagon.x + Math.cos(wagon.yaw) * 1.7, z:wagon.z - Math.sin(wagon.yaw) * 1.7};
+}
+function tenantXZ(){
+  const p = propById(wagon.propId);
+  return {x:p.avatar.mesh.position.x, z:p.avatar.mesh.position.z};
+}
+function putCop(x, z, yaw){
+  wagon.copX = x;
+  wagon.copZ = z;
+  wagon.cop.mesh.visible = true;
+  wagon.cop.mesh.position.set(x, 0, z);
+  wagon.cop.mesh.rotation.y = yaw;
+}
+function walkCopTo(target, dt, stop){
+  const dx = target.x - wagon.copX, dz = target.z - wagon.copZ;
+  const dist = Math.hypot(dx, dz) || 0.0001;
+  if (dist <= stop) return true;
+  const step = Math.min(3.4 * dt, dist);
+  wagon.copX += dx / dist * step;
+  wagon.copZ += dz / dist * step;
+  wagon.cop.mesh.visible = true;
+  wagon.cop.mesh.position.set(wagon.copX, Math.abs(Math.sin(performance.now() / 140)) * 0.04, wagon.copZ);
+  wagon.cop.mesh.rotation.y = Math.atan2(dx, dz);
+  return dist - step <= stop;
+}
+function escortTenant(){
+  const p = propById(wagon.propId);
+  if (!p || !p.avatar) return;
+  const yaw = wagon.cop.mesh.rotation.y;
+  p.avatar.mesh.visible = true;
+  p.avatar.mesh.position.set(wagon.copX - Math.sin(yaw) * 0.55, 0, wagon.copZ - Math.cos(yaw) * 0.55);
+  p.avatar.mesh.rotation.set(0, yaw, 0.2);
+}
+function rideTenant(){
+  const p = propById(wagon.propId);
+  if (!p || !p.avatar) return;
+  p.avatar.mesh.visible = true;
+  p.avatar.mesh.position.set(wagon.x - Math.sin(wagon.yaw) * 0.2, 0.2, wagon.z - Math.cos(wagon.yaw) * 0.2);
+  p.avatar.mesh.rotation.set(0, wagon.yaw, 0);
+}
+function driveToward(points, dt){
+  const dest = points[0];
+  if (!dest) return true;
+  const dx = dest.x - wagon.x, dz = dest.z - wagon.z;
+  const dist = Math.hypot(dx, dz) || 0.0001;
+  const targetYaw = Math.atan2(-dx / dist, -dz / dist);
+  const err = angDiff(wagon.yaw, targetYaw);
+  wagon.yaw += clamp(err, -2.4 * dt, 2.4 * dt);
+  const last = points.length === 1;
+  const arrive = last ? 3.1 : 2.1;
+  if (dist < arrive){
+    points.shift();
+    wagon.speed = 0;
+    wagon.mesh.position.set(wagon.x, 0, wagon.z);
+    wagon.mesh.rotation.y = -wagon.yaw;
+    return points.length === 0;
+  }
+  const spd = Math.abs(err) > 0.55 ? 0 : Math.min(14, 7 + dist * 0.25);
+  wagon.speed = spd;
+  wagon.x += -Math.sin(wagon.yaw) * spd * dt;
+  wagon.z += -Math.cos(wagon.yaw) * spd * dt;
+  wagon.mesh.visible = true;
+  wagon.mesh.position.set(wagon.x, 0, wagon.z);
+  wagon.mesh.rotation.y = -wagon.yaw;
+  spinWheels(wagon, dt, spd);
+  return false;
+}
+function stopWagon(){
+  if (!wagon) return;
+  wagon.on = false;
+  wagon.step = 'toScene';
+  wagon.speed = 0;
+  if (wagon.mesh) wagon.mesh.visible = false;
+  if (wagon.cop) wagon.cop.mesh.visible = false;
+  setSiren(false);
+}
+function startWagon(propId){
+  const p = propById(propId);
+  const here = {x:p.avatar.mesh.position.x, z:p.avatar.mesh.position.z};
+  wagon.on = true;
+  wagon.step = 'toScene';
+  wagon.goal = 'pickup';
+  wagon.propId = propId;
+  wagon.x = -2.2;
+  wagon.z = clamp(here.z - 26, 6, 180);
+  wagon.yaw = Math.PI;
+  wagon.mesh.visible = true;
+  wagon.mesh.position.set(wagon.x, 0, wagon.z);
+  wagon.mesh.rotation.y = -wagon.yaw;
+  wagon.cop.mesh.visible = false;
+  wagon.points = [
+    {x:-2.2, z:clamp(here.z, 8, 196)},
+    {x:clamp(here.x, -3.4, 3.4), z:here.z},
+  ];
+  setSiren(true);
+}
+function finishJail(p){
+  if (!p) return;
+  p.jailed = true;
+  p.occ = false;
+  p.happy = 0;
+  S.removed += 1;
+  if (S.haul && S.haul.propId === p.id) S.haul.stage = 'jailed';
+  p.avatar.mesh.position.set(JAIL.cell.x, 0, JAIL.cell.z);
+  p.avatar.mesh.rotation.set(0, Math.PI / 2, 0);
+  refreshAvatar(p);
+  say(p.resident, p.resident + ' is in debtors\' jail. ' + p.addr + ' is empty.');
+}
+function tickWagon(dt){
+  if (!wagon || !wagon.on) return;
+  flashBar();
+  switch (wagon.step){
+    case 'toScene':
+      if (driveToward(wagon.points, dt)){ wagon.step = 'stepout'; wagon.wait = 0.35; setSiren(false); }
+      break;
+    case 'stepout':
+      wagon.wait -= dt;
+      if (wagon.wait <= 0){
+        const side = sidePos();
+        putCop(side.x, side.z, wagon.yaw);
+        wagon.step = 'approach';
+      }
+      break;
+    case 'approach':
+      if (walkCopTo(tenantXZ(), dt, 0.75)) wagon.step = 'escort';
+      break;
+    case 'escort':
+      escortTenant();
+      if (walkCopTo(sidePos(), dt, 0.85)){ wagon.step = 'board'; wagon.wait = 0.4; }
+      break;
+    case 'board':
+      escortTenant();
+      wagon.wait -= dt;
+      if (wagon.wait <= 0){
+        wagon.cop.mesh.visible = false;
+        const pz = tenantXZ().z;
+        wagon.points = [
+          {x:-2.2, z:clamp(pz, 8, 196)},
+          {x:-2.2, z:JAIL.z},
+          {x:JAIL.door.x, z:JAIL.door.z},
+        ];
+        wagon.step = 'toJail';
+        setSiren(true);
+      }
+      break;
+    case 'toJail':
+      rideTenant();
+      if (driveToward(wagon.points, dt)){
+        setSiren(false);
+        putCop(wagon.x, wagon.z, Math.atan2(JAIL.cell.x - wagon.x, JAIL.cell.z - wagon.z));
+        wagon.step = 'toCell';
+      }
+      break;
+    case 'toCell':
+      escortTenant();
+      if (walkCopTo(JAIL.cell, dt, 0.55)){
+        finishJail(propById(wagon.propId));
+        wagon.cop.mesh.visible = false;
+        wagon.points = [{x:-2.2, z:JAIL.z}, {x:-2.2, z:4}];
+        wagon.yaw = Math.atan2(-(-2.2 - wagon.x), -(JAIL.z - wagon.z));
+        wagon.step = 'leave';
+      }
+      break;
+    case 'leave':
+      if (driveToward(wagon.points, dt)) stopWagon();
+      break;
+    default: assertNever(wagon.step);
+  }
+}
+function onStreet(x, z){
+  if (Math.abs(x) <= 4.3 && z >= 4 && z <= 198) return true;
+  if (Math.abs(z - 148) <= 4.3 && Math.abs(x) <= 78) return true;
+  if (Math.hypot(x, z - 200) <= 15.2 && z >= 186) return true;
+  return false;
+}
+function nearestCurb(x, z){
+  const h = {x:clamp(x, -3.2, 3.2), z:clamp(z, 8, 196)};
+  const cross = {x:clamp(x, -70, 70), z:148};
+  const dh = Math.hypot(h.x - x, h.z - z);
+  const dc = Math.hypot(cross.x - x, cross.z - z);
+  return dh <= dc ? h : cross;
+}
+function nearestBody(range){
+  let best = null, bestD = range;
+  for (const p of PROPS){
+    if (!p.avatar || !p.avatar.mesh.visible || p.jailed) continue;
+    if (!(p.occ && p.resident)) continue;
+    if (S.haul && S.haul.propId === p.id && (S.haul.stage === 'call' || S.haul.stage === 'wagon' || S.haul.stage === 'jailed')) continue;
+    const d = Math.hypot(p.avatar.mesh.position.x - player.x, p.avatar.mesh.position.z - player.z);
+    if (d < bestD){ best = {kind:'tenant', prop:p, mesh:p.avatar.mesh}; bestD = d; }
+  }
+  for (const w of WALKERS){
+    if (!w.mesh.visible || w.held) continue;
+    const d = Math.hypot(w.mesh.position.x - player.x, w.mesh.position.z - player.z);
+    if (d < bestD){ best = {kind:'walker', walker:w, mesh:w.mesh}; bestD = d; }
+  }
+  return best;
+}
+function tryGrab(){
+  if (player.hold || player.car || player.down || S.phase !== 'day') return false;
+  const b = nearestBody(1.7);
+  if (!b){ sfx('bad'); return false; }
+  if (b.walker) b.walker.held = true;
+  player.hold = {kind:b.kind, prop:b.prop || null, walker:b.walker || null, mesh:b.mesh, grabbed:true, vx:0, vz:0};
+  const who = b.prop ? b.prop.resident : 'them';
+  toast('You have ' + who + '.');
+  return true;
+}
+function landHold(){
+  const h = player.hold;
+  if (!h) return;
+  h.mesh.position.y = 0;
+  h.mesh.rotation.x = 0;
+  h.mesh.rotation.z = 0;
+  const x = h.mesh.position.x, z = h.mesh.position.z;
+  if (h.walker){
+    h.walker.held = false;
+    h.walker.x = x;
+    h.walker.z = z;
+  }
+  const p = h.prop;
+  player.hold = null;
+  if (!p || !S.haul || S.haul.propId !== p.id || S.haul.stage !== 'drag') return;
+  if (onStreet(x, z) && !insideHouse(p, x, z)){
+    S.haul.stage = 'call';
+    say(p.resident, p.resident + ' is in the street. Dial 444-0191.');
+  } else notice('Throw them into the street.');
+}
+function throwPerson(){
+  const h = player.hold;
+  if (!h || !h.grabbed) return false;
+  const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+  h.grabbed = false;
+  h.vx = fx * 8.5;
+  h.vz = fz * 8.5;
+  sfx('shove');
+  return true;
+}
+function useGrab(){
+  if (S.mode !== 'play' || S.panel || phoneOn || player.down || player.car) return;
+  if (player.hold && player.hold.grabbed) throwPerson();
+  else tryGrab();
+}
+function tickHold(dt){
+  const h = player.hold;
+  if (!h) return;
+  if (h.grabbed){
+    const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+    const x = player.x + fx * 0.95, z = player.z + fz * 0.95;
+    h.mesh.position.set(x, 0.04, z);
+    h.mesh.rotation.set(0.4, player.yaw, Math.sin(performance.now() / 110) * 0.12);
+    return;
+  }
+  let x = h.mesh.position.x + h.vx * dt;
+  let z = h.mesh.position.z + h.vz * dt;
+  if (hits(x, z, 0.28)){
+    h.vx = 0; h.vz = 0;
+  } else {
+    h.mesh.position.x = x;
+    h.mesh.position.z = z;
+    h.vx *= Math.exp(-dt * 2.4);
+    h.vz *= Math.exp(-dt * 2.4);
+  }
+  const spd = Math.hypot(h.vx, h.vz);
+  h.mesh.position.y = Math.min(0.7, spd * 0.08);
+  h.mesh.rotation.x = Math.min(1.1, spd * 0.12);
+  if (spd < 0.45) landHold();
+}
+function renderPhone(){
+  const d = phoneDigits;
+  let shown = '—';
+  if (d.length <= 3) shown = d;
+  else shown = d.slice(0, 3) + '-' + d.slice(3);
+  el.phonenum.textContent = shown || '—';
+}
+function pushDigit(n){
+  if (phoneDigits.length >= 7) return;
+  phoneDigits += n;
+  renderPhone();
+  sfx('click');
+}
+function openPhone(){
+  if (S.mode !== 'play' || player.down || S.panel) return;
+  phoneOn = true;
+  phoneDigits = '';
+  renderPhone();
+  el.phone.classList.remove('hidden');
+  el.reply.classList.add('hidden');
+  replyLife = 0;
+  syncTalk();
+  sfx('open');
+  if (document.pointerLockElement) document.exitPointerLock();
+}
+function closePhone(){
+  phoneOn = false;
+  if (el.phone) el.phone.classList.add('hidden');
+  syncTalk();
+}
+function togglePhone(){
+  if (phoneOn) closePhone();
+  else openPhone();
+}
+function placeCall(){
+  const n = phoneDigits.replace(/\D/g, '');
+  sfx('ring');
+  closePhone();
+  if (n !== STATION_NO){
+    say('Phone', 'That number does not answer.');
+    return 'dead';
+  }
+  if (!S.haul || S.haul.stage !== 'call'){
+    say('Station', 'The cops only collect someone you have already thrown in the street.');
+    return 'none';
+  }
+  if (wagon && wagon.on){
+    say('Station', 'The wagon is already on the way.');
+    return 'busy';
+  }
+  startWagon(S.haul.propId);
+  S.haul.stage = 'wagon';
+  say('Station', 'The cops are coming. They will take them to debtors\' jail.');
+  return 'sent';
+}
+function buildPhoneKeys(){
+  const labels = ['1','2','3','4','5','6','7','8','9','clear','0','call'];
+  for (const lab of labels){
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = lab === 'clear' ? 'Clear' : lab === 'call' ? 'Call' : lab;
+    b.addEventListener('click', () => {
+      if (lab === 'clear'){ phoneDigits = ''; renderPhone(); sfx('click'); }
+      else if (lab === 'call') placeCall();
+      else pushDigit(lab);
+    });
+    el.phonekeys.appendChild(b);
+  }
+}
+function haulLive(){
+  return !!(S.haul && S.haul.stage !== 'jailed');
+}
+function haulPoint(){
+  const haul = S.haul;
+  if (!haul) return null;
+  const p = propById(haul.propId);
+  const stage = haul.stage;
+  switch (stage){
+    case 'drag': {
+      const held = player.hold && player.hold.prop === p && player.hold.grabbed;
+      if (!held) return {x:p.avatar.mesh.position.x, z:p.avatar.mesh.position.z, label:'Grab ' + p.resident};
+      const curb = nearestCurb(p.door.x, p.door.z);
+      return {x:curb.x, z:curb.z, label:'Throw ' + p.resident + ' into the street'};
+    }
+    case 'call':
+      return {x:p.avatar.mesh.position.x, z:p.avatar.mesh.position.z, label:'Dial 444-0191'};
+    case 'wagon':
+      return {x:JAIL.x, z:JAIL.z, label:'Debtors\' jail'};
+    case 'jailed':
+      return null;
+    default: return assertNever(stage);
+  }
+}
+function resetWalkers(){
+  for (const w of WALKERS){
+    w.held = false;
+    w.x = w.homeX;
+    w.z = w.homeZ;
+    w.dir = w.homeDir;
+    w.mesh.position.set(w.x, 0, w.z);
+    w.mesh.rotation.set(0, w.dir > 0 ? 0 : Math.PI, 0);
+    w.mesh.visible = S.phase !== 'night';
+  }
+}
+function settleResidents(){
+  player.hold = null;
+  for (const w of WALKERS) w.held = false;
+  for (const p of PROPS){
+    if (!p.avatar || !p.tenant || p.jailed) continue;
+    p.avatar.mesh.position.set(p.tenant.x, 0, p.tenant.z);
+    p.avatar.mesh.rotation.set(0, p.homeYaw || 0, 0);
+  }
+  refreshAvatars();
+}
+function cancelHaul(msg){
+  if (!S.haul || S.haul.stage === 'jailed') return;
+  S.haul = null;
+  closePhone();
+  stopWagon();
+  settleResidents();
+  if (msg) toast(msg);
+}
+
 /* ---------- tasks ---------- */
 function resetProps(){
   for (const p of PROPS){
     p.occ = p.baseOcc; p.happy = p.baseHappy; p.rent = p.baseRent; p.resident = p.baseResident;
     p.managed = false;
+    p.jailed = false;
   }
 }
 function nextQ(){ const i = qCursor % QUESTIONS.length; qCursor += 1; return i; }
@@ -2316,6 +2818,7 @@ function sfx(kind){
     case 'step': noiseHit(0.05, 240, 0.05); break;
     case 'shot': noiseHit(0.09, 900, 0.08); break;
     case 'shove': noiseHit(0.08, 420, 0.07); break;
+    case 'ring': blip(880, 0.09, 0.05); blip(660, 0.14, 0.04); break;
     default: assertNever(kind);
   }
 }
@@ -2402,7 +2905,7 @@ function speak(text, who, fresh){
   }
 }
 function syncTalk(){
-  const on = !el.panel.classList.contains('hidden') || !el.reply.classList.contains('hidden');
+  const on = !el.panel.classList.contains('hidden') || !el.reply.classList.contains('hidden') || phoneOn;
   document.body.classList.toggle('talking', on);
   el.talkdim.classList.toggle('hidden', !on);
 }
@@ -2532,6 +3035,7 @@ function choose(i){
   pendingWho = '';
   refreshAvatars();
   maybeOffer();
+  updateHud();
 }
 function dismissPanel(){
   const spec = S.panel;
@@ -2745,11 +3249,30 @@ function doTask(t){
   const p = propById(t.propId);
   switch (t.type){
     case 'rent':
-      t.done = true;
-      earn(p.rent);
-      S.collected += 1;
-      bumpHappy(p, 3);
-      say(p.resident, p.resident + ' paid ' + money(p.rent) + '.');
+      openPanel({
+        face: p.resident || 'Resident',
+        title:'Rent · ' + p.addr,
+        body:(p.resident || 'The resident') + ' owes ' + money(p.rent) + '. Ask for it before anything else. If they will not pay, they leave with you.',
+        choices:[
+          {label:'Take ' + money(p.rent) + ' and leave a receipt.', apply(){
+            t.done = true;
+            earn(p.rent);
+            S.collected += 1;
+            bumpHappy(p, 3);
+            say(p.resident, p.resident + ' paid ' + money(p.rent) + '.');
+          }},
+          {label:'You do not have it. You are coming outside.', apply(){
+            if (S.haul && S.haul.stage !== 'jailed'){
+              say(p.resident, 'The street is already waiting on the wagon.');
+              return;
+            }
+            t.done = true;
+            S.wrong += 1;
+            S.haul = {propId:p.id, stage:'drag'};
+            say(p.resident, 'I do not have ' + money(p.rent) + '.');
+          }},
+        ],
+      });
       break;
     case 'repair':
       openPanel({
@@ -2769,9 +3292,9 @@ function doTask(t){
         title:'Vacancy · ' + p.addr,
         body:'Three applications. One is complete, one needs a discount to start Friday, and one is an envelope with no history.',
         choices:[
-          {label:'Avery Cole · full file · ' + money(p.rent), apply(){ t.done = true; p.occ = true; p.resident = 'Avery Cole'; p.happy = 78; earn(p.rent); S.filled += 1; S.correct += 1; say('Avery Cole', 'Avery Cole has the keys.'); }},
-          {label:'Billie Tran · rent drops $175', apply(){ t.done = true; p.occ = true; p.resident = 'Billie Tran'; p.happy = 64; p.rent = p.rent - 175; earn(p.rent); S.filled += 1; say('Billie Tran', 'Billie Tran is in at a discount.'); }},
-          {label:'Envelope, no paperwork, keys today', apply(){ t.done = true; p.occ = true; p.resident = 'No file'; p.happy = 36; earn(p.rent); S.filled += 1; S.wrong += 1; sfx('bad'); say('No file', 'You handed over keys with no file.'); }},
+          {label:'Avery Cole · full file · ' + money(p.rent), apply(){ t.done = true; p.occ = true; p.resident = 'Avery Cole'; p.happy = 78; earn(p.rent); S.filled += 1; S.correct += 1; seatResident(p); say('Avery Cole', 'Avery Cole has the keys.'); }},
+          {label:'Billie Tran · rent drops $175', apply(){ t.done = true; p.occ = true; p.resident = 'Billie Tran'; p.happy = 64; p.rent = p.rent - 175; earn(p.rent); S.filled += 1; seatResident(p); say('Billie Tran', 'Billie Tran is in at a discount.'); }},
+          {label:'Envelope, no paperwork, keys today', apply(){ t.done = true; p.occ = true; p.resident = 'No file'; p.happy = 36; earn(p.rent); S.filled += 1; S.wrong += 1; sfx('bad'); seatResident(p); say('No file', 'You handed over keys with no file.'); }},
         ],
       });
       break;
@@ -2864,6 +3387,12 @@ function nearestCar(maxD){
 function enterCar(c){
   if (!c || (c.occupied && c.occupied !== 'you')) return;
   if (player.car) return;
+  if (player.hold && player.hold.grabbed){
+    player.hold.vx = 0;
+    player.hold.vz = 0;
+    player.hold.grabbed = false;
+    landHold();
+  }
   if (c.traffic){ c.traffic = false; toast('You took the car.'); }
   else toast(c.id === 'company' ? 'Company car.' : 'In the car.');
   c.occupied = 'you';
@@ -2886,7 +3415,7 @@ function exitCar(){
   sfx('click');
 }
 function interact(){
-  if (S.mode !== 'play' || S.panel || player.down) return;
+  if (S.mode !== 'play' || S.panel || phoneOn || player.down) return;
   if (player.car){ exitCar(); return; }
   const t = targets();
   if (t){ t.act(); return; }
@@ -2926,7 +3455,7 @@ function nextSentence(){
   const dx = g.x - player.x, dz = g.z - player.z;
   const dist = Math.round(Math.hypot(dx, dz));
   const tail = dist + 'm ' + bearingWord(dx, dz) + '. Follow the gold pin.';
-  if (S.tasks.some(t => !t.done) || (S.urgent && !S.urgent.done)) return g.label + '. ' + tail;
+  if (S.tasks.some(t => !t.done) || (S.urgent && !S.urgent.done) || haulLive()) return g.label + '. ' + tail;
   return base + ' ' + tail;
 }
 function objectivePoint(){
@@ -2935,6 +3464,10 @@ function objectivePoint(){
   if (S.urgent && !S.urgent.done){
     const s = urgentSpot();
     return {x:s.x, z:s.z, label:s.label};
+  }
+  if (haulLive()){
+    const h = haulPoint();
+    if (h) return h;
   }
   let best = null;
   for (const t of S.tasks){
@@ -2952,6 +3485,10 @@ function goalLine(){
   if (net.role === 'client' && (!net.latest || !net.latest.playing)) return 'Waiting for the host to open the day.';
   if (S.phase === 'night') return inOffice() ? 'Stay inside 3109 until dawn.' : 'Get inside 3109. The office is south.';
   if (S.urgent && !S.urgent.done) return urgentSpot().label + '. Then get back inside 3109 before dark.';
+  if (haulLive()){
+    const h = haulPoint();
+    if (h) return h.label;
+  }
   const open = S.tasks.some(t => !t.done);
   if (open){
     const g = objectivePoint();
@@ -2987,6 +3524,7 @@ function beginDay(){
 }
 function beginNight(){
   shownObj = '';
+  if (S.haul && S.haul.stage !== 'jailed') cancelHaul('Dusk stopped the removal. They are back inside.');
   const home = inOffice();
   if (home) S.homeNights += 1; else S.caught += 1;
   failOpenTasks();
@@ -3031,6 +3569,7 @@ function yearEnd(){
     ['Sound calls', String(S.correct)],
     ['Costly calls', String(S.wrong)],
     ['Nights in before dusk', String(S.homeNights)],
+    ['Sent to debtors\' jail', String(S.removed)],
     ['Nights caught outside', String(S.caught)],
     ['Deaths', String(S.deaths)],
     ['Score', String(score)],
@@ -3069,6 +3608,8 @@ function fresh(){
   S.homeNights = 0; S.caught = 0; S.deaths = 0;
   S.collected = 0; S.repairs = 0; S.filled = 0; S.correct = 0; S.wrong = 0; S.signed = 0;
   S.rentIn = 0; S.spent = 0;
+  S.removed = 0;
+  S.haul = null;
   qCursor = 0;
   player.x = 0; player.z = -1; player.yaw = Math.PI; player.pitch = 0;
   player.hp = 100; player.down = false;
@@ -3078,11 +3619,15 @@ function fresh(){
   el.feed.replaceChildren();
   resetProps();
   resetCars();
+  closePhone();
+  stopWagon();
+  resetWalkers();
+  settleResidents();
   setOverlays();
   beginDay();
 }
 function wantLock(){
-  if (TOUCH || AUTOTEST || S.panel || S.mode !== 'play') return;
+  if (TOUCH || AUTOTEST || S.panel || phoneOn || S.mode !== 'play') return;
   const p = renderer.domElement.requestPointerLock();
   if (p && p.catch) p.catch(() => {});
 }
@@ -3133,6 +3678,9 @@ function drawMap(){
   const office = pt(0, -2);
   g.fillStyle = '#e4b15a';
   g.fillRect(office[0] - 6, office[1] - 6, 12, 12);
+  const jailPt = pt(JAIL.x, JAIL.z);
+  g.fillStyle = '#9a3412';
+  g.fillRect(jailPt[0] - 6, jailPt[1] - 6, 12, 12);
   for (const p of PROPS){
     const q = pt(p.x, p.z);
     const open = S.tasks.some(t => !t.done && t.propId === p.id);
@@ -3234,7 +3782,10 @@ function updateHud(){
   if (bannerLife > 0 && !S.panel){
     el.banner.classList.remove('hidden');
   } else el.banner.classList.add('hidden');
-  if (S.phase === 'day' && !S.offered) el.hint.textContent = 'A Ferndale signing calls late. Finish the gold pin first.';
+  if (S.haul && S.haul.stage === 'drag') el.hint.textContent = 'F grabs. Walk them out. F or the mouse throws them into the street.';
+  else if (S.haul && S.haul.stage === 'call') el.hint.textContent = 'P opens the phone. Dial 444-0191.';
+  else if (S.haul && S.haul.stage === 'wagon') el.hint.textContent = 'The cops are taking them to debtors\' jail.';
+  else if (S.phase === 'day' && !S.offered) el.hint.textContent = 'A Ferndale signing calls late. Finish the gold pin first.';
   else if (S.urgent && !S.urgent.done) el.hint.textContent = 'Take a car to the gold pin, then get back inside 3109.';
   else if (night && !inOffice() && !player.down) el.hint.textContent = 'The gold pin is 3109. Get inside.';
   else if (night && inOffice()) el.hint.textContent = 'Safe until dawn. Stay inside.';
@@ -3242,6 +3793,15 @@ function updateHud(){
   document.body.classList.toggle('afterdark', night && !player.down);
   el.speed.textContent = player.car ? ('DRIVING ' + Math.round(Math.abs(player.car.speed))) : '';
   el.obj.replaceChildren();
+  if (haulLive()){
+    const h = haulPoint();
+    if (h){
+      const row = document.createElement('div');
+      row.className = 'hot';
+      row.textContent = 'NEXT · ' + h.label + ' · ' + Math.round(Math.hypot(h.x - player.x, h.z - player.z)) + 'm';
+      el.obj.append(row);
+    }
+  }
   if (S.urgent && !S.urgent.done){
     const s = urgentSpot();
     const d = document.createElement('div');
@@ -3291,8 +3851,16 @@ function updateHud(){
       : ride
         ? ((TOUCH ? 'USE' : 'E') + '  ' + (ride.traffic ? 'Take car' : ride.label))
         : '';
-  el.prompt.classList.toggle('hidden', !prompt);
-  if (prompt) el.prompt.textContent = prompt;
+  let cue = prompt;
+  if (!player.car && S.phase === 'day' && !S.panel && !phoneOn){
+    if (player.hold && player.hold.grabbed) cue = (TOUCH ? 'THROW' : 'F') + '  Throw';
+    else if (nearestBody(1.7)){
+      const grab = (TOUCH ? 'GRAB' : 'F') + '  Grab';
+      cue = cue ? cue + '   ·   ' + grab : grab;
+    }
+  }
+  el.prompt.classList.toggle('hidden', !cue);
+  if (cue) el.prompt.textContent = cue;
   if (S.panel) el.panelclock.textContent = c.cd;
   el.dmg.style.opacity = String(S.hurt);
   for (let i = 0; i < PICKUPS.length; i++) pickupMeshes[i].visible = night;
@@ -3427,8 +3995,8 @@ function tickPlayer(dt){
     if (w && WEAP[w.type].auto) fire();
   }
   if ((mouseRight || touchShove) && player.shoveT <= 0) shove();
-  if (!S.panel && !player.down && player.car) driveCar(dt);
-  else if (!S.panel && !player.down){
+  if (!S.panel && !phoneOn && !player.down && player.car) driveCar(dt);
+  else if (!S.panel && !phoneOn && !player.down){
     let ix = stickX, iz = stickY;
     if (keys.KeyW || keys.ArrowUp) iz += 1;
     if (keys.KeyS || keys.ArrowDown) iz -= 1;
@@ -3438,7 +4006,7 @@ function tickPlayer(dt){
     if (fl > 0){
       ix /= fl; iz /= fl;
       const sprint = keys.ShiftLeft || keys.ShiftRight || touchRun;
-      const sp = sprint ? SPRINT : WALK;
+      const sp = (sprint ? SPRINT : WALK) * (player.hold && player.hold.grabbed ? 0.68 : 1);
       const rx = Math.cos(player.yaw), rz = -Math.sin(player.yaw);
       moveCircle(player, (fx * iz + rx * ix) * sp * dt, (fz * iz + rz * ix) * sp * dt, 0.32);
       player.bob += dt * (sprint ? 11 : 8);
@@ -3491,6 +4059,8 @@ function update(dt){
   tickPop(dt);
   tickAudio(dt);
   tickPlayer(dt);
+  tickHold(dt);
+  tickWagon(dt);
   if (S.phase === 'night') tickZombies(dt);
   applySky();
   updateHud();
@@ -3737,6 +4307,9 @@ function snapshot(){
     collected:S.collected, repairs:S.repairs, filled:S.filled, signed:S.signed, correct:S.correct, wrong:S.wrong,
     driving:!!player.car, carId:player.car ? player.car.id : '',
     panel:S.panel ? S.panel.title : '',
+    haul:S.haul ? {propId:S.haul.propId, stage:S.haul.stage} : null,
+    removed:S.removed,
+    holding:player.hold ? (player.hold.grabbed ? 'grab' : 'throw') : '',
     urgent:S.urgent ? {step:S.urgent.step, done:!!S.urgent.done, payout:S.urgent.payout} : null,
     tasks:S.tasks.map(t => ({type:t.type, propId:t.propId, done:t.done})),
     zombies:pool.filter(z => !z.dead).length,
@@ -3767,6 +4340,15 @@ window.__rentor = {
   urgentAt, start:fresh, setPhase, setTime(s){ S.left = s; },
   teleport(x, z){ player.x = x; player.z = z; if (player.car){ player.car.x = x; player.car.z = z; player.car.mesh.position.set(x, 0, z); } },
   interact, choose, simulate, fire, shove, pickup, cycleWeapon,
+  grab(){ return tryGrab(); },
+  throwHold(){ return throwPerson(); },
+  dial(n){ phoneDigits = String(n || '').replace(/\D/g, ''); return placeCall(); },
+  wagonStep(){ return wagon && wagon.on ? wagon.step : 'idle'; },
+  person(id){
+    const p = propById(id);
+    if (!p || !p.avatar) return null;
+    return {x:p.avatar.mesh.position.x, z:p.avatar.mesh.position.z, visible:p.avatar.mesh.visible, jailed:!!p.jailed, occ:!!p.occ};
+  },
   setKey(code, down){ keys[code] = down; },
   clearZombies,
   summon(x, z){ return makeZombie(x, z).id; },
@@ -3793,16 +4375,17 @@ window.__rentor = {
     return n;
   },
 };
+buildPhoneKeys();
 $('playbtn').addEventListener('click', () => { openGuide(); });
 $('guidebtn').addEventListener('click', () => { fresh(); wantLock(); });
 $('hostbtn').addEventListener('click', startHost);
 $('joinbtn').addEventListener('click', () => $('joinbox').classList.remove('hidden'));
 $('joingo').addEventListener('click', () => startJoin($('joincode').value));
 $('againbtn').addEventListener('click', () => { fresh(); wantLock(); });
-renderer.domElement.addEventListener('click', () => { if (S.mode === 'play' && !S.panel) wantLock(); });
+renderer.domElement.addEventListener('click', () => { if (S.mode === 'play' && !S.panel && !phoneOn) wantLock(); });
 renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('mousemove', e => {
-  if (document.pointerLockElement !== renderer.domElement || S.panel) return;
+  if (document.pointerLockElement !== renderer.domElement || S.panel || phoneOn) return;
   player.yaw -= e.movementX * 0.0022;
   player.pitch = clamp(player.pitch - e.movementY * 0.0022, -1.15, 1.15);
 });
@@ -3810,8 +4393,11 @@ document.addEventListener('mousedown', e => {
   if (S.mode !== 'play') return;
   if (e.button === 0){
     mouseLeft = true;
-    const w = curW();
-    if (!w || !WEAP[w.type].auto) fire();
+    if (player.hold && player.hold.grabbed && S.phase === 'day') throwPerson();
+    else {
+      const w = curW();
+      if (!w || !WEAP[w.type].auto) fire();
+    }
   }
   if (e.button === 2){ mouseRight = true; shove(); }
 });
@@ -3830,8 +4416,16 @@ document.addEventListener('keydown', e => {
   unlockAudio();
   keys[e.code] = true;
   if (S.mode !== 'play') return;
+  if (phoneOn && !e.repeat){
+    if (e.code === 'Escape'){ closePhone(); return; }
+    if (e.code === 'Enter' || e.code === 'NumpadEnter'){ placeCall(); return; }
+    if (e.code === 'Backspace'){ phoneDigits = phoneDigits.slice(0, -1); renderPhone(); return; }
+    if (/^Digit[0-9]$/.test(e.code)){ pushDigit(e.code.slice(5)); return; }
+  }
   if (e.code === 'Escape'){ dismissPanel(); mouseLeft = false; mouseRight = false; }
   if (e.code === 'KeyE' && !e.repeat) interact();
+  if (e.code === 'KeyF' && !e.repeat) useGrab();
+  if (e.code === 'KeyP' && !e.repeat) togglePhone();
   if (e.code === 'KeyR' && !e.repeat) startReload();
   if (S.panel && !e.repeat && (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3')){
     choose(e.code === 'Digit1' ? 0 : e.code === 'Digit2' ? 1 : 2);
@@ -3882,7 +4476,7 @@ el.lookpad.addEventListener('pointerdown', e => {
   el.lookpad.setPointerCapture(e.pointerId);
 });
 el.lookpad.addEventListener('pointermove', e => {
-  if (e.pointerId !== lookId || S.panel) return;
+  if (e.pointerId !== lookId || S.panel || phoneOn) return;
   player.yaw -= (e.clientX - lookX) * 0.005;
   player.pitch = clamp(player.pitch - (e.clientY - lookY) * 0.005, -1.15, 1.15);
   lookX = e.clientX; lookY = e.clientY;
@@ -3898,6 +4492,8 @@ for (const btn of document.querySelectorAll('#tbtns button')){
       case 'use': interact(); break;
       case 'reload': startReload(); break;
       case 'gun': cycleWeapon(); break;
+      case 'grab': useGrab(); break;
+      case 'phone': togglePhone(); break;
       default: break;
     }
   });
