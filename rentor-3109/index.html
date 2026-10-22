@@ -215,7 +215,7 @@ body.touching #feed{display:none}
   <section>
    <p class="rule">The route</p>
    <h3>Work the list</h3>
-   <p>Earn the rent. The card at the top names the next stop. The gold pin on the corner map is that door, and a line runs from you to it. North is the top of the map. 3109 is the south edge.</p>
+   <p>Earn the rent. The card at the top names the next stop. The gold pin on the corner map is that door, and a line runs from you to it. North is the top of the map. 3109 sits on H Street just south of Harris. F Street, to the west, is Henderson Center. Everding runs south of the office.</p>
    <p>H Street ends at a circle in Ferndale. That is not a place to wait. Turn around. 3109 is south.</p>
   </section>
   <section>
@@ -302,6 +302,9 @@ for (const p of PROPS){
 const FERN_YARD = {x:11, z:218};
 const FERN_GARAGE = {x:-11.5, z:207};
 const JAIL = {x:-58, z:28, door:null, cell:null};
+const DISTRICT_ROADS = [];
+const districtPlaced = [];
+const ROAD_KEEP = [];
 const STATION_NO = '4440191';
 
 const QUESTIONS = [
@@ -570,7 +573,7 @@ function plane(w, h, tex, x, y, z, ry){
 const solids = [];
 function addSolid(minx, minz, maxx, maxz){ solids.push({minx, minz, maxx, maxz}); }
 function hits(x, z, r, ignoreCar){
-  if (x < -96 || x > 96 || z < -16 || z > 226) return true;
+  if (x < -160 || x > 118 || z < -74 || z > 226) return true;
   for (const s of solids){
     const cx = clamp(x, s.minx, s.maxx), cz = clamp(z, s.minz, s.maxz);
     if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r) return true;
@@ -1306,11 +1309,25 @@ function refreshAvatar(p){
   p.avatar.shirt.color.setHex(SHIRT_COLORS[hashStr(p.resident) % SHIRT_COLORS.length]);
   paintName(p.avatar.sprite, p.resident);
 }
+const _world = new THREE.Vector3();
+function worldXZ(obj){
+  obj.getWorldPosition(_world);
+  return {x:_world.x, y:_world.y, z:_world.z};
+}
+function loosePerson(mesh){
+  if (mesh && mesh.parent && mesh.parent !== scene) scene.attach(mesh);
+}
+function parkPerson(p){
+  const a = p.avatar;
+  if (!a || !a.home) return;
+  if (a.mesh.parent !== a.home) a.home.attach(a.mesh);
+  a.mesh.position.set(a.localX, 0, a.localZ);
+  a.mesh.rotation.set(0, a.homeYaw || 0, 0);
+}
 function seatResident(p){
   p.jailed = false;
   if (!p.avatar || !p.tenant) return;
-  p.avatar.mesh.position.set(p.tenant.x, 0, p.tenant.z);
-  p.avatar.mesh.rotation.set(0, p.homeYaw || 0, 0);
+  parkPerson(p);
   refreshAvatar(p);
 }
 function refreshAvatars(){ for (const p of PROPS) refreshAvatar(p); }
@@ -1409,6 +1426,10 @@ function addHouse(p){
     ? (p.side > 0 ? Math.PI : 0)
     : (p.side > 0 ? -Math.PI / 2 : Math.PI / 2);
   p.homeYaw = p.avatar.mesh.rotation.y;
+  p.avatar.home = g;
+  p.avatar.localX = tenant.x;
+  p.avatar.localZ = tenant.z;
+  p.avatar.homeYaw = p.homeYaw;
   g.add(p.avatar.mesh);
   refreshAvatar(p);
   const hall = p.face === 'z'
@@ -1657,6 +1678,267 @@ function tickWalkers(dt){
     w.mesh.rotation.z = Math.sin(w.phase) * 0.04;
   }
 }
+function bladeTex(text){
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 128;
+  const g = c.getContext('2d');
+  g.fillStyle = '#1f6b45';
+  g.fillRect(0, 0, 512, 128);
+  g.strokeStyle = '#f4efe6';
+  g.lineWidth = 10;
+  g.strokeRect(8, 8, 496, 112);
+  g.fillStyle = '#f4efe6';
+  g.font = '700 68px system-ui, sans-serif';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText(text, 256, 68);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+function facedBox(x, z, face, w, d){
+  if (face === 'e' || face === 'w') return {minx:x - d / 2, maxx:x + d / 2, minz:z - w / 2, maxz:z + w / 2};
+  return {minx:x - w / 2, maxx:x + w / 2, minz:z - d / 2, maxz:z + d / 2};
+}
+function faceYaw(face){
+  switch (face){
+    case 'n': return 0;
+    case 's': return Math.PI;
+    case 'e': return Math.PI / 2;
+    case 'w': return -Math.PI / 2;
+    default: return assertNever(face);
+  }
+}
+function overlaps(a, b){
+  return a.minx < b.maxx && a.maxx > b.minx && a.minz < b.maxz && a.maxz > b.minz;
+}
+function blocked(box){
+  if (box.minx < -156 || box.maxx > 112 || box.minz < -70 || box.maxz > 210) return true;
+  for (const s of solids) if (overlaps(box, s)) return true;
+  for (const r of ROAD_KEEP) if (overlaps(box, r)) return true;
+  for (const p of PROPS){
+    const home = {minx:p.x - p.hw - 1.5, maxx:p.x + p.hw + 1.5, minz:p.z - p.hd - 1.5, maxz:p.z + p.hd + 1.5};
+    if (overlaps(box, home)) return true;
+  }
+  const office = {minx:-6.4, maxx:6.4, minz:-9.4, maxz:4.2};
+  const jail = {minx:JAIL.x - 5, maxx:JAIL.x + 5.2, minz:JAIL.z - 5.2, maxz:JAIL.z + 5.2};
+  return overlaps(box, office) || overlaps(box, jail);
+}
+function paveSeg(x1, z1, x2, z2, width){
+  const horiz = Math.abs(x2 - x1) >= Math.abs(z2 - z1);
+  const len = Math.max(0.4, horiz ? Math.abs(x2 - x1) : Math.abs(z2 - z1));
+  const cx = (x1 + x2) / 2, cz = (z1 + z2) / 2;
+  paved(horiz ? len : width, horiz ? width : len, asphaltMap, 4, cx, 0.061, cz);
+  DISTRICT_ROADS.push([x1, z1, x2, z2]);
+  const extra = width / 2;
+  ROAD_KEEP.push({
+    minx:Math.min(x1, x2) - (horiz ? 0 : extra),
+    maxx:Math.max(x1, x2) + (horiz ? 0 : extra),
+    minz:Math.min(z1, z2) - (horiz ? extra : 0),
+    maxz:Math.max(z1, z2) + (horiz ? extra : 0),
+  });
+}
+function pavePad(x, z, w, d){
+  paved(w, d, asphaltMap, 4, x, 0.068, z);
+  ROAD_KEEP.push({minx:x - w / 2, minz:z - d / 2, maxx:x + w / 2, maxz:z + d / 2});
+}
+function streetBlade(x, z, text, yaw){
+  const g = new THREE.Group();
+  cyl(0.055, 0.07, 2.7, 0xc8c2b6, 0, 1.35, 0, g);
+  const board = new THREE.Mesh(new THREE.PlaneGeometry(1.85, 0.42), new THREE.MeshBasicMaterial({map:bladeTex(text), side:THREE.DoubleSide}));
+  board.position.set(0, 2.55, 0);
+  g.add(board);
+  const back = board.clone();
+  back.rotation.y = Math.PI;
+  g.add(back);
+  g.position.set(x, 0, z);
+  g.rotation.y = yaw || 0;
+  scene.add(g);
+}
+function signOn(parent, w, h, a, b, bg, fg, x, y, z){
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({map:signTex(a, b, bg, fg), side:THREE.DoubleSide}));
+  m.position.set(x, y, z);
+  parent.add(m);
+}
+function plantGroup(g, x, z, face){
+  g.position.set(x, 0, z);
+  g.rotation.y = faceYaw(face);
+  scene.add(g);
+}
+function addBungalow(x, z, face, color, label){
+  const w = 7.6, d = 8.2, h = 3.2;
+  const fp = facedBox(x, z, face, w, d);
+  if (blocked(fp)) return;
+  const g = new THREE.Group();
+  const wall = houseMat(color, w, h);
+  box(w, 0.32, d - 1.2, 0x6a5848, 0, 0.16, -0.3, g);
+  box(w - 0.2, h, d - 1.5, wall, 0, h / 2 + 0.28, -0.35, g);
+  addGable(g, w, d - 1.4, h + 0.28, 1.65, 0x3a3834, color);
+  box(w * 0.72, 0.1, 1.5, 0x6b422c, 0, 0.48, d / 2 - 0.15, g);
+  cyl(0.08, 0.08, 2.15, TRIM, -w * 0.28, 1.2, d / 2 + 0.15, g);
+  cyl(0.08, 0.08, 2.15, TRIM, w * 0.28, 1.2, d / 2 + 0.15, g);
+  box(w * 0.78, 0.1, 1.7, 0x3a3834, 0, 2.35, d / 2 - 0.05, g);
+  box(0.9, 2.05, 0.08, 0x4a3428, 0, 1.25, d / 2 - 0.72, g);
+  box(1.2, 1.3, 0.08, TRIM, -1.85, 1.85, d / 2 - 0.7, g);
+  const leftPane = box(0.86, 0.95, 0.05, glassMat, -1.85, 1.85, d / 2 - 0.64, g);
+  leftPane.castShadow = false;
+  box(1.2, 1.3, 0.08, TRIM, 1.85, 1.85, d / 2 - 0.7, g);
+  const rightPane = box(0.86, 0.95, 0.05, glassMat, 1.85, 1.85, d / 2 - 0.64, g);
+  rightPane.castShadow = false;
+  box(w + 2.6, 0.04, d + 1.4, 0x627448, 0, 0.03, 0, g);
+  if (label) signOn(g, 1.5, 0.55, label, 'H ST', '#f4efe6', '#1c1915', 0, 2.55, d / 2 + 0.2);
+  plantGroup(g, x, z, face);
+  addSolid(fp.minx, fp.minz, fp.maxx, fp.maxz);
+  districtPlaced.push(label || 'bungalow');
+}
+function addShop(x, z, face, name, wallHex, awningHex){
+  const w = 8.6, d = 6.8, h = 3.8;
+  const fp = facedBox(x, z, face, w, d);
+  if (blocked(fp)) return;
+  const g = new THREE.Group();
+  box(w, h, d, houseMat(wallHex, w, h), 0, h / 2, 0, g);
+  box(w + 0.35, 0.42, d + 0.3, 0x2c3036, 0, h + 0.16, 0, g);
+  box(w + 0.1, 0.16, 0.16, TRIM, 0, h - 0.02, d / 2 + 0.02, g);
+  const glass = box(4.8, 2.2, 0.08, glassMat, -0.85, 1.5, d / 2 + 0.06, g);
+  glass.castShadow = false;
+  box(5.2, 0.14, 1.15, awningHex, -0.85, 2.75, d / 2 + 0.5, g);
+  box(1.0, 2.2, 0.1, 0x3a2a22, 2.85, 1.15, d / 2 + 0.07, g);
+  signOn(g, 3.6, 0.72, name, 'HENDERSON CENTER', '#14202c', '#f4efe6', -0.7, 3.25, d / 2 + 0.18, g);
+  plantGroup(g, x, z, face);
+  addSolid(fp.minx, fp.minz, fp.maxx, fp.maxz);
+  districtPlaced.push(name);
+}
+function addFreshFreeze(x, z){
+  const w = 12, d = 8.4, h = 3.5;
+  const fp = facedBox(x, z, 'e', w, d);
+  if (blocked(fp)) return;
+  const g = new THREE.Group();
+  box(w, h, d, 0xf7f4ee, 0, h / 2, 0, g);
+  box(w + 0.4, 0.28, d + 0.35, 0xc0392b, 0, h + 0.08, 0, g);
+  box(w + 0.15, 0.55, 0.2, 0xc0392b, 0, 2.55, d / 2 + 0.02, g);
+  const win = box(3.2, 1.35, 0.08, glassMat, -2.4, 1.45, d / 2 + 0.06, g);
+  win.castShadow = false;
+  const win2 = box(2.2, 1.35, 0.08, glassMat, 1.6, 1.45, d / 2 + 0.06, g);
+  win2.castShadow = false;
+  box(1.05, 2.15, 0.1, 0xf4efe6, 3.6, 1.15, d / 2 + 0.08, g);
+  box(1.05, 2.15, 0.08, 0xc0392b, 3.6, 1.15, d / 2 + 0.12, g);
+  signOn(g, 5.4, 1.15, 'FRESH FREEZE', 'SINCE 1951', '#f7f4ee', '#c0392b', -1.2, 2.85, d / 2 + 0.2, g);
+  box(1.6, 0.08, 0.7, 0x6b422c, -3.2, 0.5, d / 2 + 1.7, g);
+  box(1.6, 0.08, 0.7, 0x6b422c, -0.6, 0.5, d / 2 + 1.7, g);
+  cyl(0.08, 0.1, 5.4, 0xf7f4ee, 2.2, 2.7, d / 2 + 2.4, g);
+  signOn(g, 1.5, 2.2, 'FF', 'SHAKES', '#c0392b', '#f7f4ee', 2.2, 4.6, d / 2 + 2.5, g);
+  plantGroup(g, x, z, 'e');
+  addSolid(fp.minx, fp.minz, fp.maxx, fp.maxz);
+  districtPlaced.push('Fresh Freeze');
+}
+function addSempervirens(x, z){
+  const fp = {minx:x - 15, maxx:x + 15, minz:z - 8, maxz:z + 14};
+  if (blocked(fp)) return;
+  const g = new THREE.Group();
+  const wall = houseMat(0xd7cbb4, 26, 7);
+  box(26, 7.2, 12, wall, 0, 3.6, 0, g);
+  box(10, 6.2, 8, houseMat(0xcbbfa8, 10, 6), -8, 3.1, 8, g);
+  box(28, 0.35, 14, 0x8a8178, 0, 7.35, 0, g);
+  box(12, 0.3, 9, 0x8a8178, -8, 6.45, 8, g);
+  for (let i = -4; i <= 4; i++){
+    const pane = box(1.5, 1.35, 0.08, glassMat, i * 2.4, 4.6, 6.08, g);
+    pane.castShadow = false;
+    box(1.7, 0.08, 0.08, TRIM, i * 2.4, 5.35, 6.1, g);
+    const low = box(1.5, 1.35, 0.08, glassMat, i * 2.4, 2.1, 6.08, g);
+    low.castShadow = false;
+  }
+  box(2.2, 2.4, 1.2, 0xc0392b, 0, 1.3, 6.5, g);
+  box(2.4, 0.12, 2.4, 0x2c3036, 0, 2.55, 7.1, g);
+  signOn(g, 4.2, 0.7, 'SEMPERVIRENS', 'HARRIS STREET', '#f4efe6', '#1c1915', 6.5, 5.6, 6.2, g);
+  box(30, 0.04, 22, 0x6d7a48, 0, 0.03, 2, g);
+  g.position.set(x, 0, z);
+  scene.add(g);
+  addSolid(fp.minx, fp.minz, fp.maxx, fp.maxz);
+  districtPlaced.push('Sempervirens');
+}
+function addDistrictLamp(x, z, lamps){
+  cyl(0.16, 0.2, 0.16, 0x1a1c1e, x, 0.08, z);
+  cyl(0.05, 0.065, 3.4, 0x1a1c1e, x, 1.8, z);
+  const lantern = box(0.28, 0.36, 0.28, lampMat, x, 3.7, z);
+  lantern.castShadow = false;
+  const L = new THREE.PointLight(0xffe1b0, 0, 16, 2);
+  L.position.set(x, 3.7, z);
+  scene.add(L);
+  lamps.push(L);
+}
+function addEurekaDistrict(lamps){
+  paved(70, 340, grassMap, 4, -155, -0.02, 70);
+  paved(300, 56, grassMap, 4, -20, -0.02, -58);
+  const hw = 8.6;
+  paveSeg(-152, 12, -134, 12, hw);
+  paveSeg(-122, 12, -8, 12, hw);
+  paveSeg(8, 12, 86, 12, hw);
+  paveSeg(98, 12, 108, 12, hw);
+  paveSeg(-128, -64, -128, 6, 9.4);
+  paveSeg(-128, 18, -128, 94, 9.4);
+  paveSeg(-154, -52, -134, -52, 8.2);
+  paveSeg(-122, -52, 58, -52, 8.2);
+  paveSeg(92, -64, 92, 6, 9.2);
+  paveSeg(92, 18, 92, 86, 9.2);
+  paveSeg(-10, -46, -10, 2, 5.4);
+  paveSeg(10, -46, 10, 2, 5.4);
+  pavePad(-128, 12, 14, 14);
+  pavePad(92, 12, 14, 14);
+  pavePad(-128, -52, 14, 12);
+  pavePad(92, -52, 12, 12);
+  pavePad(-10, -52, 8, 12);
+  pavePad(10, -52, 8, 12);
+  for (let x = -120; x <= -20; x += 8) box(2.2, 0.02, 0.14, 0xf2efe6, x, 0.09, 12);
+  for (let z = -40; z <= 80; z += 8) box(0.14, 0.02, 2.2, 0xf2efe6, -128, 0.09, z);
+  streetBlade(8.4, 18.2, 'HARRIS ST', 0);
+  streetBlade(-8.6, 18.2, 'H ST', Math.PI / 2);
+  streetBlade(-118, 18.4, 'F ST', Math.PI / 2);
+  streetBlade(-118, 8.2, 'HARRIS ST', 0);
+  streetBlade(16.4, -44.5, 'EVERDING ST', 0);
+  streetBlade(84, 18.2, 'I ST', Math.PI / 2);
+  const center = new THREE.Group();
+  cyl(0.14, 0.18, 1.5, 0x1c2420, 0, 0.75, 0, center);
+  box(3.6, 0.9, 0.16, 0x1f6b45, 0, 2.15, 0, center);
+  signOn(center, 3.3, 0.7, 'HENDERSON', 'CENTER', '#1f6b45', '#f4efe6', 0, 2.15, 0.1, center);
+  center.position.set(-141, 0, 6);
+  center.rotation.y = Math.PI / 2;
+  scene.add(center);
+  addFreshFreeze(-144, 28);
+  addShop(-139, 48, 'e', 'THE DIVER', 0x6e342c, 0x1e3a5f);
+  addShop(-139, 60, 'e', 'TOY BOX', 0xe7d7a8, 0xc0392b);
+  addShop(-139, 72, 'e', 'ANNIE\'S SHOES', 0xf4efe6, 0x1f4d3a);
+  addShop(-139, 84, 'e', 'POST OFFICE', 0xd7cbb4, 0x1e3a5f);
+  addShop(-117, 46, 'w', 'BERKSHIRE', 0x8d4538, 0x7a2e3a);
+  addShop(-117, 62, 'w', 'THE YARN', 0xf6e4d4, 0x1f4d3a);
+  addShop(-117, 76, 'w', 'STATE FARM', 0xe7e1d4, 0x1e3a5f);
+  addBungalow(-24, 24, 's', 0xf4efe4, '3117');
+  addBungalow(-46, 24, 's', 0xe6d39a, '');
+  addBungalow(24, 24, 's', 0xc5d0d4, '3114');
+  addBungalow(42, 24, 's', 0x9aaf86, '');
+  addBungalow(-22, 34, 'e', 0xf6e4d4, '3121');
+  addBungalow(22, 42, 'w', 0xe7dcc8, '3124');
+  addBungalow(-110, -40, 's', 0xf4efe4, '');
+  addBungalow(-86, -40, 's', 0xc5d0d4, '');
+  addBungalow(-60, -40, 's', 0xe6d39a, '');
+  addBungalow(-34, -40, 's', 0x9aaf86, '');
+  addBungalow(-22, -40, 's', 0xf6e4d4, '');
+  addBungalow(20, -40, 's', 0xe7dcc8, '');
+  addBungalow(42, -40, 's', 0xd7c4b0, '');
+  addBungalow(-104, -65, 'n', 0xf7f1e4, '');
+  addBungalow(-74, -65, 'n', 0xc9d4c8, '');
+  addBungalow(-40, -65, 'n', 0xe6d39a, '');
+  addBungalow(24, -65, 'n', 0xf4efe4, '');
+  addBungalow(46, -65, 'n', 0xb7c4ce, '');
+  addBungalow(78, 26, 'e', 0xf6e4d4, '');
+  addBungalow(78, 66, 'e', 0xe7dcc8, '');
+  addBungalow(78, 80, 'e', 0xc5d0d4, '');
+  addBungalow(78, -12, 'e', 0xf4efe4, '');
+  addBungalow(78, -34, 'e', 0xe6d39a, '');
+  addSempervirens(62, 46);
+  for (const [x, z, s] of [[-121, 24, 1], [-121, 40, 1.1], [-121, 56, 0.95], [-121, 82, 1.05], [-150, 16, 0.9], [18, 18, 1], [-32, 19, 1.15], [36, 19, 1], [-70, -44, 1.2], [32, -44, 1], [80, 58, 1.1], [-154, 42, 1.15]]) addTree(x, z, s);
+  for (const [x, z] of [[-121, 32], [-121, 68], [-146, 18], [20, 18], [-40, 18], [72, 18], [-16, -22], [16, -22], [84, 32], [84, -18]]) addDistrictLamp(x, z, lamps);
+  for (let i = 0; i < 4; i++) box(0.12, 0.02, 1.6, 0xf2efe6, -6.2, 0.09, 9.2 + i * 0.7);
+}
 function buildWorld(){
   paved(240, 280, grassMap, 4, 0, 0, 106);
   paved(9.2, 208, asphaltMap, 4, 0, 0.06, 102);
@@ -1741,10 +2023,11 @@ function buildWorld(){
   addPalm(15.2, 5.5);
   addPalm(-24, 188);
   addPalm(32, 176);
-  waterMesh = paved(96, 260, waterMap, 7, -158, 0.03, 90);
-  paved(40, 170, sandMap, 5, -208, 0.08, 120);
+  waterMesh = paved(72, 300, waterMap, 7, -236, 0.02, 70);
+  paved(28, 200, sandMap, 5, -286, 0.05, 90);
   addStreetDressing();
   addJail();
+  addEurekaDistrict(lamps);
   addWalkers();
   makeWagon();
   return lamps;
@@ -2272,7 +2555,70 @@ function sidePos(){
 }
 function tenantXZ(){
   const p = propById(wagon.propId);
-  return {x:p.avatar.mesh.position.x, z:p.avatar.mesh.position.z};
+  loosePerson(p.avatar.mesh);
+  return worldXZ(p.avatar.mesh);
+}
+function roadPointNear(here){
+  const spots = [
+    {x:clamp(here.x, -3.2, 3.2), z:clamp(here.z, 6, 198)},
+    {x:clamp(here.x, -140, 100), z:12},
+    {x:-128, z:clamp(here.z, -58, 88)},
+    {x:92, z:clamp(here.z, -58, 80)},
+    {x:clamp(here.x, -146, 52), z:-52},
+    {x:clamp(here.x, -74, 74), z:148},
+  ];
+  let best = spots[0], bestD = Infinity;
+  for (const s of spots){
+    const d = Math.hypot(s.x - here.x, s.z - here.z);
+    if (d < bestD){ best = s; bestD = d; }
+  }
+  return best;
+}
+function pickupPath(spot){
+  if (Math.abs(spot.x) <= 6 && spot.z >= 4 && Math.abs(spot.z - 148) > 8){
+    return [
+      {x:-2.2, z:clamp(spot.z, 8, 196)},
+      {x:clamp(spot.x, -3.4, 3.4), z:spot.z},
+    ];
+  }
+  if (Math.abs(spot.z - 148) <= 6 && Math.abs(spot.x) < 80){
+    return [{x:-2.2, z:148}, {x:clamp(spot.x, -74, 74), z:148}];
+  }
+  const pts = [{x:-2.2, z:12}];
+  if (Math.abs(spot.x + 128) <= 12){
+    pts.push({x:-128, z:12});
+    if (Math.abs(spot.z - 12) > 4) pts.push({x:-128, z:spot.z});
+  } else if (Math.abs(spot.x - 92) <= 12){
+    pts.push({x:92, z:12});
+    if (Math.abs(spot.z - 12) > 4) pts.push({x:92, z:spot.z});
+  } else if (Math.abs(spot.z + 52) <= 6){
+    const spine = spot.x < -20 ? -128 : (spot.x > 20 ? 92 : (spot.x < 0 ? -10 : 10));
+    pts.push({x:spine, z:12});
+    pts.push({x:spine, z:-52});
+  } else if (Math.abs(spot.z - 12) <= 6) pts.push({x:spot.x, z:12});
+  const last = pts[pts.length - 1];
+  if (Math.hypot(last.x - spot.x, last.z - spot.z) > 2) pts.push({x:spot.x, z:spot.z});
+  return pts;
+}
+function returnPath(from){
+  if (Math.abs(from.x) <= 8){
+    return [
+      {x:-2.2, z:clamp(from.z, 8, 196)},
+      {x:-2.2, z:JAIL.z},
+      {x:JAIL.door.x, z:JAIL.door.z},
+    ];
+  }
+  const pts = [];
+  if (Math.abs(from.x + 128) <= 14) pts.push({x:-128, z:from.z}, {x:-128, z:12});
+  else if (Math.abs(from.x - 92) <= 14) pts.push({x:92, z:from.z}, {x:92, z:12});
+  else if (Math.abs(from.z + 52) <= 8){
+    const spine = from.x < -20 ? -128 : (from.x > 20 ? 92 : (from.x < 0 ? -10 : 10));
+    pts.push({x:from.x, z:-52});
+    pts.push({x:spine, z:-52});
+    pts.push({x:spine, z:12});
+  } else pts.push({x:from.x, z:12});
+  pts.push({x:-2.2, z:12}, {x:-2.2, z:JAIL.z}, {x:JAIL.door.x, z:JAIL.door.z});
+  return pts;
 }
 function putCop(x, z, yaw){
   wagon.copX = x;
@@ -2296,16 +2642,18 @@ function walkCopTo(target, dt, stop){
 function escortTenant(){
   const p = propById(wagon.propId);
   if (!p || !p.avatar) return;
+  loosePerson(p.avatar.mesh);
   const yaw = wagon.cop.mesh.rotation.y;
   p.avatar.mesh.visible = true;
-  p.avatar.mesh.position.set(wagon.copX - Math.sin(yaw) * 0.55, 0, wagon.copZ - Math.cos(yaw) * 0.55);
-  p.avatar.mesh.rotation.set(0, yaw, 0.2);
+  p.avatar.mesh.position.set(wagon.copX - Math.sin(yaw) * 0.7, 0, wagon.copZ - Math.cos(yaw) * 0.7);
+  p.avatar.mesh.rotation.set(0, yaw, 0);
 }
 function rideTenant(){
   const p = propById(wagon.propId);
   if (!p || !p.avatar) return;
+  loosePerson(p.avatar.mesh);
   p.avatar.mesh.visible = true;
-  p.avatar.mesh.position.set(wagon.x - Math.sin(wagon.yaw) * 0.2, 0.2, wagon.z - Math.cos(wagon.yaw) * 0.2);
+  p.avatar.mesh.position.set(wagon.x - Math.sin(wagon.yaw) * 0.15, 0.55, wagon.z - Math.cos(wagon.yaw) * 0.15);
   p.avatar.mesh.rotation.set(0, wagon.yaw, 0);
 }
 function driveToward(points, dt){
@@ -2346,22 +2694,21 @@ function stopWagon(){
 }
 function startWagon(propId){
   const p = propById(propId);
-  const here = {x:p.avatar.mesh.position.x, z:p.avatar.mesh.position.z};
+  loosePerson(p.avatar.mesh);
+  const here = worldXZ(p.avatar.mesh);
+  const spot = roadPointNear(here);
   wagon.on = true;
   wagon.step = 'toScene';
   wagon.goal = 'pickup';
   wagon.propId = propId;
   wagon.x = -2.2;
-  wagon.z = clamp(here.z - 26, 6, 180);
+  wagon.z = Math.abs(spot.x) <= 6 ? clamp(spot.z - 26, 6, 180) : 6;
   wagon.yaw = Math.PI;
   wagon.mesh.visible = true;
   wagon.mesh.position.set(wagon.x, 0, wagon.z);
   wagon.mesh.rotation.y = -wagon.yaw;
   wagon.cop.mesh.visible = false;
-  wagon.points = [
-    {x:-2.2, z:clamp(here.z, 8, 196)},
-    {x:clamp(here.x, -3.4, 3.4), z:here.z},
-  ];
+  wagon.points = pickupPath(spot);
   setSiren(true);
 }
 function finishJail(p){
@@ -2371,6 +2718,8 @@ function finishJail(p){
   p.happy = 0;
   S.removed += 1;
   if (S.haul && S.haul.propId === p.id) S.haul.stage = 'jailed';
+  loosePerson(p.avatar.mesh);
+  p.avatar.mesh.visible = true;
   p.avatar.mesh.position.set(JAIL.cell.x, 0, JAIL.cell.z);
   p.avatar.mesh.rotation.set(0, Math.PI / 2, 0);
   refreshAvatar(p);
@@ -2403,12 +2752,7 @@ function tickWagon(dt){
       wagon.wait -= dt;
       if (wagon.wait <= 0){
         wagon.cop.mesh.visible = false;
-        const pz = tenantXZ().z;
-        wagon.points = [
-          {x:-2.2, z:clamp(pz, 8, 196)},
-          {x:-2.2, z:JAIL.z},
-          {x:JAIL.door.x, z:JAIL.door.z},
-        ];
+        wagon.points = returnPath({x:wagon.x, z:wagon.z});
         wagon.step = 'toJail';
         setSiren(true);
       }
@@ -2441,6 +2785,12 @@ function onStreet(x, z){
   if (Math.abs(x) <= 4.3 && z >= 4 && z <= 198) return true;
   if (Math.abs(z - 148) <= 4.3 && Math.abs(x) <= 78) return true;
   if (Math.hypot(x, z - 200) <= 15.2 && z >= 186) return true;
+  if (Math.abs(z - 12) <= 3.8 && x >= -148 && x <= 104) return true;
+  if (Math.abs(x + 128) <= 4.2 && z >= -60 && z <= 90) return true;
+  if (Math.abs(z + 52) <= 3.8 && x >= -150 && x <= 56) return true;
+  if (Math.abs(x - 92) <= 4.2 && z >= -60 && z <= 82) return true;
+  if (Math.abs(x + 10) <= 2.4 && z <= 4 && z >= -50) return true;
+  if (Math.abs(x - 10) <= 2.4 && z <= 4 && z >= -50) return true;
   return false;
 }
 function nearestCurb(x, z){
@@ -2456,7 +2806,8 @@ function nearestBody(range){
     if (!p.avatar || !p.avatar.mesh.visible || p.jailed) continue;
     if (!(p.occ && p.resident)) continue;
     if (S.haul && S.haul.propId === p.id && (S.haul.stage === 'call' || S.haul.stage === 'wagon' || S.haul.stage === 'jailed')) continue;
-    const d = Math.hypot(p.avatar.mesh.position.x - player.x, p.avatar.mesh.position.z - player.z);
+    const w = worldXZ(p.avatar.mesh);
+    const d = Math.hypot(w.x - player.x, w.z - player.z);
     if (d < bestD){ best = {kind:'tenant', prop:p, mesh:p.avatar.mesh}; bestD = d; }
   }
   for (const w of WALKERS){
@@ -2471,6 +2822,8 @@ function tryGrab(){
   const b = nearestBody(1.7);
   if (!b){ sfx('bad'); return false; }
   if (b.walker) b.walker.held = true;
+  loosePerson(b.mesh);
+  b.mesh.visible = true;
   player.hold = {kind:b.kind, prop:b.prop || null, walker:b.walker || null, mesh:b.mesh, grabbed:true, vx:0, vz:0};
   const who = b.prop ? b.prop.resident : 'them';
   toast('You have ' + who + '.');
@@ -2514,11 +2867,13 @@ function useGrab(){
 function tickHold(dt){
   const h = player.hold;
   if (!h) return;
+  loosePerson(h.mesh);
+  h.mesh.visible = true;
   if (h.grabbed){
     const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
-    const x = player.x + fx * 0.95, z = player.z + fz * 0.95;
-    h.mesh.position.set(x, 0.04, z);
-    h.mesh.rotation.set(0.4, player.yaw, Math.sin(performance.now() / 110) * 0.12);
+    const x = player.x + fx * 1.25, z = player.z + fz * 1.25;
+    h.mesh.position.set(x, 0, z);
+    h.mesh.rotation.set(0, player.yaw, 0);
     return;
   }
   let x = h.mesh.position.x + h.vx * dt;
@@ -2616,12 +2971,17 @@ function haulPoint(){
   switch (stage){
     case 'drag': {
       const held = player.hold && player.hold.prop === p && player.hold.grabbed;
-      if (!held) return {x:p.avatar.mesh.position.x, z:p.avatar.mesh.position.z, label:'Grab ' + p.resident};
+      if (!held){
+        const w = worldXZ(p.avatar.mesh);
+        return {x:w.x, z:w.z, label:'Grab ' + p.resident};
+      }
       const curb = nearestCurb(p.door.x, p.door.z);
       return {x:curb.x, z:curb.z, label:'Throw ' + p.resident + ' into the street'};
     }
-    case 'call':
-      return {x:p.avatar.mesh.position.x, z:p.avatar.mesh.position.z, label:'Dial 444-0191'};
+    case 'call': {
+      const w = worldXZ(p.avatar.mesh);
+      return {x:w.x, z:w.z, label:'Dial 444-0191'};
+    }
     case 'wagon':
       return {x:JAIL.x, z:JAIL.z, label:'Debtors\' jail'};
     case 'jailed':
@@ -2645,8 +3005,7 @@ function settleResidents(){
   for (const w of WALKERS) w.held = false;
   for (const p of PROPS){
     if (!p.avatar || !p.tenant || p.jailed) continue;
-    p.avatar.mesh.position.set(p.tenant.x, 0, p.tenant.z);
-    p.avatar.mesh.rotation.set(0, p.homeYaw || 0, 0);
+    parkPerson(p);
   }
   refreshAvatars();
 }
@@ -3657,7 +4016,7 @@ function drawMap(){
   if (!c) return;
   const g = c.getContext('2d');
   const w = c.width, h = c.height;
-  const X0 = -80, X1 = 80, Z0 = -14, Z1 = 224;
+  const X0 = -156, X1 = 112, Z0 = -70, Z1 = 226;
   const pt = (x, z) => [(x - X0) / (X1 - X0) * w, h - (z - Z0) / (Z1 - Z0) * h];
   g.clearRect(0, 0, w, h);
   g.fillStyle = '#14181f';
@@ -3671,6 +4030,18 @@ function drawMap(){
   a = pt(-76, 148); b = pt(76, 148);
   g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]);
   g.stroke();
+  g.lineWidth = 6;
+  g.strokeStyle = '#5c6370';
+  g.beginPath();
+  for (const seg of DISTRICT_ROADS){
+    const p0 = pt(seg[0], seg[1]);
+    const p1 = pt(seg[2], seg[3]);
+    g.moveTo(p0[0], p0[1]);
+    g.lineTo(p1[0], p1[1]);
+  }
+  g.stroke();
+  g.strokeStyle = '#4a4e57';
+  g.lineWidth = 10;
   const cul = pt(0, 200);
   g.beginPath();
   g.arc(cul[0], cul[1], (16 / (X1 - X0)) * w, 0, Math.PI * 2);
@@ -4347,8 +4718,10 @@ window.__rentor = {
   person(id){
     const p = propById(id);
     if (!p || !p.avatar) return null;
-    return {x:p.avatar.mesh.position.x, z:p.avatar.mesh.position.z, visible:p.avatar.mesh.visible, jailed:!!p.jailed, occ:!!p.occ};
+    const w = worldXZ(p.avatar.mesh);
+    return {x:w.x, z:w.z, y:w.y, visible:p.avatar.mesh.visible, jailed:!!p.jailed, occ:!!p.occ, parent:p.avatar.mesh.parent === scene ? 'scene' : 'house'};
   },
+  district(){ return districtPlaced.slice(); },
   setKey(code, down){ keys[code] = down; },
   clearZombies,
   summon(x, z){ return makeZombie(x, z).id; },
