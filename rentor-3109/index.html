@@ -163,7 +163,7 @@ body.touching #feed{display:none}
  <p id="phonename">DESK PHONE</p>
  <p id="phonenum">—</p>
  <div id="phonekeys"></div>
- <p id="phonehint">The cops pick up anyone you have thrown in the street. Station 444-0191. They go to debtors' jail.</p>
+ <p id="phonehint">The cops pick up anyone you have thrown in the street. Station 444-0191. They open the back seat. Debtors' jail is the stop.</p>
 </div>
 <div id="talkdim" class="hidden"></div>
 <div id="panel" class="hidden">
@@ -222,7 +222,7 @@ body.touching #feed{display:none}
    <p class="rule">The stops</p>
    <h3>Go inside</h3>
    <p>Step up to the door and go in. Some homes are ordinary. Some are packed to the ceiling. Look around, then talk. The person stands in the center of the screen. Their answer stays on that card. The street has its own noise, and a talk is spoken.</p>
-   <p>Ask for the rent first. If they will not pay, grab them, walk them outside, and throw them into the street. P opens the phone. Dial 444-0191. The cops put them in the wagon and take them to debtors' jail.</p>
+   <p>Ask for the rent first. They say, what about my human rights. The rent is still due. If they will not pay, grab them, walk them outside, and throw them into the street. P opens the phone. Dial 444-0191. The cops pull up, open the back seat, and take them to debtors' jail.</p>
    <p>A missed month cools them off. Another one and they leave, and the unit sits vacant until you place someone new.</p>
   </section>
   <section>
@@ -2506,6 +2506,18 @@ function addJail(){
   JAIL.door = {x:x1 + 2.4, z};
   JAIL.cell = {x:x - 1.7, z};
 }
+function addRearDoor(mesh){
+  const hinge = new THREE.Group();
+  hinge.position.set(0.82, 0.42, 0.96);
+  mesh.add(hinge);
+  const paint = carPaintMat(0x1a2744);
+  box(0.07, 0.96, 0.82, paint, 0.05, 0.5, -0.42, hinge);
+  box(0.02, 0.9, 0.74, 0xc4b6a4, 0.01, 0.5, -0.42, hinge);
+  const glass = box(0.02, 0.34, 0.4, carGlass, 0.08, 0.74, -0.36, hinge);
+  glass.castShadow = false;
+  box(0.04, 0.08, 0.14, chromeMat, 0.09, 0.48, -0.62, hinge);
+  return hinge;
+}
 function makeWagon(){
   const mesh = buildCarMesh(0x1a2744);
   const redMat = new THREE.MeshLambertMaterial({color:0xff2a2a, emissive:0xff2a2a, emissiveIntensity:0.2});
@@ -2513,13 +2525,14 @@ function makeWagon(){
   const red = box(0.24, 0.1, 0.22, redMat, -0.2, 1.48, -0.05, mesh);
   const blue = box(0.24, 0.1, 0.22, blueMat, 0.2, 1.48, -0.05, mesh);
   box(0.7, 0.06, 0.28, 0xf4efe6, 0, 1.4, -0.05, mesh);
+  const door = addRearDoor(mesh);
   mesh.visible = false;
   scene.add(mesh);
   const cop = makePerson(0x1a2744);
   cop.sprite.visible = false;
   cop.mesh.visible = false;
   scene.add(cop.mesh);
-  wagon = {on:false, step:'toScene', goal:'pickup', x:-2.2, z:6, yaw:Math.PI, speed:0, mesh, red, blue, cop, copX:0, copZ:0, propId:'', wait:0, points:[]};
+  wagon = {on:false, step:'toScene', goal:'pickup', x:-2.2, z:6, yaw:Math.PI, speed:0, mesh, red, blue, cop, copX:0, copZ:0, propId:'', wait:0, points:[], door, doorAngle:0, doorTarget:0, tossFrom:null};
 }
 function setSiren(on){
   const ctx = ac();
@@ -2552,6 +2565,24 @@ function flashBar(){
 }
 function sidePos(){
   return {x:wagon.x + Math.cos(wagon.yaw) * 1.7, z:wagon.z - Math.sin(wagon.yaw) * 1.7};
+}
+function wagonPoint(lx, ly, lz){
+  const yaw = -wagon.yaw;
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  return {x:wagon.x + lx * c + lz * s, y:ly, z:wagon.z - lx * s + lz * c};
+}
+function doorStand(){
+  return wagonPoint(1.9, 0, 0.78);
+}
+function shutDoor(){
+  wagon.doorTarget = 0;
+  wagon.doorAngle = 0;
+  if (wagon.door) wagon.door.rotation.y = 0;
+}
+function swingDoor(dt){
+  const target = wagon.doorTarget * 1.35;
+  wagon.doorAngle = lerp(wagon.doorAngle, target, 1 - Math.exp(-dt * 7));
+  wagon.door.rotation.y = -wagon.doorAngle;
 }
 function tenantXZ(){
   const p = propById(wagon.propId);
@@ -2648,13 +2679,42 @@ function escortTenant(){
   p.avatar.mesh.position.set(wagon.copX - Math.sin(yaw) * 0.7, 0, wagon.copZ - Math.cos(yaw) * 0.7);
   p.avatar.mesh.rotation.set(0, yaw, 0);
 }
-function rideTenant(){
+function seatTenant(){
   const p = propById(wagon.propId);
   if (!p || !p.avatar) return;
-  loosePerson(p.avatar.mesh);
-  p.avatar.mesh.visible = true;
-  p.avatar.mesh.position.set(wagon.x - Math.sin(wagon.yaw) * 0.15, 0.55, wagon.z - Math.cos(wagon.yaw) * 0.15);
-  p.avatar.mesh.rotation.set(0, wagon.yaw, 0);
+  const mesh = p.avatar.mesh;
+  if (mesh.parent !== wagon.mesh) wagon.mesh.attach(mesh);
+  mesh.visible = true;
+  mesh.position.set(0.16, 0.58, 0.02);
+  mesh.rotation.set(1.05, 0, 0.25);
+}
+function tossTenant(u){
+  const p = propById(wagon.propId);
+  if (!p || !p.avatar || !wagon.tossFrom) return;
+  const mesh = p.avatar.mesh;
+  loosePerson(mesh);
+  const t = clamp(u, 0, 1);
+  const ease = t * t * (3 - 2 * t);
+  const from = wagon.tossFrom;
+  const seat = wagonPoint(0.2, 0.9, 0.15);
+  mesh.visible = true;
+  mesh.position.set(
+    lerp(from.x, seat.x, ease),
+    lerp(from.y, seat.y, ease) + Math.sin(t * Math.PI) * 1.05,
+    lerp(from.z, seat.z, ease)
+  );
+  mesh.rotation.set(Math.sin(t * Math.PI) * 1.35, wagon.yaw, t * 0.4);
+}
+function shoveCop(u){
+  const stand = doorStand();
+  const into = wagonPoint(1.28, 0, 0.72);
+  const t = Math.sin(clamp(u, 0, 1) * Math.PI);
+  wagon.cop.mesh.visible = true;
+  wagon.cop.mesh.position.set(lerp(stand.x, into.x, t), 0, lerp(stand.z, into.z, t));
+  wagon.cop.mesh.rotation.y = Math.atan2(into.x - stand.x, into.z - stand.z);
+}
+function rideTenant(){
+  seatTenant();
 }
 function driveToward(points, dt){
   const dest = points[0];
@@ -2688,6 +2748,7 @@ function stopWagon(){
   wagon.on = false;
   wagon.step = 'toScene';
   wagon.speed = 0;
+  shutDoor();
   if (wagon.mesh) wagon.mesh.visible = false;
   if (wagon.cop) wagon.cop.mesh.visible = false;
   setSiren(false);
@@ -2708,6 +2769,8 @@ function startWagon(propId){
   wagon.mesh.position.set(wagon.x, 0, wagon.z);
   wagon.mesh.rotation.y = -wagon.yaw;
   wagon.cop.mesh.visible = false;
+  wagon.tossFrom = null;
+  shutDoor();
   wagon.points = pickupPath(spot);
   setSiren(true);
 }
@@ -2730,9 +2793,16 @@ function tickWagon(dt){
   flashBar();
   switch (wagon.step){
     case 'toScene':
-      if (driveToward(wagon.points, dt)){ wagon.step = 'stepout'; wagon.wait = 0.35; setSiren(false); }
+      if (driveToward(wagon.points, dt)){
+        wagon.step = 'stepout';
+        wagon.wait = 0.45;
+        wagon.doorTarget = 1;
+        setSiren(false);
+        say('Cop', 'Not you again.');
+      }
       break;
     case 'stepout':
+      swingDoor(dt);
       wagon.wait -= dt;
       if (wagon.wait <= 0){
         const side = sidePos();
@@ -2741,16 +2811,39 @@ function tickWagon(dt){
       }
       break;
     case 'approach':
+      swingDoor(dt);
       if (walkCopTo(tenantXZ(), dt, 0.75)) wagon.step = 'escort';
       break;
     case 'escort':
+      swingDoor(dt);
       escortTenant();
-      if (walkCopTo(sidePos(), dt, 0.85)){ wagon.step = 'board'; wagon.wait = 0.4; }
+      if (walkCopTo(doorStand(), dt, 0.65)){
+        const who = propById(wagon.propId);
+        const w = worldXZ(who.avatar.mesh);
+        wagon.tossFrom = {x:w.x, y:w.y, z:w.z};
+        wagon.step = 'toss';
+        wagon.wait = 0;
+        say(who.resident, 'Oh, boy, here we go again.');
+      }
       break;
-    case 'board':
-      escortTenant();
+    case 'toss':
+      swingDoor(dt);
+      wagon.wait += dt;
+      tossTenant(wagon.wait / 0.85);
+      shoveCop(wagon.wait / 0.85);
+      if (wagon.wait >= 0.85){
+        seatTenant();
+        wagon.doorTarget = 0;
+        wagon.step = 'shut';
+        wagon.wait = 0.55;
+      }
+      break;
+    case 'shut':
+      swingDoor(dt);
+      seatTenant();
       wagon.wait -= dt;
       if (wagon.wait <= 0){
+        shutDoor();
         wagon.cop.mesh.visible = false;
         wagon.points = returnPath({x:wagon.x, z:wagon.z});
         wagon.step = 'toJail';
@@ -3611,7 +3704,9 @@ function doTask(t){
       openPanel({
         face: p.resident || 'Resident',
         title:'Rent · ' + p.addr,
-        body:(p.resident || 'The resident') + ' owes ' + money(p.rent) + '. Ask for it before anything else. If they will not pay, they leave with you.',
+        yours:'The rent is due.',
+        heard:'What about my human rights?',
+        body:(p.resident || 'The resident') + ' owes ' + money(p.rent) + '. The rent is still due. If they will not pay, they leave with you.',
         choices:[
           {label:'Take ' + money(p.rent) + ' and leave a receipt.', apply(){
             t.done = true;
@@ -3632,6 +3727,8 @@ function doTask(t){
           }},
         ],
       });
+      speak('What about my human rights?', p.resident || 'Resident', true);
+      toast('What about my human rights?');
       break;
     case 'repair':
       openPanel({
@@ -4715,6 +4812,27 @@ window.__rentor = {
   throwHold(){ return throwPerson(); },
   dial(n){ phoneDigits = String(n || '').replace(/\D/g, ''); return placeCall(); },
   wagonStep(){ return wagon && wagon.on ? wagon.step : 'idle'; },
+  wagonDoor(){
+    if (!wagon) return {angle:0, x:0, z:0, yaw:0, step:'idle'};
+    let hinge = null, tip = null;
+    if (wagon.door){
+      const h = worldXZ(wagon.door);
+      hinge = {x:h.x, y:h.y, z:h.z};
+      const leaf = wagon.door.children[0];
+      if (leaf){
+        const t = worldXZ(leaf);
+        tip = {x:t.x, y:t.y, z:t.z};
+      }
+    }
+    const cop = wagon.cop && wagon.cop.mesh.visible ? worldXZ(wagon.cop.mesh) : null;
+    return {
+      angle:wagon.door ? wagon.door.rotation.y : 0,
+      x:wagon.x, z:wagon.z, yaw:wagon.yaw,
+      step:wagon.on ? wagon.step : 'idle',
+      hinge, tip,
+      cop: cop ? {x:cop.x, y:cop.y, z:cop.z} : null,
+    };
+  },
   person(id){
     const p = propById(id);
     if (!p || !p.avatar) return null;
