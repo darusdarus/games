@@ -92,6 +92,8 @@ h2{margin:0 0 12px;letter-spacing:8px;font-size:18px;font-weight:600;color:#e4b1
 .controls b{display:inline-block;min-width:64px;background:#f4efe6;color:#1c1915;border-radius:3px;padding:1px 6px;margin-right:6px;text-align:center}
 button.big{font:inherit;letter-spacing:3px;font-size:18px;padding:12px 28px;background:#9a3412;color:#fffaf3;border:0;border-radius:3px;cursor:pointer}
 button.big:hover{background:#b45309}
+button.big:disabled{opacity:.55;cursor:default}
+button.big:disabled:hover{background:#9a3412}
 .tiny{margin-top:14px;font-size:12px;opacity:.7;line-height:1.45}
 .tiny a{color:#e4b15a}
 table.stats{margin:12px auto;border-collapse:collapse;font-size:16px}
@@ -263,6 +265,7 @@ body.touching #feed{display:none}
  <table class="stats" id="yearstats"></table>
  <p class="tiny" id="yearformula"></p>
  <button class="big" id="againbtn" type="button">RUN ANOTHER YEAR</button>
+ <p class="tiny" id="againnote">January starts over. A room that is already open stays open.</p>
 </div></div>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js"></script>
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}</script>
@@ -4123,6 +4126,7 @@ function yearEnd(){
   }
   el.yearformula.textContent = 'Score is cash plus 1,000 for each occupied unit, plus 500 for each night you were inside before dusk, minus 800 for each death.';
   setOverlays();
+  paintAgain();
 }
 function setOverlays(){
   const play = S.mode === 'play';
@@ -4140,7 +4144,36 @@ function openGuide(){
   if (net.role === 'host' && net.code) tiny.textContent = 'Room ' + net.code + '. The clock starts when the office opens and keeps running while you read a note. Up to 24 people can share the street.';
   else if (net.role === 'client') tiny.textContent = 'You are on a shared street. The host owns the clock. Up to 24 people.';
 }
-function fresh(){
+function streetCount(){
+  if (net.role === 'host'){
+    let n = 1;
+    for (const c of net.conns) if (c.open) n += 1;
+    return n;
+  }
+  if (net.role === 'client' && net.latest && Array.isArray(net.latest.people)) return 1 + net.latest.people.length;
+  return 1;
+}
+function paintAgain(){
+  const btn = $('againbtn');
+  const note = $('againnote');
+  if (!btn || !note) return;
+  const n = streetCount();
+  if (net.role === 'client'){
+    btn.disabled = true;
+    btn.textContent = 'WAITING ON THE HOST';
+    note.textContent = 'Stay in the room. The host restarts January for everyone already here.';
+    return;
+  }
+  btn.disabled = false;
+  if (n > 1){
+    btn.textContent = 'RESTART WITH EVERYONE';
+    note.textContent = n + ' people stay on this street and start January again. Nobody has to rejoin.';
+    return;
+  }
+  btn.textContent = 'RUN ANOTHER YEAR';
+  note.textContent = 'January starts over. A room that is already open stays open.';
+}
+function resetRun(){
   S.mode = 'play';
   S.month = 0;
   S.cash = 4200;
@@ -4165,6 +4198,13 @@ function fresh(){
   settleResidents();
   setOverlays();
   beginDay();
+}
+function fresh(){
+  resetRun();
+  if (net.role === 'host'){
+    net.round += 1;
+    sendWorld();
+  }
 }
 function wantLock(){
   if (TOUCH || AUTOTEST || S.panel || phoneOn || S.mode !== 'play') return;
@@ -4633,7 +4673,7 @@ function update(dt){
 const MAX_PLAYERS = 24;
 const ICE = {iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
 const net = {
-  role:'solo', id:'local', name:'Walker', code:'',
+  role:'solo', id:'local', name:'Walker', code:'', round:1,
   peer:null, link:null, conns:[], poses:new Map(),
   acc:0, silence:0, latest:null, warned:false,
 };
@@ -4707,7 +4747,19 @@ function applyNetWorld(msg){
   net.silence = 0;
   syncRemotes(msg.people);
   applyCars(msg.cars);
-  if (S.mode !== 'play' || net.role !== 'client') return;
+  if (net.role !== 'client') return;
+  const nextRound = typeof msg.round === 'number' ? msg.round : net.round;
+  if (nextRound !== net.round){
+    net.round = nextRound;
+    if (S.mode === 'play' || S.mode === 'year') resetRun();
+  }
+  if (!msg.playing && typeof msg.month === 'number' && msg.month >= 12 && S.mode === 'play'){
+    S.month = msg.month;
+    yearEnd();
+    return;
+  }
+  if (S.mode === 'year') paintAgain();
+  if (S.mode !== 'play') return;
   const prev = S.phase;
   if (msg.phase !== prev){
     if (msg.phase === 'night') beginNight();
@@ -4759,6 +4811,7 @@ function acceptConn(conn){
   conn.on('close', () => dropConn(conn));
 }
 function sendWorld(){
+  if (S.mode === 'year') paintAgain();
   const people = [myPose()];
   for (const c of net.conns){
     const p = net.poses.get(c.peer);
@@ -4768,7 +4821,7 @@ function sendWorld(){
   for (const c of net.conns){
     if (!c.open) continue;
     c.send({
-      t:'world', left:S.left, phase:S.phase, month:S.month, playing:S.mode === 'play',
+      t:'world', round:net.round, left:S.left, phase:S.phase, month:S.month, playing:S.mode === 'play',
       people:people.filter(p => p.id !== c.peer), cars,
     });
   }
@@ -4902,6 +4955,26 @@ window.__rentor = {
   get props(){ return PROPS; },
   errors, DAY_LEN, NIGHT_LEN, FAST, MAX:MAX_PLAYERS,
   urgentAt, start:fresh, setPhase, setTime(s){ S.left = s; },
+  room(){ return {role:net.role, round:net.round, code:net.code, people:streetCount(), conns:net.conns.length}; },
+  fakeRoom(role){ net.role = role; },
+  addFake(id){
+    const conn = {open:true, peer:id, sent:[], send(msg){ this.sent.push(msg); }};
+    net.conns.push(conn);
+    return id;
+  },
+  lastSent(id){
+    const conn = net.conns.find(c => c.peer === id);
+    return conn && conn.sent.length ? conn.sent[conn.sent.length - 1] : null;
+  },
+  pushWorld(msg){ applyNetWorld(Object.assign({t:'world', people:[], cars:[]}, msg)); },
+  closeYear(){
+    S.month = 11;
+    S.mode = 'play';
+    if (S.phase !== 'night') S.phase = 'night';
+    S.left = 0.05;
+    setOverlays();
+    simulate(0.2);
+  },
   teleport(x, z){ player.x = x; player.z = z; if (player.car){ player.car.x = x; player.car.z = z; player.car.mesh.position.set(x, 0, z); } },
   interact, choose, simulate, fire, shove, pickup, cycleWeapon,
   grab(){ return tryGrab(); },
@@ -4968,7 +5041,11 @@ $('guidebtn').addEventListener('click', () => { fresh(); wantLock(); });
 $('hostbtn').addEventListener('click', startHost);
 $('joinbtn').addEventListener('click', () => $('joinbox').classList.remove('hidden'));
 $('joingo').addEventListener('click', () => startJoin($('joincode').value));
-$('againbtn').addEventListener('click', () => { fresh(); wantLock(); });
+$('againbtn').addEventListener('click', () => {
+  if (net.role === 'client') return;
+  fresh();
+  wantLock();
+});
 renderer.domElement.addEventListener('click', () => { if (S.mode === 'play' && !S.panel && !phoneOn) wantLock(); });
 renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('mousemove', e => {
