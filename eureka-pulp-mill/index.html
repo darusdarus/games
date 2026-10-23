@@ -158,11 +158,11 @@ body.touching #ffplay{left:8px;bottom:auto;top:calc(330px + env(safe-area-inset-
 <div id="title" class="screen"><div class="card">
  <div class="kicker">AN ORIGINAL LOW-POLY SIM · EUREKA, CALIFORNIA</div>
  <h1>EUREKA</h1><h2>PULP MILL</h2>
- <div class="sub">Start on Trinity Street in Myrtletown. Safe rooms at Redwood Acres, Sequoia Park Zoo, 3109 H Street, the Carson Mansion, and the Samoa Cookhouse.<br>The only helicopter left is on the Samoa pulp mill. The Samoa bridge does not hold — if the span goes, swim to shore.</div>
+ <div class="sub">Start on Trinity Street in Myrtletown. Safe rooms at Redwood Acres, Sequoia Park Zoo, 3109 H Street, the Carson Mansion, and the Samoa Cookhouse.<br>The only helicopter left is on the Samoa pulp mill. The Samoa Channel span is long, and the deck is high. If it goes, get in the skiff — four oars, W rows, A and D turn — and row to the Samoa shore.</div>
  <div class="controls">
   <div><b>WASD</b>Move</div><div><b>MOUSE</b>Look</div><div><b>L-CLICK</b>Shoot</div>
   <div><b>R-CLICK</b>Shove (hold)</div><div><b>R</b>Reload</div><div><b>1 / 2</b>Primary / Pistol</div>
-  <div><b>E</b>Use / Pick up / Revive</div><div><b>H</b>Heal (first aid)</div><div><b>F</b>Flashlight</div>
+  <div><b>E</b>Use / Pick up / Revive</div><div><b>W / A D</b>Row / turn the skiff</div><div><b>H</b>Heal (first aid)</div><div><b>F</b>Flashlight</div>
   <div><b>SHIFT</b>Sprint</div><div><b>ESC / P</b>Pause</div><div><b>M</b>Mute</div>
   <div><b>V</b>Talk (hold)</div><div><b>G</b>God fly</div>
  </div>
@@ -233,7 +233,8 @@ const lerpAng=(a,b,t)=>a+angDiff(a,b)*clamp(t,0,1);
    Myrtletown, Trinity St -> Redwood Acres -> redwoods -> Sequoia Park Zoo
    -> 3109 H St -> Carson Mansion -> Samoa bridge -> Samoa Cookhouse -> pulp mill roof.
    Progress is +x. The main road is z=7..9. Safe rooms are K. Doors are D. */
-const T=2,W=206,H=16,N=W*H,INF=1e9;
+const EXTRA=366;
+const T=2,W=206+EXTRA,H=16,N=W*H,INF=1e9;
 const G=[];for(let z=0;z<H;z++)G.push(new Array(W).fill('#'));
 const zoneAt=new Uint8Array(N);
 const doorOf=new Int16Array(N).fill(-1);
@@ -289,9 +290,6 @@ put(126,3,'I',6);
 for(let x=118;x<=143;x++)if(G[1][x]==='#')put(x,1,'~',6);
 fill(135,7,143,9,'.',4);
 fill(144,1,144,14,'#',7);doorX('gate',144,7,9,7);
-fill(145,7,160,9,'.',7);
-for(let x=145;x<=160;x++){for(let z=1;z<=5;z++)put(x,z,'~',7);for(let z=11;z<=14;z++)put(x,z,'~',7);put(x,6,'=',7);put(x,10,'=',7);}
-const SPAN=[];for(let x=147;x<=158;x++)for(let z=7;z<=9;z++)SPAN.push([x,z,G[z][x]]);
 fill(161,7,163,9,'.',8);
 fill(164,1,174,14,'#',8);
 fill(165,6,173,10,'m',8);fill(170,7,173,9,'K',8);
@@ -309,6 +307,22 @@ fill(203,6,204,10,'R',9);
 for(let z=4;z<=13;z++)if(z<7||z>9)put(202,z,'#',9);
 for(let z=4;z<=13;z++)put(205,z,',',9);
 for(let x=203;x<=204;x++)for(let z=11;z<=12;z++)if(G[z][x]!=='R')put(x,z,',',9);
+/* Samoa Channel (SR 255): 764 m of deck, navigation clearance 13.7 m.
+   Cookhouse, mill, and roof slide east so the channel can open between the gate and Samoa. */
+for(let x=205;x>=161;x--)for(let z=0;z<H;z++){G[z][x+EXTRA]=G[z][x];zoneAt[z*W+x+EXTRA]=zoneAt[z*W+x];doorOf[z*W+x+EXTRA]=doorOf[z*W+x];}
+const BR_A=145,BR_B=145+382-1,HIGH_A=175,HIGH_B=496;
+const DECK_Y=13.7;
+for(let x=161;x<=BR_B;x++)for(let z=0;z<H;z++){G[z][x]='#';zoneAt[z*W+x]=0;doorOf[z*W+x]=-1;}
+for(let x=BR_A;x<=BR_B;x++)for(let z=0;z<H;z++){
+ if(z>=6&&z<=10)put(x,z,'.',7);
+ else if(z===5||z===11)put(x,z,'=',7);
+ else put(x,z,'~',7);
+}
+FIN.stx+=EXTRA;FIN.callX+=EXTRA*T;FIN.padX+=EXTRA*T;
+SAFES[SAFES.length-1].x0+=EXTRA;SAFES[SAFES.length-1].x1+=EXTRA;
+const SPAN=[];for(let x=HIGH_A;x<=HIGH_B;x++)for(let z=6;z<=10;z++)SPAN.push([x,z,G[z][x]]);
+const BRIDGE_MID=((HIGH_A+HIGH_B)*0.5+0.5)*T;
+const FALL_CRACK=0.4,FALL_DROP=1.65,FALL_END=2.15;
 
 const ROOF=new Set([',','R']);
 const MILL=new Set(['m']);
@@ -316,11 +330,13 @@ const WALK=new Set(['.','n','w','m','S',',','R','F','x','K','U']);
 const WALLC=new Set(['#','=','b','t','I','B','c','~']);
 const DOOR_LABEL={acresIn:'Open the Redwood Acres door',zooIn:'Open the zoo door',rentorIn:'Open the office door',mansionIn:'Open the mansion door',cookIn:'Open the cookhouse door',gate:'Force the bridge gate'};
 function doorId(tx,tz){const i=(tz>=0&&tz<H&&tx>=0&&tx<W)?doorOf[tz*W+tx]:-1;return i>=0?DOOR_IDS[i]:'';}
-const WATER=-0.42;
+const WATER=-0.65;
+function bridgeDeckY(tx){const u=tx+0.5;if(u<=HIGH_A)return DECK_Y*clamp((u-BR_A)/(HIGH_A-BR_A),0,1);if(u>=HIGH_B)return DECK_Y*clamp((BR_B+1-u)/(BR_B+1-HIGH_B),0,1);return DECK_Y;}
+function onBridgeDeck(tx,tz){return tx>=BR_A&&tx<=BR_B&&tz>=6&&tz<=10;}
 function tileBase(c,tx,tz){if(ROOF.has(c))return 10;if(c==='U')return WATER;if(c==='D'&&doorId(tx,tz)==='roof')return 10;return 0;}
 function ceilOf(c,tx,tz){if(c!=='m'&&c!=='K')return null;const zn=zoneAt[tz*W+tx];if(zn===6)return 5.4;if(zn===8)return 3.6;if(zn===1)return 4.6;return 4.2;}
 const charAt=(tx,tz)=>(tz>=0&&tz<H&&tx>=0&&tx<W)?G[tz][tx]:' ';
-function groundAt(x,z){const tx=Math.floor(x/T),tz=Math.floor(z/T);const c=charAt(tx,tz);if(c==='S')return 10*clamp((x-FIN.stx*T)/(FIN.stn*T),0,1);return tileBase(c,tx,tz);}
+function groundAt(x,z){const tx=Math.floor(x/T),tz=Math.floor(z/T);const c=charAt(tx,tz);if(c==='S')return 10*clamp((x-FIN.stx*T)/(FIN.stn*T),0,1);if(c==='.'&&onBridgeDeck(tx,tz))return bridgeDeckY(tx);return tileBase(c,tx,tz);}
 const tileH=(tx,tz)=>groundAt((tx+.5)*T,(tz+.5)*T);
 function ceilAt(x,z){const tx=Math.floor(x/T),tz=Math.floor(z/T);const c=charAt(tx,tz);if(c===' '||WALLC.has(c))return null;const ch=ceilOf(c,tx,tz);return ch===null?null:groundAt(x,z)+ch;}
 function isWalk(tx,tz){const c=charAt(tx,tz);if(WALK.has(c))return true;if(c==='D')return !!doors[doorId(tx,tz)];return false;}
@@ -355,24 +371,26 @@ function collide(e,r){const tx=Math.floor(e.x/T),tz=Math.floor(e.z/T);
 function moveEnt(e,dx,dz,r){const n=Math.ceil(Math.hypot(dx,dz)/(r*0.7))||1;for(let i=0;i<n;i++){e.x+=dx/n;e.z+=dz/n;collide(e,r);}}
 const tileOf=e=>Math.floor(e.z/T)*W+Math.floor(e.x/T);
 const chAt=e=>charAt(Math.floor(e.x/T),Math.floor(e.z/T));
-function onDeck(e){const tx=Math.floor(e.x/T),tz=Math.floor(e.z/T);return tx>=150&&tx<=158&&tz>=7&&tz<=9;}
-function bodyY(x,z){const g=groundAt(x,z);if(charAt(Math.floor(x/T),Math.floor(z/T))!=='U')return g;const u=S.bridge==='fall'?clamp(S.bridgeT/1.05,0,1):1;const e=u*u*(3-2*u);return lerp(0,g-0.85,e);}
-function rememberBridge(m){const wide=m.scale.x>12;bridgeParts.push({m,x:m.position.x,y:m.position.y,z:m.position.z,qx:m.quaternion.x,qy:m.quaternion.y,qz:m.quaternion.z,qw:m.quaternion.w,deck:!!(m.userData.deck||m.userData.rail||m.userData.skin||wide),delay:Math.abs(m.position.x-305)/48});}
-function poseBridge(t){for(const p of bridgeParts){const u=clamp((t-p.delay*0.55)/1.05,0,1);const e=u*u*(3-2*u);const drop=e*(p.deck?8.2:4.6);const lean=(p.x>=305?1:-1);p.m.position.set(p.x+Math.sin(e*2.2+p.delay)*0.35,p.y-drop,p.z+Math.sin(e*1.6)*0.2);p.m.quaternion.set(p.qx,p.qy,p.qz,p.qw);p.m.rotateZ(lean*e*(p.deck?0.25:0.9));p.m.rotateX(e*(p.z>16?0.45:-0.45));p.m.visible=!(p.deck&&e>0.8);}}
+function fallEase(t,delay){const u=(t-FALL_CRACK-(delay||0))/FALL_DROP;if(u<=0)return 0;const g=u>1?1:u;return g*g;}
+function spanDelay(x){return Math.abs(x-BRIDGE_MID)/520;}
+function onDeck(e){if(S.fly||!doors.gate||S.bridge!=='up')return false;const tx=Math.floor(e.x/T),tz=Math.floor(e.z/T);return tx>=HIGH_A+60&&tx<=HIGH_B-12&&tz>=6&&tz<=10;}
+function bodyY(x,z){const tx=Math.floor(x/T),tz=Math.floor(z/T);if(charAt(tx,tz)!=='U')return groundAt(x,z);const e=S.bridge==='fall'?fallEase(S.bridgeT,spanDelay(x)):1;return lerp(bridgeDeckY(tx),WATER-0.55,e);}
+function rememberBridge(m){if(!m.isMesh)return;const keep=!!m.userData.keep,deck=!!(m.userData.deck||m.userData.rail||m.userData.skin),pier=!!m.userData.pier;bridgeParts.push({m,x:m.position.x,y:m.position.y,z:m.position.z,qx:m.quaternion.x,qy:m.quaternion.y,qz:m.quaternion.z,qw:m.quaternion.w,deck,pier,keep,delay:keep?0:spanDelay(m.position.x)});}
+function poseBridge(t){for(const p of bridgeParts){if(p.keep)continue;const e=fallEase(t,p.delay);const drop=e*(p.pier?DECK_Y-1.5:DECK_Y+1.2);const lean=p.x>=BRIDGE_MID?1:-1;p.m.position.set(p.x+Math.sin(e*2.1)*0.35,p.y-drop,p.z+Math.sin(e*1.4)*0.12);p.m.quaternion.set(p.qx,p.qy,p.qz,p.qw);p.m.rotateZ(lean*e*(p.pier?0.4:0.16));p.m.visible=!(p.deck&&e>0.94);}}
 function restoreBridge(){for(const p of bridgeParts){p.m.visible=true;p.m.position.set(p.x,p.y,p.z);p.m.quaternion.set(p.qx,p.qy,p.qz,p.qw);}}
-function collapseBridge(quiet){if(S.bridge!=='up')return;for(const [x,z] of SPAN)G[z][x]='U';S.bridge='fall';S.bridgeT=0;S.bridgeSplash=false;flowDirty=true;recomputeRoute();player.vx=0;player.vz=0;for(const b of bots){b.vx=0;b.vz=0;}if(quiet)return;setObj(12);S.shake=.62;feed('<b>The span is going.</b> Swim for the Samoa shore.','#f66');bark(null,'The bridge is in the bay! Swim! Samoa side!','collapse',99);if(AU.ctx){nz({dur:1.5,f:55,f2:28,vol:.95});tn({f:42,f2:24,dur:1.2,vol:.45,lp:180});SFX.splat(player.x,player.z);}for(let i=0;i<26;i++)PSmoke.emit(player.x+rand(-2.2,2.2),0.4,player.z+rand(-1.2,1.2),rand(-3,3),rand(2,5.5),rand(-2,2),rand(.45,.85),.3,.05,.75,.88,.92,.7,8);}
-function restoreSpan(){for(const [x,z,c] of SPAN)G[z][x]=c;S.bridge='up';S.bridgeT=0;S.bridgeSplash=false;restoreBridge();}
-function tickBridge(dt){if(S.bridge==='up')return;S.bridgeT+=dt;if(S.bridge==='fall'&&S.bridgeT>=1.15)S.bridge='swim';poseBridge(S.bridgeT);if(S.bridge==='fall')S.shake=Math.max(S.shake,.22*(1-clamp(S.bridgeT/1.4,0,1)));if(!S.bridgeSplash&&S.bridgeT>0.42){S.bridgeSplash=true;const x=clamp(player.x,147*T,158*T),z=clamp(player.z,7*T,10*T);for(let i=0;i<24;i++)PSmoke.emit(x+rand(-4,4),WATER+0.2,z+rand(-1.6,1.6),rand(-2.6,2.6),rand(1.5,4.2),rand(-2,2),rand(.4,.75),.22,.04,.82,.9,.94,.6,7);if(AU.ctx)nz({dur:.4,f:700,f2:180,type:'bandpass',vol:.4,x,z});}}
-function ashore(){if(S.obj!==12||S.bridge==='up')return;if(Math.floor(player.x/T)>=159&&chAt(player)!=='U'){setObj(7);feed('Feet on the Samoa side. The cookhouse is ahead.','#9f9');bark(null,'Out of the water. Cookhouse.','ashore',99);}}
+function collapseBridge(quiet){if(S.bridge!=='up')return;for(const [x,z] of SPAN)G[z][x]='U';S.bridge='fall';S.bridgeT=0;S.bridgeSplash=false;flowDirty=true;recomputeRoute();player.vx=0;player.vz=0;for(const b of bots){b.vx=0;b.vz=0;}if(quiet)return;setObj(12);S.shake=.85;feed('<b>The span is going.</b> A skiff is in the channel. Get in and row.','#f66');bark(null,'The bridge is in the bay! Boat — row for Samoa!','collapse',99);const py=bridgeDeckY(Math.floor(player.x/T));if(AU.ctx){nz({dur:1.8,f:48,f2:24,vol:.95});tn({f:36,f2:20,dur:1.4,vol:.5,lp:160});SFX.splat(player.x,player.z);}for(let i=0;i<30;i++)PSmoke.emit(player.x+rand(-6,6),py+rand(0,2),player.z+rand(-2,2),rand(-4,4),rand(1,4),rand(-2,2),rand(.5,.9),.35,.06,.62,.6,.58,.65,6);}
+function restoreSpan(){for(const [x,z,c] of SPAN)G[z][x]=c;S.bridge='up';S.bridgeT=0;S.bridgeSplash=false;restoreBridge();resetBoat();}
+function tickBridge(dt){if(S.bridge==='up')return;S.bridgeT+=dt;if(S.bridge==='fall'&&S.bridgeT>=FALL_END)S.bridge='swim';poseBridge(S.bridgeT);if(S.bridge==='fall')S.shake=Math.max(S.shake,.28*(1-clamp(S.bridgeT/FALL_END,0,1)));if(!S.bridgeSplash&&S.bridgeT>1.9){S.bridgeSplash=true;launchBoat();const x=clamp(player.x,(HIGH_A+2)*T,(HIGH_B-2)*T),z=clamp(player.z,12,22);for(let i=0;i<36;i++)PSmoke.emit(x+rand(-8,8),WATER+0.15,z+rand(-3,3),rand(-3,3),rand(1.2,4.5),rand(-2,2),rand(.45,.8),.28,.05,.75,.84,.9,.62,5);if(AU.ctx)nz({dur:.55,f:520,f2:140,type:'bandpass',vol:.45,x,z});}}
+function ashore(){if(S.obj!==12||S.bridge==='up'||player.boatSeat!=null)return;const tx=Math.floor(player.x/T);if(tx>=HIGH_B&&chAt(player)!=='U'){setObj(7);feed('Feet on the Samoa side. The cookhouse is ahead.','#9f9');bark(null,'Out of the water. Cookhouse.','ashore',99);}}
 const spawnTiles={hotel:[],lobby:[]};
-for(let z=0;z<H;z++)for(let x=0;x<W;x++){const c=G[z][x];if(x<18)continue;if(c==='.'||c==='n')spawnTiles.hotel.push({x,z,i:z*W+x});if(c==='m'||c===',')spawnTiles.lobby.push({x,z,i:z*W+x});}
+for(let z=0;z<H;z++)for(let x=0;x<W;x++){const c=G[z][x];if(x<18||(x>=BR_A&&x<=BR_B))continue;if(c==='.'||c==='n')spawnTiles.hotel.push({x,z,i:z*W+x});if(c==='m'||c===',')spawnTiles.lobby.push({x,z,i:z*W+x});}
 
 /* ================= RENDERER / SCENE ================= */
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance',preserveDrawingBuffer:AUTOTEST});
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.autoClear=false;
 document.body.prepend(renderer.domElement);
 const scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x8a9288,0.012);scene.background=new THREE.Color(0x8a9288);
-const camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.05,900);camera.rotation.order='YXZ';scene.add(camera);
+const camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.08,2200);camera.rotation.order='YXZ';scene.add(camera);
 const vmScene=new THREE.Scene(),vmCam=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.01,10);
 const vmHemi=new THREE.HemisphereLight(0xffffff,0x332222,1.2);vmScene.add(vmHemi);const vmDir=new THREE.DirectionalLight(0xffd0a0,1.2);vmDir.position.set(1,2,1);vmScene.add(vmDir);
 const vmFlash=new THREE.PointLight(0xffb060,0,3,1);vmFlash.position.set(.2,-.1,-.8);vmScene.add(vmFlash);
@@ -395,12 +413,12 @@ const shade=(c,f)=>{const col=new THREE.Color(c);col.multiplyScalar(f);return co
 
 /* ---- build level geometry ---- */
 const fires=[]; // {x,y,z,r,big}
-const spanDecks=[],spanRails=[],bridgeParts=[];
+const bridgeParts=[];
 {const walls=[],trims=[],floors=[],ceils=[],obst=[],lamps=[],flick=[];
  for(let z=0;z<H;z++)for(let x=0;x<W;x++){const c=G[z][x],cx=(x+.5)*T,cz=(z+.5)*T;if(c===' ')continue;
   if(c==='t'){const red=zoneAt[z*W+x]===2;floors.push({x:cx,y:-0.12,z:cz,sx:T,sy:0.24,sz:T,c:red?0x1a2a18:0x3a4a32});const th=red?14:4.4;obst.push({x:cx,y:th/2,z:cz,sx:red?.7:.35,sy:th,sz:red?.7:.35,c:0x3a2a1c});obst.push({x:cx,y:th-(red?1.2:0),z:cz,sx:red?3.2:2.4,sy:red?2.4:2.2,sz:red?3.2:2.4,c:pick([0x1d3a28,0x244432,0x163022])});continue;}
-  if(c==='~'){floors.push({x:cx,y:-0.95,z:cz,sx:T,sy:0.1,sz:T,c:0x1a3e3c});continue;}
-  if(c==='='){const oz=(WALK.has(charAt(x,z+1))?1:-1)*T*0.42;const railA={x:cx,y:0.62,z:cz+oz,sx:T*1.02,sy:1.15,sz:0.16,c:0x8d8680},railB={x:cx,y:0.42,z:cz+oz,sx:0.18,sy:1.05,sz:0.24,c:0x5a534c};if(x>=147&&x<=158){spanRails.push(railA,railB);continue;}obst.push(railA);obst.push(railB);continue;}
+  if(c==='~'){if(x<BR_A||x>BR_B)floors.push({x:cx,y:-0.95,z:cz,sx:T,sy:0.1,sz:T,c:0x1a3e3c});continue;}
+  if(c==='='){if(x>=BR_A&&x<=BR_B)continue;const oz=(WALK.has(charAt(x,z+1))?1:-1)*T*0.42;obst.push({x:cx,y:0.62,z:cz+oz,sx:T*1.02,sy:1.15,sz:0.16,c:0x8d8680});obst.push({x:cx,y:0.42,z:cz+oz,sx:0.18,sy:1.05,sz:0.24,c:0x5a534c});continue;}
   if(c==='#'||c==='b'){let lo=1e9,hi=-1e9,mill=false,high=false;const zn=zoneAt[z*W+x];
    for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const n=charAt(x+b,z+a);if(n===' '||WALLC.has(n)||n==='D')continue;const bh=tileH(x+b,z+a);const lip=(MILL.has(n)||zn===9)?6.4:(ROOF.has(n)||n==='S')?1.5:zn===6?10:zn===1?5.2:zn===8?4.2:3.2;lo=Math.min(lo,bh);hi=Math.max(hi,bh+lip);if(MILL.has(n)||zn===9)mill=true;if(ROOF.has(n)||n==='S')high=true;}
    if(lo>hi){lo=0;hi=zn===6?10:3;}lo-=0.15;const v=0.88+Math.random()*0.16;
@@ -419,7 +437,7 @@ const spanDecks=[],spanRails=[],bridgeParts=[];
   else if(ROOF.has(c))fc=shade(0x5c584e,0.9+Math.random()*.15);
   else if(c==='c')fc=0x3a3028;
   if(c==='S'){for(let s=0;s<2;s++){const sx=(x+.25+.5*s)*T,top=groundAt(sx,cz);floors.push({x:sx,y:top-0.08,z:cz,sx:T/2-0.02,sy:0.16,sz:T,c:s?0x6e7270:0x5c605e});}}
-  else if(x>=147&&x<=158&&z>=7&&z<=9)spanDecks.push({x:cx,y:b-0.12,z:cz,sx:T,sy:0.24,sz:T,c:fc});
+  else if(onBridgeDeck(x,z)){/* deck slabs are the bridge group */}
   else floors.push({x:cx,y:b-0.12,z:cz,sx:T,sy:0.24,sz:T,c:fc});
   const ch=ceilOf(c,x,z);
   if(ch!==null){ceils.push({x:cx,y:b+ch+0.12,z:cz,sx:T,sy:0.24,sz:T,c:zn===6?0x4a4030:0x3a342c});
@@ -428,7 +446,7 @@ const spanDecks=[],spanRails=[],bridgeParts=[];
   if(c==='B'){obst.push({x:cx,y:b+0.42,z:cz,sx:1.55,sy:0.7,sz:0.85,ry:(x+z)*.4,c:pick([0x2a2420,0x3a1a14,0x1a1c1e])});obst.push({x:cx,y:b+0.85,z:cz-0.1,sx:0.85,sy:0.38,sz:0.7,c:0x151515});fires.push({x:cx,y:b+0.35,z:cz,r:0.55,big:false});}
   if(c==='F'||c==='x')fires.push({x:cx,y:b+0.05,z:cz,r:c==='x'?1.1:0.8,big:c==='x'});
   if(c==='I')obst.push({x:cx,y:b+2.7,z:cz,sx:0.55,sy:5.4,sz:0.55,c:0x6a5344});
-  if(c==='R'&&x===203&&z===8){obst.push({x:cx+T*.5,y:b+0.02,z:cz,sx:3.4,sy:0.04,sz:3.4,c:0xc9a227});}
+  if(c==='R'&&x===203+EXTRA&&z===8){obst.push({x:cx+T*.5,y:b+0.02,z:cz,sx:3.4,sy:0.04,sz:3.4,c:0xc9a227});}
  }
  instBoxes(walls);instBoxes(trims);instBoxes(floors);instBoxes(ceils);instBoxes(obst);
  instBoxes(lamps,new THREE.MeshBasicMaterial({color:0xffe6b0}));
@@ -437,8 +455,8 @@ const spanDecks=[],spanRails=[],bridgeParts=[];
 const flickMat=scene.children[scene.children.length-1].material;
 box(1.8,0.62,3.3,0x243028,6.2*T,0.4,7.15*T,scene);
 box(1.45,0.55,1.25,0x1c2820,5.6*T,0.95,6.4*T,scene);
-box(2.6,4.2,2.6,0x6a5438,191*T,2.1,11.2*T,scene);box(2.8,0.4,2.8,0x4a3a28,191*T,4.3,11.2*T,scene);
-{const roller=new THREE.Mesh(cylGeo,mat(0x4a4038));roller.rotation.z=Math.PI/2;roller.scale.set(.55,1.8,.55);roller.position.set(191.2*T,1.15,10.2*T);scene.add(roller);}
+box(2.6,4.2,2.6,0x6a5438,(191+EXTRA)*T,2.1,11.2*T,scene);box(2.8,0.4,2.8,0x4a3a28,(191+EXTRA)*T,4.3,11.2*T,scene);
+{const roller=new THREE.Mesh(cylGeo,mat(0x4a4038));roller.rotation.z=Math.PI/2;roller.scale.set(.55,1.8,.55);roller.position.set((191.2+EXTRA)*T,1.15,10.2*T);scene.add(roller);}
 function signTex(text,bg,fg,w=256,h=64){return canvasTex(w,h,(g,W2,H2)=>{g.fillStyle=bg;g.fillRect(0,0,W2,H2);g.fillStyle=fg;g.font='bold '+Math.floor(H2*0.42)+'px Arial';g.textAlign='center';g.textBaseline='middle';const lines=text.split('\n');lines.forEach((l,i)=>g.fillText(l,W2/2,H2/2+(i-(lines.length-1)/2)*H2*0.42));});}
 function sign(text,bg,fg,x,y,z,ry,w,h){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:signTex(text,bg,fg,512,Math.round(512*h/w)),transparent:true,side:THREE.DoubleSide}));m.position.set(x,y,z);m.rotation.y=ry;scene.add(m);return m;}
 const FACE=-Math.PI/2;
@@ -452,9 +470,9 @@ sign('RENTOR','#6a1a1a','#fff',103.2*T,2.4,7.7*T,FACE,1.8,0.4);
 sign('CARSON MANSION','#c4a882','#2a1c10',123.2*T,4.2,7.7*T,FACE,3.4,0.5);
 sign('INGOMAR CLUB','#2a1c10','#f0e2c4',123.2*T,3.4,7.7*T,FACE,2.6,0.4);
 sign('SAMOA BRIDGE','#8a6a12','#1a1408',143.2*T,3.4,7.7*T,FACE,2.8,0.5);
-sign('SAMOA COOKHOUSE','#8a2e28','#fff',163.2*T,3.2,7.7*T,FACE,3.4,0.5);
-sign('EUREKA PULP MILL','#3a2418','#f0d7a4',188.2*T,3.6,7.7*T,FACE,3.4,0.55);
-sign('HELIPAD','#1c1c1c','#f4f4f4',201.2*T,12.2,8.2*T,FACE,1.6,0.4);
+sign('SAMOA COOKHOUSE','#8a2e28','#fff',(163.2+EXTRA)*T,3.2,7.7*T,FACE,3.4,0.5);
+sign('EUREKA PULP MILL','#3a2418','#f0d7a4',(188.2+EXTRA)*T,3.6,7.7*T,FACE,3.4,0.55);
+sign('HELIPAD','#1c1c1c','#f4f4f4',(201.2+EXTRA)*T,12.2,8.2*T,FACE,1.6,0.4);
 /* Landmark masses sit on blocked tiles north of the road (world z < 14). Facades face +Z, toward the road. */
 const photoTex={},photoMats={};
 function loadPhoto(file){let tex=photoTex[file];if(!tex){tex=new THREE.TextureLoader().load('tex/'+file);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());photoTex[file]=tex;}return tex;}
@@ -579,24 +597,57 @@ solid(scene,0.2,4.8,0.2,0xf2efe8,67.7,2.5,2.3);solid(scene,0.2,4.8,0.2,0xf2efe8,
  solid(man,0.55,1.7,0.55,0x6a4538,-0.4,11.3,-1.8);
 }
 
-{const br=grp('lm-bridge',0,0,0);const STEEL=0x3d6844;const x0=146*T,x1=159*T,zN=12.25,zS=20.55;
- for(let x=x0;x<=x1+0.01;x+=4){
-  solid(br,0.32,6.5,0.32,STEEL,x,3.25,zN);solid(br,0.32,6.5,0.32,STEEL,x,3.25,zS);
-  solid(br,0.22,0.24,zS-zN,STEEL,x,6.35,(zN+zS)/2);
-  if(x+4<=x1+0.2){strut(br,x,0.45,zN,x+4,6.15,zN,0.12,STEEL);strut(br,x,6.15,zN,x+4,0.45,zN,0.12,STEEL);strut(br,x,0.45,zS,x+4,6.15,zS,0.12,STEEL);strut(br,x,6.15,zS,x+4,0.45,zS,0.12,STEEL);}
+{const br=grp('lm-bridge',0,0,0);const CON=0x8d8982,GIR=0x5e5954,PIER=0x6d6862;
+ const zC=17,deckW=10.2;
+ function spanBox(len,y0,y1,x0,x1,keep){
+  const mid=(x0+x1)/2,ang=Math.atan2(y1-y0,len),cy=(y0+y1)/2;
+  const deck=solid(br,len,0.46,deckW,CON,mid,cy-0.16,zC);deck.rotation.z=ang;deck.userData.deck=1;if(keep)deck.userData.keep=1;
+  const railN=solid(br,len,1.05,0.22,0x3e3a36,mid,cy+0.55,zC-deckW*0.5);railN.rotation.z=ang;railN.userData.rail=1;if(keep)railN.userData.keep=1;
+  const railS=solid(br,len,1.05,0.22,0x3e3a36,mid,cy+0.55,zC+deckW*0.5);railS.rotation.z=ang;railS.userData.rail=1;if(keep)railS.userData.keep=1;
+  const gir=solid(br,len,1.5,deckW*0.62,GIR,mid,cy-1.05,zC);gir.rotation.z=ang;gir.userData.skin=1;if(keep)gir.userData.keep=1;
  }
- solid(br,x1-x0+0.6,0.32,0.36,STEEL,(x0+x1)/2,6.55,zN);solid(br,x1-x0+0.6,0.32,0.36,STEEL,(x0+x1)/2,6.55,zS);
- solid(br,x1-x0+0.6,0.22,0.28,STEEL,(x0+x1)/2,0.4,zN);solid(br,x1-x0+0.6,0.22,0.28,STEEL,(x0+x1)/2,0.4,zS);
- const northSkin=facade(br,'bridge.jpg',0.08,0.2,0.92,0.78,x1-x0,5.5,(x0+x1)/2,3.35,zN-0.35,Math.PI);
- const southSkin=facade(br,'bridge.jpg',0.08,0.2,0.92,0.78,x1-x0,5.5,(x0+x1)/2,3.35,zS+0.35,0);
- northSkin.userData.skin=1;southSkin.userData.skin=1;
- for(const d of spanDecks){const m=solid(br,d.sx,d.sy,d.sz,d.c,d.x,d.y,d.z);m.userData.deck=1;}
- for(const r of spanRails){const m=solid(br,r.sx,r.sy,r.sz,r.c,r.x,r.y,r.z);m.userData.rail=1;}
+ const xA=BR_A*T,xH0=HIGH_A*T,xH1=(HIGH_B+1)*T,xB=(BR_B+1)*T;
+ spanBox(xH0-xA,0.15,DECK_Y,xA,xH0,true);
+ spanBox(xB-xH1,DECK_Y,0.15,xH1,xB,true);
+ const spanLen=xH1-xH0,n=Math.max(8,Math.round(spanLen/36));
+ for(let i=0;i<n;i++){
+  const a=xH0+spanLen*i/n,b=xH0+spanLen*(i+1)/n,mid=(a+b)/2;
+  spanBox(b-a,DECK_Y,DECK_Y,a,b,false);
+  const skinN=facade(br,'bridge.jpg',0.08,0.2,0.92,0.78,b-a,4.4,mid,DECK_Y-2.55,zC-deckW*0.5-0.16,Math.PI);
+  const skinS=facade(br,'bridge.jpg',0.08,0.2,0.92,0.78,b-a,4.4,mid,DECK_Y-2.55,zC+deckW*0.5+0.16,0);
+  skinN.userData.skin=1;skinS.userData.skin=1;
+  const pier=solid(br,2.6,DECK_Y+0.5,3.4,PIER,a,(DECK_Y-0.5)/2,zC);pier.userData.pier=1;
+ }
+ const pierE=solid(br,2.6,DECK_Y+0.5,3.4,PIER,xH1,(DECK_Y-0.5)/2,zC);pierE.userData.pier=1;
  br.traverse(o=>{if(o.isMesh)rememberBridge(o);});
  window.__bridgeParts=bridgeParts;
 }
+const BOAT={show:false,beached:false,x:0,z:17,yaw:0,vx:0,stroke:0,seats:[-1,-1,-1,-1],seatX:[-2.15,-0.65,0.85,2.25],seatZ:[0.18,-0.18,0.18,-0.18],oars:[],tx:null,tz:null,tyaw:0};
+BOAT.g=new THREE.Group();BOAT.g.name='skiff';BOAT.g.visible=false;scene.add(BOAT.g);
+box(6.4,0.28,1.65,0x6a4528,0,0.16,0,BOAT.g);
+box(6.5,0.46,0.14,0x4a301c,-0.05,0.42,0.92,BOAT.g);
+box(6.5,0.46,0.14,0x4a301c,-0.05,0.42,-0.92,BOAT.g);
+box(0.85,0.62,1.85,0x5c3c24,3.15,0.36,0,BOAT.g);
+box(0.55,0.55,1.7,0x3a2818,-3.25,0.34,0,BOAT.g);
+for(let i=0;i<4;i++)box(0.14,0.08,1.55,0x8b6a3e,BOAT.seatX[i],0.46,0,BOAT.g);
+for(const [ox,side] of [[-1.55,1],[-0.2,-1],[1.2,1],[2.45,-1]]){
+ const g=new THREE.Group();g.position.set(ox,0.58,side*0.96);g.userData.side=side;g.name='oar';BOAT.g.add(g);
+ box(0.07,0.07,1.25,0xc4a56a,0,0,side*0.62,g);
+ box(0.05,0.2,0.38,0x8a6238,0,-0.02,side*1.28,g);
+ BOAT.oars.push(g);
+}
+window.__boat=BOAT;
+function seatWorld(i){const lx=BOAT.seatX[i],lz=BOAT.seatZ[i],c=Math.cos(BOAT.yaw),s=Math.sin(BOAT.yaw);return {x:BOAT.x+lx*c+lz*s,z:BOAT.z-lx*s+lz*c};}
+function seatEnt(ent){if(ent.boatSeat==null||!BOAT.show)return;const p=seatWorld(ent.boatSeat);ent.x=p.x;ent.z=p.z;ent.vx=0;ent.vz=0;}
+function boardBoat(ent){if(!BOAT.show||BOAT.beached||!ent||ent.boatSeat!=null)return;const id=ent===player?0:bots.indexOf(ent)+1;if(id<0||(ent!==player&&id===0))return;if(BOAT.seats.includes(id))return;const seat=BOAT.seats.indexOf(-1);if(seat<0){if(ent===player)feed('The skiff is full.','#fd8');return;}BOAT.seats[seat]=id;ent.boatSeat=seat;if(ent===player)feed('<b>In the skiff.</b> W rows. A and D turn. Four oars.','#9cf');}
+function launchBoat(){if(BOAT.show)return;BOAT.show=true;BOAT.beached=false;BOAT.g.visible=true;BOAT.x=player.x+2.6;BOAT.z=clamp(player.z,14,19);BOAT.yaw=0;BOAT.vx=0;BOAT.stroke=0;BOAT.seats=[-1,-1,-1,-1];player.boatSeat=null;for(const b of bots)b.boatSeat=null;poseBoat(0);}
+function resetBoat(){BOAT.show=false;BOAT.beached=false;BOAT.vx=0;BOAT.stroke=0;BOAT.seats=[-1,-1,-1,-1];BOAT.tx=null;if(BOAT.g)BOAT.g.visible=false;player.boatSeat=null;for(const b of bots)b.boatSeat=null;}
+function poseBoat(dt){if(!BOAT.g)return;BOAT.g.visible=!!BOAT.show;if(!BOAT.show)return;const bob=Math.sin(S.t*1.25)*0.05+Math.sin(S.t*0.7+1.2)*0.035;BOAT.g.position.set(BOAT.x,WATER+0.08+bob,BOAT.z);BOAT.g.rotation.set(Math.sin(S.t*1.05)*0.025,BOAT.yaw,Math.sin(S.t*0.8)*0.03);const pulling=Math.abs(BOAT.vx)>0.4;const prev=BOAT.stroke;BOAT.stroke=pulling?(BOAT.stroke+dt*1.45)%1:lerp(BOAT.stroke,0,1-Math.exp(-dt*3));if(pulling&&prev>0.85&&BOAT.stroke<0.2&&AU.ctx)nz({dur:.08,f:900,f2:240,type:'bandpass',vol:.12,x:BOAT.x,z:BOAT.z});BOAT.oars.forEach((o,i)=>{const ph=(BOAT.stroke+i*0.07)%1,dip=Math.sin(ph*Math.PI),side=o.userData.side;o.rotation.x=side*(0.18+dip*0.95);o.rotation.y=Math.sin(ph*6.283)*0.28;});}
+function steerBoat(dt){let row=0,turn=0;if(player.boatSeat!=null){row+=(keys.KeyW?1:0)-(keys.KeyS?1:0);turn+=(keys.KeyD?1:0)-(keys.KeyA?1:0);}if(NET.role==='host')for(const b of bots)if(b.net&&b.boatSeat!=null&&b.inp){row+=(+b.inp.row)||0;turn+=(+b.inp.turn)||0;}row=clamp(row,-1,1);turn=clamp(turn,-1,1);BOAT.yaw+=turn*0.85*dt;BOAT.vx=lerp(BOAT.vx,row*8,1-Math.exp(-dt*2.4));const c=Math.cos(BOAT.yaw),s=Math.sin(BOAT.yaw);BOAT.x+=c*BOAT.vx*dt;BOAT.z+=-s*BOAT.vx*dt;BOAT.z=clamp(BOAT.z,13.2,20.6);BOAT.x=clamp(BOAT.x,(HIGH_A+4)*T,(BR_B-1)*T);if(bridgeDeckY(Math.floor(BOAT.x/T))<1.15&&BOAT.x>(HIGH_B+8)*T)disembark();}
+function disembark(){if(BOAT.beached)return;BOAT.beached=true;BOAT.vx=0;const landX=(BR_B+1.5)*T;const zs=[0,0.7,-0.7,1.3];if(player.boatSeat!=null){player.x=landX;player.z=8.5*T;player.vx=0;player.vz=0;player.boatSeat=null;}bots.forEach((b,i)=>{if(b.boatSeat==null)return;b.x=landX+1.2;b.z=8.5*T+zs[i%4];b.vx=0;b.vz=0;b.boatSeat=null;});BOAT.seats=[-1,-1,-1,-1];BOAT.x=(BR_B-0.4)*T;BOAT.z=14.5;setObj(7);feed('<b>The skiff is on the Samoa side.</b> Cookhouse ahead.','#9f9');bark(null,'Out of the boat. Cookhouse.','ashore',99);}
+function tickBoat(dt){if(!BOAT.show){if(BOAT.g)BOAT.g.visible=false;return;}if(NET.role==='client'){if(BOAT.tx!=null){const k=1-Math.exp(-dt*8);BOAT.x=lerp(BOAT.x,BOAT.tx,k);BOAT.z=lerp(BOAT.z,BOAT.tz,k);BOAT.yaw=lerpAng(BOAT.yaw,BOAT.tyaw,k);}poseBoat(dt);if(player.boatSeat!=null)seatEnt(player);return;}if(!BOAT.beached)steerBoat(dt);poseBoat(dt);if(player.boatSeat!=null)seatEnt(player);for(const b of bots)if(b.boatSeat!=null)seatEnt(b);}
 
-{const ck=grp('lm-cook',318,9.85,0);
+{const ck=grp('lm-cook',318+EXTRA*T,9.85,0);
  solid(ck,12.2,5.3,6.2,0x8a2e28,0,2.65,0);
  gable(ck,0,5.3,0,12.8,7.0,2.25,0x3a342e);
  solid(ck,0.18,5.3,6.35,0xf4f1ea,-6.05,2.65,0);solid(ck,0.18,5.3,6.35,0xf4f1ea,6.05,2.65,0);
@@ -607,14 +658,14 @@ solid(scene,0.2,4.8,0.2,0xf2efe8,67.7,2.5,2.3);solid(scene,0.2,4.8,0.2,0xf2efe8,
  const flag=new THREE.Mesh(new THREE.PlaneGeometry(1.25,0.72),new THREE.MeshLambertMaterial({map:flagTex,side:THREE.DoubleSide}));flag.position.set(7.45,4.85,4.55);ck.add(flag);
 }
 
-{const mill=grp('lm-mill',356,10.8,0);
+{const mill=grp('lm-mill',356+EXTRA*T,10.8,0);
  solid(mill,18,6.4,6.6,0x4a4038,0,3.2,0);
  gable(mill,0,6.4,0,18.8,7.4,2.5,0x6e6c64);
  solid(mill,14.5,1.15,1.3,0x3a3834,0,7.5,0);
  facade(mill,'mill.jpg',0.1,0.2,0.9,0.78,16.8,5.7,0,3.35,3.4,0);
  cylMesh(mill,1.15,1.35,12,0x5c4538,8.2,6,-1.2,10);solid(mill,2.6,0.45,2.6,0x3a2a22,8.2,12.2,-1.2);
 }
-{const pond=grp('lm-pond',372,11.2,0);
+{const pond=grp('lm-pond',372+EXTRA*T,11.2,0);
  const skin=new THREE.Mesh(cropGeo(11,5.2,0.08,0.0,0.9,0.24),photoMat('mill.jpg'));skin.rotation.x=-Math.PI/2;skin.position.set(0,0.05,0);pond.add(skin);
  for(let i=0;i<5;i++){const log=new THREE.Mesh(cylGeo,mat(0x6a442c));log.rotation.z=Math.PI/2;log.scale.set(0.32,2.4,0.32);log.position.set(-4.4+i*2.2,0.38,0.2);pond.add(log);}
 }
@@ -634,7 +685,7 @@ const doorMeshes={};
 }
 
 /* ---- sky, bay, the town north of the route ---- */
-{const sky=new THREE.Mesh(new THREE.SphereGeometry(700,24,16),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
+{const sky=new THREE.Mesh(new THREE.SphereGeometry(1600,24,16),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
   uniforms:{},vertexShader:'varying vec3 vP;void main(){vP=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
   fragmentShader:'varying vec3 vP;void main(){float h=vP.y;vec3 top=vec3(.38,.50,.60),mid=vec3(.62,.70,.70),hor=vec3(.78,.76,.68);vec3 c=mix(hor,mid,smoothstep(0.,.22,h));c=mix(c,top,smoothstep(.18,.7,h));float s=pow(max(0.,dot(normalize(vP),normalize(vec3(-.2,.35,-.4)))),40.);c+=vec3(1.,.92,.75)*s*.35;if(h<0.)c=mix(hor*.55,vec3(.12,.16,.14),smoothstep(0.,-.15,h));gl_FragColor=vec4(c,1.);}'}));
  sky.renderOrder=-1;scene.add(sky);window.__sky=sky;
@@ -642,55 +693,58 @@ const doorMeshes={};
  win.wrapS=win.wrapT=THREE.RepeatWrapping;
  const bmats=[1,2,3].map(r=>{const t=win.clone();t.needsUpdate=true;t.repeat.set(r,r*1.4);return new THREE.MeshLambertMaterial({color:0x2a3130,emissive:0xffffff,emissiveMap:t,emissiveIntensity:0.35});});
  window.__smokeStacks=[];
- const mud=new THREE.Mesh(new THREE.PlaneGeometry(1400,400),new THREE.MeshLambertMaterial({color:0x6d654c}));mud.rotation.x=-Math.PI/2;mud.position.set(200,-1.05,16);scene.add(mud);
- /* Bay surface. Fresnel (n = 1.333, F0 = 0.02) and the turbidity body color
-    are from web-ocean by Maksymilian Dendura, Copyright (c) 2026, MIT.
-    Permission is granted to use that shading here. It is provided "AS IS",
-    without warranty. Gerstner waves stand in for its FFT so this WebGL
-    scene can draw the same water. https://github.com/Noniv/web-ocean */
- const oceanMat=new THREE.ShaderMaterial({fog:false,side:THREE.DoubleSide,uniforms:{
-  uTime:{value:0},uSun:{value:new THREE.Vector3(-80,70,30).normalize()},
-  uBody:{value:new THREE.Color(0.016*1.6*1.35,0.080*1.6*1.35,0.096*1.6*1.35)},
+ const mud=new THREE.Mesh(new THREE.PlaneGeometry(2200,520),new THREE.MeshLambertMaterial({color:0x6d654c}));mud.rotation.x=-Math.PI/2;mud.position.set(640,-1.2,16);scene.add(mud);
+ /* Bay surface adapted from web-ocean by Maksymilian Dendura, Copyright (c) 2026, MIT.
+    Permission is granted to use that shading here. It is provided "AS IS", without warranty.
+    Fresnel is fresnelWater (n = 1.333, F0 = 0.02). The body is the turbidity color
+    (0.016, 0.080, 0.096) * 1.6, lit only by the smooth swell. Glitter is an anisotropic
+    sun-path lobe plus rare sparkles, in place of the LEAN map. https://github.com/Noniv/web-ocean */
+ const oceanMat=new THREE.ShaderMaterial({fog:false,side:THREE.FrontSide,uniforms:{
+  uTime:{value:0},uSun:{value:new THREE.Vector3(0.94,0.18,0.12).normalize()},
+  uBody:{value:new THREE.Color(0.016*1.6,0.080*1.6,0.096*1.6)},
   uFogColor:{value:new THREE.Color(0x8a9288)},uFogDensity:{value:0.009}},
   vertexShader:`uniform float uTime;varying vec3 vW;varying vec3 vN;varying float vH;
-   vec3 gerst(vec2 xz,float amp,float len,float spd,vec2 dir){float k=6.2831853/len;float f=k*dot(dir,xz)-spd*uTime;float s=sin(f);float co=cos(f);return vec3(dir.x*amp*co,amp*s,dir.y*amp*co);}
-   vec3 gerstN(vec2 xz,float amp,float len,float spd,vec2 dir){float k=6.2831853/len;float f=k*dot(dir,xz)-spd*uTime;float co=cos(f);return vec3(-dir.x*k*amp*co,-k*amp*sin(f),-dir.y*k*amp*co);}
+   vec3 wDisp;vec3 wN;float wH;
+   void swell(vec2 xz,float amp,float len,float spd,vec2 dir){
+    float k=6.2831853/len;float f=k*dot(dir,xz)-spd*uTime;float s=sin(f);float co=cos(f);
+    wDisp+=vec3(dir.x*amp*co*0.35,amp*s,dir.y*amp*co*0.35);
+    wN+=vec3(-dir.x*k*amp*co,0.0,-dir.y*k*amp*co);wH+=amp*s;}
    void main(){vec4 wp=modelMatrix*vec4(position,1.0);vec2 xz=wp.xz;
-    vec2 d0=normalize(vec2(1.0,0.18));vec2 d1=normalize(vec2(0.22,1.0));vec2 d2=normalize(vec2(-0.72,0.4));vec2 d3=normalize(vec2(0.48,-0.75));
-    vec3 d=gerst(xz,0.11,20.0,0.62,d0)+gerst(xz,0.06,10.5,0.92,d1)+gerst(xz,0.035,5.6,1.28,d2)+gerst(xz,0.018,3.1,1.65,d3);
-    vec3 n=vec3(0.0,1.0,0.0)+gerstN(xz,0.11,20.0,0.62,d0)+gerstN(xz,0.06,10.5,0.92,d1)+gerstN(xz,0.035,5.6,1.28,d2)+gerstN(xz,0.018,3.1,1.65,d3);
-    wp.xyz+=vec3(d.x*0.45,d.y,d.z*0.45);vH=d.y;vW=wp.xyz;vN=normalize(n);
+    wDisp=vec3(0.0);wN=vec3(0.0,1.0,0.0);wH=0.0;
+    swell(xz,0.15,83.0,0.28,normalize(vec2(1.0,0.13)));
+    swell(xz,0.08,57.0,0.36,normalize(vec2(0.15,1.0)));
+    swell(xz,0.045,41.0,0.47,normalize(vec2(-0.62,0.55)));
+    swell(xz,0.025,29.0,0.58,normalize(vec2(0.42,-0.78)));
+    vH=wH;vN=normalize(wN);wp.xyz+=wDisp;vW=wp.xyz;
     gl_Position=projectionMatrix*viewMatrix*vec4(vW,1.0);}`,
   fragmentShader:`uniform float uTime;uniform vec3 uSun;uniform vec3 uBody;uniform vec3 uFogColor;uniform float uFogDensity;varying vec3 vW;varying vec3 vN;varying float vH;
    float fresnelWater(float c){float x=1.0-clamp(c,0.0,1.0);float x2=x*x;return 0.02+0.98*x2*x2*x;}
-   vec3 gerstN(vec2 xz,float amp,float len,float spd,vec2 dir){float k=6.2831853/len;float f=k*dot(dir,xz)-spd*uTime;float co=cos(f);return vec3(-dir.x*k*amp*co,-k*amp*sin(f),-dir.y*k*amp*co);}
-   float gerstH(vec2 xz,float amp,float len,float spd,vec2 dir){float k=6.2831853/len;return amp*sin(k*dot(dir,xz)-spd*uTime);}
-   void main(){vec2 xz=vW.xz;
-    vec2 c0=normalize(vec2(0.85,0.35));vec2 c1=normalize(vec2(-0.25,0.95));vec2 c2=normalize(vec2(0.15,-1.0));
-    vec3 chop=gerstN(xz,0.11,2.3,1.7,c0)+gerstN(xz,0.055,1.1,2.2,c1)+gerstN(xz,0.026,0.55,2.7,c2);
-    float chopH=gerstH(xz,0.11,2.3,1.7,c0)+gerstH(xz,0.055,1.1,2.2,c1)+gerstH(xz,0.026,0.55,2.7,c2);
-    vec3 N=normalize(vN+chop);vec3 V=normalize(cameraPosition-vW);vec3 L=normalize(uSun);
-    float NdV=max(dot(N,V),0.0);float Fr=fresnelWater(NdV);float NdL=max(dot(N,L),0.0);
-    vec3 body=uBody*(0.9+0.65*max(L.y,0.0)+0.75*NdL);
-    float crest=clamp((vH+chopH-0.02)/0.12,0.0,1.0);float toSun=max(dot(L,-V),0.0);
-    body+=vec3(0.035,0.120,0.085)*crest*crest*pow(toSun,4.0);
-    vec3 R=reflect(-V,N);float hy=max(R.y,0.0);
-    vec3 sky=mix(vec3(0.78,0.76,0.68),vec3(0.42,0.58,0.68),smoothstep(0.0,0.5,hy));
-    sky+=vec3(1.0,0.94,0.8)*pow(max(dot(normalize(R),L),0.0),28.0)*0.7;
-    float spec=pow(max(dot(reflect(-L,N),V),0.0),36.0);
-    float foam=smoothstep(0.07,0.16,chopH);
-    vec3 col=body*(1.0-Fr)+sky*Fr+vec3(1.0,0.96,0.86)*spec*1.7;
-    col=mix(col,vec3(0.84,0.89,0.93),foam*0.82);
+   float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+   void main(){
+    vec3 Ns=normalize(vN);vec3 V=normalize(cameraPosition-vW);vec3 L=normalize(uSun);
+    float NdV=max(dot(Ns,V),0.0);float Fr=fresnelWater(NdV);float NdL=max(dot(Ns,L),0.0);
+    vec3 body=uBody*(1.15+1.45*NdL);
+    vec3 R=reflect(-V,Ns);float hy=max(R.y,0.0);
+    vec3 sky=mix(vec3(0.96,0.78,0.54),vec3(0.26,0.42,0.58),smoothstep(0.0,0.42,hy));
+    sky+=vec3(1.0,0.93,0.74)*pow(max(dot(normalize(R),L),0.0),90.0);
+    vec3 H=normalize(L+V);vec2 hs=H.xz/max(H.y,0.05);vec2 slope=-Ns.xz/max(Ns.y,0.25);vec2 ds=hs-slope;
+    vec2 ax=normalize(L.xz+vec2(0.001,0.0));vec2 ay=vec2(-ax.y,ax.x);
+    float du=dot(ds,ax);float dv=dot(ds,ay);
+    float sheen=exp(-0.5*(du*du/0.46+dv*dv/0.055))*smoothstep(0.02,0.22,H.y);
+    vec2 cell=floor(vW.xz*22.0)+floor(uTime*5.0);
+    float spark=smoothstep(0.84,0.995,hash(cell))*step(0.7,hash(cell+vec2(19.2,7.3)))*sheen;
+    vec3 col=body*(1.0-Fr)+sky*Fr+vec3(1.0,0.95,0.82)*(sheen*0.22+spark*1.25);
+    col=mix(col,vec3(0.76,0.83,0.86),smoothstep(0.22,0.30,vH)*0.25);
     float dist=length(cameraPosition-vW);float fogF=exp(-uFogDensity*uFogDensity*dist*dist);
     col=mix(uFogColor,col,clamp(fogF,0.0,1.0));
     gl_FragColor=vec4(col,1.0);}`});
- const bay=new THREE.Mesh(new THREE.PlaneGeometry(1000,320,250,80),oceanMat);bay.rotation.x=-Math.PI/2;bay.position.set(220,WATER,12);bay.name='ocean';scene.add(bay);
+ const bay=new THREE.Mesh(new THREE.PlaneGeometry(1900,480,190,40),oceanMat);bay.rotation.x=-Math.PI/2;bay.position.set(720,WATER,16);bay.name='ocean';scene.add(bay);
  window.__ocean=oceanMat;
  for(let i=0;i<48;i++){const x=rand(-10,420),z=rand(-80,-18),w=rand(8,22),d=rand(8,18),h=rand(5,28);const m=new THREE.Mesh(boxGeo,pick(bmats));m.scale.set(w,h,d);m.position.set(x,h/2,z);scene.add(m);}
  for(let i=0;i<18;i++){const x=rand(40,140),z=rand(40,80),h=rand(14,26);box(.5,h,.5,0x3a2a1c,x,h/2,z,scene);box(rand(2.6,4),rand(3,5),rand(2.6,4),pick([0x1a3424,0x234432]),x,h-1.2,z,scene);}
  function stack(x,z,h){box(2.4,h,2.4,0x5c4034,x,h/2,z,scene);box(3,0.7,3,0x3a2a22,x,h+0.2,z,scene);window.__smokeStacks.push([x,h+0.8,z]);}
- stack(192*T,3.2*T,18);stack(196*T,13.2*T,26);
- const gnd=new THREE.Mesh(new THREE.PlaneGeometry(2000,2000),new THREE.MeshLambertMaterial({color:0x1a2218}));gnd.rotation.x=-Math.PI/2;gnd.position.y=-2;scene.add(gnd);
+ stack((192+EXTRA)*T,3.2*T,18);stack((196+EXTRA)*T,13.2*T,26);
+ const gnd=new THREE.Mesh(new THREE.PlaneGeometry(3200,2200),new THREE.MeshLambertMaterial({color:0x1a2218}));gnd.rotation.x=-Math.PI/2;gnd.position.set(700,-2,20);scene.add(gnd);
 }
 
 /* ================= PARTICLES ================= */
@@ -815,7 +869,7 @@ const WEAP={pistol:{name:'Pistol',mag:15,dmg:34,rate:.17,spread:.012,pellets:1,r
  shotgun:{name:'Pump Shotgun',mag:8,res:56,dmg:22,rate:.85,spread:.075,pellets:9,reload:2.1,auto:true},
  smg:{name:'SMG',mag:50,res:650,dmg:20,rate:.075,spread:.03,pellets:1,reload:2.0,auto:true}};
 const S={phase:'title',t:0,obj:0,kills:0,skills:0,heads:0,dmg:0,ff:0,shots:0,hits:0,alarmT:-1,elevT:-1,elevArrived:false,inElevT:0,riding:false,rideT:0,inLobby:false,lobbyHorde:false,biledT:0,healT:0,revT:0,revBot:null,shake:0,fade:0,god:false,dirOn:false,complete:false,lowHpT:0,intro:0,started:false,spotted:{},bridge:'up',bridgeT:0,bridgeSplash:false};
-const player={x:4.5*T,z:8.5*T,y:1.6,yaw:-Math.PI/2,pitch:0.02,hp:100,down:false,kit:false,inv:{primary:null,pistol:{type:'pistol',mag:15,res:Infinity}},slot:'pistol',fireCd:0,reloadT:0,shoveCd:0,lastShove:-9,trig:false,bob:0,vx:0,vz:0,pinnedBy:null,pulledBy:null,pinShoves:0,flash:false,spread:0,crumbs:[],crumbT:0,hurtT:0,burnT:0};
+const player={x:4.5*T,z:8.5*T,y:1.6,yaw:-Math.PI/2,pitch:0.02,hp:100,down:false,kit:false,boatSeat:null,inv:{primary:null,pistol:{type:'pistol',mag:15,res:Infinity}},slot:'pistol',fireCd:0,reloadT:0,shoveCd:0,lastShove:-9,trig:false,bob:0,vx:0,vz:0,pinnedBy:null,pulledBy:null,pinShoves:0,flash:false,spread:0,crumbs:[],crumbT:0,hurtT:0,burnT:0};
 const commons=[],specials=[],bots=[],items=[];
 let ENTID=0;
 const MAXC=420,MAXI=520;
@@ -829,7 +883,7 @@ function feed(html,color){feedLines.push({html:(color?`<span style="color:${colo
 function renderFeed(){feedEl.innerHTML=feedLines.map(l=>`<div style="opacity:${Math.min(1,l.t)}">${l.html}</div>`).join('');}
 const barkCd={};
 function bark(bot,text,key,cd=6){if(!bot){bot=bots.find(b=>!b.down);if(!bot)return;}const k=key||text;if(barkCd[k]&&S.t<barkCd[k])return;barkCd[k]=S.t+cd;feed(`<b style="color:${bot.col}">${bot.name}:</b> ${text}`);SFX.bark();}
-const OBJ=['Grab the guns on Trinity Street','Safe room: Redwood Acres','Through the redwoods to the zoo','Safe room: Rentor, 3109 H St','Safe room: Carson Mansion','Cross the Samoa bridge','Force the Samoa bridge gate','Safe room: Samoa Cookhouse','Get to the pulp mill roof','Call the helicopter','Hold the roof until the helicopter lands','Get on the pad','Swim to the Samoa shore'];
+const OBJ=['Grab the guns on Trinity Street','Safe room: Redwood Acres','Through the redwoods to the zoo','Safe room: Rentor, 3109 H St','Safe room: Carson Mansion','Cross the Samoa bridge','Force the Samoa bridge gate','Safe room: Samoa Cookhouse','Get to the pulp mill roof','Call the helicopter','Hold the roof until the helicopter lands','Get on the pad','Row the boat to the Samoa shore'];
 function setObj(i){if(S.obj===i)return;S.obj=i;$('obj').textContent=OBJ[i];}
 let flashT=0;function hurtFlash(a){flashT=Math.max(flashT,a);}
 
@@ -843,12 +897,12 @@ addItem('shotgun',5.5*T,0.9,8.5*T);addItem('smg',6.5*T,0.9,8.5*T);addItem('kit',
 addItem('ammo',30.5*T,0.45,8.5*T);addItem('kit',46.5*T,0.45,8.5*T);
 addItem('ammo',76.5*T,0.45,8.5*T);addItem('kit',100.5*T,0.45,8.5*T);
 addItem('ammo',120.5*T,0.45,8.5*T);addItem('kit',140.5*T,0.45,8.5*T);
-addItem('ammo',152.5*T,0.45,8.5*T);addItem('kit',178.5*T,0.45,8.5*T);
-addItem('ammo',191.5*T,0.45,8.5*T);addItem('kit',200.5*T,10.5,8.5*T);
+addItem('ammo',152.5*T,bridgeDeckY(152)+0.55,8.5*T);addItem('kit',170.5*T,bridgeDeckY(170)+0.55,8.5*T);
+addItem('ammo',(191.5+EXTRA)*T,0.45,8.5*T);addItem('kit',(200.5+EXTRA)*T,10.5,8.5*T);
 
 /* ---- bots ---- */
 const BOT_SPAWN=[[3.4,7.6],[3.8,9.2],[4.8,7.4]];
-const START_COMMONS=[[30,8],[32,5],[50,8],[56,6],[66,8],[74,8],[96,8],[118,8],[150,8],[156,8],[180,8],[186,8],[191,8]];
+const START_COMMONS=[[30,8],[32,5],[50,8],[56,6],[66,8],[74,8],[96,8],[118,8],[138,8],[142,8],[180+EXTRA,8],[186+EXTRA,8],[191+EXTRA,8]];
 BOTDEF.forEach((d,i)=>{const m=makeHuman(d);const gun=gunModel(d.w,m.b);gun.position.set(.12,1.22,.42);gun.rotation.y=Math.PI;m.armR.rotation.x=-1.35;m.armL.rotation.x=-1.25;m.armL.rotation.z=-.35;
  const tag=nameSprite(d.name,d.col);tag.position.y=2.25;m.g.add(tag);scene.add(m.g);
  const sp=BOT_SPAWN[i];
@@ -978,6 +1032,7 @@ function useTargets(ent){const self=ent||player;const out=[];const yaw=self.yaw|
  const here=SAFES[safeIndex];if(here&&self===player&&inSafe(self,here))out.push({d:-2,label:'Close the safe room door',act:closeSafe});
  if(S.elevT<0)add(FIN.callX,FIN.callZ,3.6,'Call the helicopter',callHeli);
  if(S.elevArrived&&charAt(Math.floor(self.x/T),Math.floor(self.z/T))==='R')out.push({d:0,label:'Board the helicopter',act:boardHeli});
+ if(BOAT.show&&!BOAT.beached&&S.bridge!=='up'&&self.boatSeat==null){const d=Math.hypot(BOAT.x-self.x,BOAT.z-self.z);if(d<4.2)out.push({d:d-1.2,label:'Get in the boat',act:()=>boardBoat(self)});}
  if(self!==player&&player.down){const d=Math.hypot(player.x-self.x,player.z-self.z);if(d<2.2)out.push({d:-1,label:'Hold E to revive '+ (NET.name||'them'),act:null,revive:player});}
  for(const b of bots)if(b!==self&&b.down){const d=Math.hypot(b.x-self.x,b.z-self.z);if(d<2.2)out.push({d:-1,label:'Hold E to revive '+b.name,act:null,revive:b});}
  out.sort((a,b)=>a.d-b.d);return out[0]||null;}
@@ -999,7 +1054,9 @@ function updateBot(b,dt){if(b.net){updateNetSurvivor(b,dt);return;}
  if((b.pinnedBy&&!b.pinnedBy.dead)||(b.pulledBy&&!b.pulledBy.dead)){placeBot(b);return;}
  const m=b.mesh;b.phase+=dt*8*Math.min(1,b.moveSpd/3);
  if(b.down){m.b.rotation.x=lerp(m.b.rotation.x,-1.45,dt*5);m.g.position.set(b.x,bodyY(b.x,b.z)+.2,b.z);m.g.rotation.y=b.yaw;b.tag.material.color.setHex(0xff4444);b.hp=Math.max(0,b.hp-dt*0.8);return;}
- if(S.bridge==='fall'&&S.bridgeT<1.15&&chAt(b)==='U'){b.moveSpd=0;placeBot(b);return;}
+ if(b.boatSeat!=null&&BOAT.show){seatEnt(b);b.moveSpd=0;b.yaw=lerpAng(b.yaw,BOAT.yaw-Math.PI/2,dt*3);placeBot(b);return;}
+ if(BOAT.show&&!BOAT.beached&&S.bridge==='swim'&&chAt(b)==='U'&&b.boatSeat==null){const d=Math.hypot(BOAT.x-b.x,BOAT.z-b.z);if(d<3.3){boardBoat(b);placeBot(b);return;}if(d>0.05){moveEnt(b,(BOAT.x-b.x)/d*2.1*dt,(BOAT.z-b.z)/d*2.1*dt,.3);b.yaw=Math.atan2(BOAT.x-b.x,BOAT.z-b.z);b.moveSpd=2.1;}placeBot(b);return;}
+ if(S.bridge==='fall'&&chAt(b)==='U'){b.moveSpd=0;placeBot(b);return;}
  m.b.rotation.x=lerp(m.b.rotation.x,0,dt*5);b.tag.material.color.setHex(0xffffff);
  if(b.heal>0){b.heal-=dt;if(b.heal<=0){b.hp=Math.min(100,b.hp+(100-b.hp)*.8);bark(b,'Patched up. Feeling better.','healed'+b.name,10);}placeBot(b);return;}
  if(b.hp<40&&b.kit&&!player.pinnedBy&&!player.pulledBy){let near=false;for(const c of commons)if(!c.dead&&Math.hypot(c.x-b.x,c.z-b.z)<7){near=true;break;}if(!near){b.kit=false;b.heal=3;bark(b,'Healing up, cover me!','heal'+b.name,10);placeBot(b);return;}}
@@ -1150,8 +1207,9 @@ function update(dt){S.t+=dt;
  if(AP.on){mx=AP.mv[0];mz=AP.mv[1];}
  else{const f=(keys.KeyW?1:0)-(keys.KeyS?1:0),s=(keys.KeyD?1:0)-(keys.KeyA?1:0);const fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw),rx=Math.cos(player.yaw),rz=-Math.sin(player.yaw);mx=f*fx+s*rx;mz=f*fz+s*rz;const l=Math.hypot(mx,mz);if(l>0){mx/=l;mz/=l;}}
  if(S.bridge==='up'&&doors.gate&&!S.fly&&(onDeck(player)||bots.some(b=>b.net&&onDeck(b))))collapseBridge(false);
- let spd=(keys.ShiftLeft||keys.ShiftRight||AP.on)?6.3:4.3;if(player.hp<30)spd*=.75;if(S.healT>0||S.revT>0)spd*=.35;if(pinned||pulled||S.riding||player.down)spd=0;else if(S.bridge==='fall'&&S.bridgeT<1.15&&chAt(player)==='U')spd=0;else if(chAt(player)==='U')spd=Math.min(spd,2.2);
- if(S.fly){player.pinnedBy=null;player.pulledBy=null;player.down=false;
+ const seated=player.boatSeat!=null&&BOAT.show;
+ let spd=(keys.ShiftLeft||keys.ShiftRight||AP.on)?6.3:4.3;if(player.hp<30)spd*=.75;if(S.healT>0||S.revT>0)spd*=.35;if(pinned||pulled||S.riding||player.down||seated)spd=0;else if(S.bridge==='fall'&&chAt(player)==='U')spd=0;else if(chAt(player)==='U')spd=Math.min(spd,2.2);
+ if(S.fly){if(player.boatSeat!=null){BOAT.seats[player.boatSeat]=-1;player.boatSeat=null;}player.pinnedBy=null;player.pulledBy=null;player.down=false;
   camera.rotation.set(player.pitch,player.yaw,0);camera.updateMatrixWorld();camera.getWorldDirection(_d);
   const f=(keys.KeyW?1:0)-(keys.KeyS?1:0),st=(keys.KeyD?1:0)-(keys.KeyA?1:0),up=(keys.Space?1:0)-((keys.ControlLeft||keys.ControlRight)?1:0);
   const rx=Math.cos(player.yaw),rz=-Math.sin(player.yaw);
@@ -1159,7 +1217,7 @@ function update(dt){S.t+=dt;
   if(l>0){vx=vx/l*fspd;vy=vy/l*fspd;vz=vz/l*fspd;}else vx=vy=vz=0;
   player.x+=vx*dt;player.y=clamp(player.y+vy*dt,.4,90);player.z+=vz*dt;player.vx=vx;player.vz=vz;}
  else{player.vx=lerp(player.vx,mx*spd,1-Math.exp(-dt*12));player.vz=lerp(player.vz,mz*spd,1-Math.exp(-dt*12));
-  if(!pinned&&!player.down)moveEnt(player,player.vx*dt,player.vz*dt,.35);}
+  if(!pinned&&!player.down&&!seated)moveEnt(player,player.vx*dt,player.vz*dt,.35);}
  const mvs=Math.hypot(player.vx,player.vz);player.bob+=dt*mvs*1.9;
  player.crumbT-=dt;if(player.crumbT<=0){player.crumbT=.6;player.crumbs.push([player.x,player.z]);if(player.crumbs.length>20)player.crumbs.shift();}
  const ptc=chAt(player);if(!S.fly&&(ptc==='F'||ptc==='x')){player.burnT=.3;if(Math.floor(S.t*4)!==Math.floor((S.t-dt)*4)){hurtPlayer(8);}}
@@ -1192,7 +1250,7 @@ function update(dt){S.t+=dt;
  if(zoneAt[Math.floor(player.z/T)*W+Math.floor(player.x/T)]===2)bark(null,'Redwoods. Stay on the path.','trees',99);
  if(player.x>140*T&&!doors.gate&&S.obj<6){setObj(6);bark(null,'Bridge gate is chained. Forcing it brings the horde.','gatetalk',99);}
  ashore();
- if(player.x>188*T&&S.obj<9){setObj(9);bark(null,'Inside the mill. Stairs at the far end. Call the chopper on the roof.','mill',99);}
+ if(player.x>(188+EXTRA)*T&&S.obj<9){setObj(9);bark(null,'Inside the mill. Stairs at the far end. Call the chopper on the roof.','mill',99);}
  if(S.elevT>=0&&!S.elevArrived&&S.t-S.elevT>=30){S.elevArrived=true;doors.roof=true;flowDirty=true;SFX.ding(FIN.padX,FIN.padZ);setObj(11);bark(null,'Skids are down! Everybody on the pad!','land',99);}
  if(S.obj===10)$('obj').textContent=OBJ[10]+'  ('+Math.max(0,Math.ceil(30-(S.t-S.elevT)))+'s)';
  if(S.elevArrived&&ptc==='R'&&S.obj<11)setObj(11);
@@ -1241,7 +1299,7 @@ function updateFx(dt,reg){
  for(const k of DOOR_IDS)doorMeshes[k].update(doors[k],dt);
  for(const it of items)if(!it.taken){it.g.rotation.y+=dt*.8;}
  flickMat.color.setScalar(Math.random()<.08?.15:1);
- tickBridge(dt);
+ tickBridge(dt);tickBoat(dt);
  if(window.__ocean){window.__ocean.uniforms.uTime.value=performance.now()*0.001;window.__ocean.uniforms.uFogColor.value.copy(scene.fog.color);window.__ocean.uniforms.uFogDensity.value=scene.fog.density;}
  // helicopter — parked over the bay until the roof calls it in
  const ht=S.t;heli.rotor.rotation.y+=dt*(S.elevArrived?14:28);heli.trotor.rotation.x+=dt*35;heli.beacon.visible=Math.floor(performance.now()/400)%2===0;
@@ -1251,7 +1309,8 @@ function updateFx(dt,reg){
  else if(S.elevT>=0){approach=clamp((S.t-S.elevT)/30,0,1);const e=approach*approach*(3-2*approach);hx=lerp(farX,padX,e);hy=lerp(farY,S.elevArrived?11.15:padY,e)+Math.sin(ht*2)*(1-approach)*.4;hz=lerp(farZ,padZ,e);}
  heli.position.set(hx,hy,hz);heli.rotation.set(-0.08*(1-approach),-0.6+approach*0.4,Math.sin(ht)*.02);heli.visible=true;
  // environment by region
- const tgtFog=reg==='hotel'?[0x3a342c,.05]:reg==='forest'?[0x1a2820,.03]:[0x8a9288,.009];
+ const onSpan=(()=>{const tx=Math.floor(player.x/T);return chAt(player)==='U'||player.boatSeat!=null||(tx>=BR_A&&tx<=BR_B);})();
+ const tgtFog=onSpan?[0x9aa8b0,0.00115]:reg==='hotel'?[0x3a342c,.05]:reg==='forest'?[0x1a2820,.03]:[0x8a9288,.009];
  scene.fog.color.lerp(new THREE.Color(tgtFog[0]),1-Math.exp(-dt*2));scene.fog.density=lerp(scene.fog.density,tgtFog[1],1-Math.exp(-dt*2));scene.background.copy(scene.fog.color);
  hemi.intensity=lerp(hemi.intensity,reg==='forest'?.6:reg==='roof'?1.15:.85,1-Math.exp(-dt*2));sun.intensity=lerp(sun.intensity,reg==='forest'?.4:reg==='roof'?1.6:.25,1-Math.exp(-dt*2));
  window.__sky.visible=reg!=='hotel';vmHemi.intensity=reg==='hotel'?.8:1.2;
@@ -1261,14 +1320,15 @@ function updateFx(dt,reg){
  if(AU.ctx){const now=AU.ctx.currentTime;let fd=99;for(const [d] of near){fd=d;break;}
   AU.fire.gain.setTargetAtTime(AU.muted?0:clamp(.5/(1+fd*.4),0,.35),now,.2);AU.roar.gain.setTargetAtTime(AU.muted?0:(reg==='hotel'?.12:.03),now,.5);
   AU.wind.gain.setTargetAtTime(AU.muted?0:(reg==='hotel'?.02:reg==='forest'?.1:.16),now,.5);
-  if(AU.water){const wet=chAt(player)==='U'||(S.bridge!=='up'&&Math.abs(player.x-305)<48);AU.water.gain.setTargetAtTime(AU.muted?0:(wet?.26:.035),now,.4);}
+  if(AU.water){const tx=Math.floor(player.x/T);const wet=chAt(player)==='U'||player.boatSeat!=null||(tx>=BR_A&&tx<=BR_B);AU.water.gain.setTargetAtTime(AU.muted?0:(wet?.26:.035),now,.4);}
   const hd=heli.position.distanceTo(camera.position);AU.heli.gain.setTargetAtTime(AU.muted||!heli.visible?0:clamp(9/(hd+6),0,.8),now,.2);
   const tense=(S.t-DIR.peakT<14)||(S.alarmT>0&&S.t-S.alarmT<22)||(S.elevT>0&&!S.elevArrived);AU.drone.gain.setTargetAtTime(AU.muted?0:(tense?.12:.02),now,1.2);}}
 
 /* ---- camera & viewmodel ---- */
-function updateCamera(dt){const pinned=!!player.pinnedBy;const low=pinned||player.down;const swim=chAt(player)==='U'&&!low;
+function updateCamera(dt){const pinned=!!player.pinnedBy;const low=pinned||player.down;const seated=player.boatSeat!=null&&BOAT.show;const swim=chAt(player)==='U'&&!low&&!seated;
  let gy=groundAt(player.x,player.z),eye=low?.45:1.62,bob=Math.sin(player.bob*2)*.04*Math.min(1,Math.hypot(player.vx,player.vz)/4);
- if(swim){const u=S.bridge==='fall'?clamp(S.bridgeT/1.05,0,1):1;const e=u*u*(3-2*u);gy=lerp(0,WATER,e);eye=lerp(1.62,0.46,e);bob=e*Math.sin(S.t*2.6)*.045;}
+ if(seated){gy=WATER+0.28;eye=1.08;bob=Math.sin(S.t*1.4)*.03;}
+ else if(swim){const e=S.bridge==='fall'?fallEase(S.bridgeT,spanDelay(player.x)):1;gy=lerp(bridgeDeckY(Math.floor(player.x/T)),WATER,e);eye=lerp(1.62,0.62,e);bob=e*Math.sin(S.t*2.2)*.04;}
  const ty=gy+eye+bob;
  if(!S.fly)player.y=lerp(player.y,ty,1-Math.exp(-dt*16));camera.position.set(player.x,player.y,player.z);
  if(S.shake>0){camera.position.x+=rand(-S.shake,S.shake);camera.position.y+=rand(-S.shake,S.shake);S.shake=Math.max(0,S.shake-dt*.4);}
@@ -1302,7 +1362,8 @@ function updateHud(dt){flashT=Math.max(0,flashT-dt*1.6);$('dmg').style.opacity=f
  const u=S.phase==='play'?useTargets():null;const pr=$('prompt');if(u&&!S.riding){pr.classList.remove('hidden');pr.innerHTML=(u.revive?'':'<b>'+(document.body.classList.contains('touching')?'[USE]':'[E]')+'</b> ')+u.label;}else pr.classList.add('hidden');
  const bar=$('bar');if(S.healT>0||S.revT>0){bar.classList.remove('hidden');const p=S.healT>0?1-S.healT/3:S.revT/2.5;$('barfill').style.width=(p*100)+'%';$('bartxt').textContent=S.healT>0?'Healing...':'Reviving '+S.revBot.name+'...';}else bar.classList.add('hidden');
  document.body.classList.toggle('downed',!!player.down&&S.phase==='play');
- $('pinmsg').innerHTML=player.pinnedBy?(document.body.classList.contains('touching')?'HUNTER! MASH SHOVE (':'HUNTER! MASH RIGHT-CLICK TO SHOVE (')+player.pinShoves+'/5)':player.pulledBy?'SMOKER TONGUE! SHOOT IT!':player.down?'DOWN — you can still shoot':(chAt(player)==='U'?(S.bridge==='fall'?'THE SPAN IS GOING':'SWIM — SAMOA SHORE'):(S.biledT>0?'<span style="color:#cf6">BILED — THE HORDE CAN SMELL YOU</span>':''));}
+ const bayMsg=player.boatSeat!=null?'W ROWS · A/D TURNS — FOUR OARS':(chAt(player)==='U'?(S.bridge==='fall'?'THE SPAN IS GOING':(BOAT.show?'GET IN THE BOAT — E':'SWIM — SAMOA SHORE')):'');
+ $('pinmsg').innerHTML=player.pinnedBy?(document.body.classList.contains('touching')?'HUNTER! MASH SHOVE (':'HUNTER! MASH RIGHT-CLICK TO SHOVE (')+player.pinShoves+'/5)':player.pulledBy?'SMOKER TONGUE! SHOOT IT!':player.down?'DOWN — you can still shoot':(bayMsg||(S.biledT>0?'<span style="color:#cf6">BILED — THE HORDE CAN SMELL YOU</span>':''));}
 
 /* ================= INPUT ================= */
 const canvas=renderer.domElement;
@@ -1448,6 +1509,7 @@ function frame(){requestAnimationFrame(frame);const dt=Math.min(.05,clock.getDel
  if(NET.role==='host'&&(S.phase==='play'||S.phase==='done'||S.phase==='dead'))NET.flush();
  if(S.phase==='title'){const t=performance.now()/1000;camera.position.set(FIN.padX+14+Math.sin(t*.08)*2,26,FIN.padZ+16);camera.lookAt(FIN.padX,11,FIN.padZ);updateFx(dt,'roof');}
  else{updateCamera(dt);}
+ if(window.__sky)window.__sky.position.copy(camera.position);
  drawCommons();if(S.phase==='play'||AUTOTEST)updateHud(dt);for(const b of bots)if(S.phase==='title')placeBot(b);
  render();}
 frame();
@@ -1466,7 +1528,7 @@ function startReloadEnt(ent){const w=entW(ent);if(!w)return;const def=WEAP[w.typ
 function tickReloadEnt(ent,dt){if(!(ent.reloadT>0))return;ent.reloadT-=dt;if(ent.reloadT>0)return;const w=entW(ent);if(!w)return;const def=WEAP[w.type];const need=def.mag-w.mag;const take=Math.min(need,w.res===Infinity?need:w.res);w.mag+=take;if(w.res!==Infinity)w.res-=take;}
 const _aimE=new THREE.Euler(0,0,0,'YXZ');
 function fireEnt(ent){const w=entW(ent);if(!w)return;const def=WEAP[w.type];if(!w.bottomless&&w.mag<=0){if(w.res>0)startReloadEnt(ent);return;}if(!w.bottomless)w.mag--;ent.fireCd=w.bottomless?0.2:def.rate;
- const o=new THREE.Vector3(ent.x,groundAt(ent.x,ent.z)+(ent.down?.45:chAt(ent)==='U'?0.46:1.62),ent.z);
+ const o=new THREE.Vector3(ent.x,bodyY(ent.x,ent.z)+(ent.down?.45:ent.boatSeat!=null?1.05:chAt(ent)==='U'?0.55:1.62),ent.z);
  _aimE.set(ent.pitch||0,ent.yaw||0,0,'YXZ');const dir=new THREE.Vector3(0,0,-1).applyEuler(_aimE),right=new THREE.Vector3(1,0,0).applyEuler(_aimE),up=new THREE.Vector3(0,1,0).applyEuler(_aimE);
  const muzzle=o.clone().addScaledVector(dir,.6);
  for(let p=0;p<def.pellets;p++){const a=rand(0,Math.PI*2),r=Math.sqrt(Math.random())*def.spread;const d=dir.clone().addScaledVector(right,Math.cos(a)*r).addScaledVector(up,Math.sin(a)*r).normalize();traceShot(o,d,def.dmg,muzzle,ent);}
@@ -1479,7 +1541,7 @@ function shoveEnt(ent){ent.lastShove=S.t;SFX.shove();
  const fx=-Math.sin(ent.yaw),fz=-Math.cos(ent.yaw);
  for(const c of commons){if(c.dead)continue;const dx=c.x-ent.x,dz=c.z-ent.z,d=Math.hypot(dx,dz);if(d<2.3&&(dx*fx+dz*fz)/(d||1)>.35){c.stag=.9;c.pvx=dx/d*4+fx*2;c.pvz=dz/d*4+fz*2;c.hp-=6;if(c.hp<=0)killCommon(c,true,false);}}
  for(const s of specials){if(s.dead)continue;const dx=s.x-ent.x,dz=s.z-ent.z,d=Math.hypot(dx,dz);if(d<2.6&&(dx*fx+dz*fz)/(d||1)>.2){s.stag=1;s.pvx=dx/d*4;s.pvz=dz/d*4;if(s.state==='leap'){s.state='approach';s.cd=3;s.vy=0;}if(ent.pulledBy===s)releaseTongue(s);}}}
-function freshInp(b){const inp=b.inp;if(!inp||performance.now()-(b.inpAt||0)>400)return {mx:0,mz:0,y:b.yaw,p:b.pitch||0,fire:0,use:0,sprint:0};return inp;}
+function freshInp(b){const inp=b.inp;if(!inp||performance.now()-(b.inpAt||0)>400)return {mx:0,mz:0,y:b.yaw,p:b.pitch||0,fire:0,use:0,sprint:0,row:0,turn:0};return inp;}
 function updateNetSurvivor(b,dt){const inp=freshInp(b);
  if(inp.edges&&inp.edges.length){for(const e of inp.edges){
   if(e==='shove'&&!b.down)shoveEnt(b);
@@ -1501,9 +1563,10 @@ function updateNetSurvivor(b,dt){const inp=freshInp(b);
  if(b.tag)b.tag.material.color.setHex(0xffffff);b.mesh.b.rotation.x=lerp(b.mesh.b.rotation.x,0,dt*5);
  if(b.heal>0){b.heal-=dt;if(b.heal<=0)b.hp=Math.min(100,b.hp+(100-b.hp)*.8);placeBot(b);return;}
  if(b.pinnedBy&&!b.pinnedBy.dead){placeBot(b);return;}
+ if(b.boatSeat!=null&&BOAT.show){seatEnt(b);b.moveSpd=0;placeBot(b);return;}
  const pulled=!!(b.pulledBy&&!b.pulledBy.dead);
  let mx=clamp(+inp.mx||0,-1,1),mz=clamp(+inp.mz||0,-1,1);const L=Math.hypot(mx,mz);if(L>1){mx/=L;mz/=L;}
- let spd=inp.sprint?6.3:4.3;if(b.hp<30)spd*=.75;if(pulled)spd=0;else if(S.bridge==='fall'&&S.bridgeT<1.15&&chAt(b)==='U')spd=0;else if(chAt(b)==='U')spd=Math.min(spd,2.2);
+ let spd=inp.sprint?6.3:4.3;if(b.hp<30)spd*=.75;if(pulled)spd=0;else if(S.bridge==='fall'&&chAt(b)==='U')spd=0;else if(chAt(b)==='U')spd=Math.min(spd,2.2);
  b.vx=lerp(b.vx||0,mx*spd,1-Math.exp(-dt*12));b.vz=lerp(b.vz||0,mz*spd,1-Math.exp(-dt*12));
  if(!pulled)moveEnt(b,b.vx*dt,b.vz*dt,.35);
  if(chAt(b)==='F'||chAt(b)==='x')b.hp=Math.max(1,b.hp-16*dt);
@@ -1516,7 +1579,7 @@ function slotPack(ent,slot){const w=ent===player?curW():(ent.net?entW(ent):{type
  return {slot,name:ent===player?NET.name:ent.name,col:ent===player?'#6ec1ff':ent.col,bot:ent===player||ent.net?0:1,
   x:nq(ent.x),z:nq(ent.z),yaw:nq(ent.yaw),pitch:nq(ent.pitch||0),hp:Math.round(ent.hp),down:ent.down?1:0,kit:ent.kit?1:0,
   w:w&&w.type?w.type:'pistol',mag:w?Math.round(w.mag)||0:0,res:!w?-1:w.res===Infinity?-1:Math.round(w.res),inf:w&&w.bottomless?1:0,
-  flash:ent.flash?1:0,heal:nq(ent===player?S.healT:(ent.heal||0)),rev:nq(ent===player?S.revT:(ent.revT||0)),
+  flash:ent.flash?1:0,heal:nq(ent===player?S.healT:(ent.heal||0)),rev:nq(ent===player?S.revT:(ent.revT||0)),boat:ent.boatSeat==null?-1:ent.boatSeat,
   bile:nq(Math.max(0,ent===player?S.biledT:(ent.biledT||0))),pin:ent.pinnedBy&&!ent.pinnedBy.dead?1:0,pull:ent.pulledBy&&!ent.pulledBy.dead?1:0,pinN:ent.pinShoves||0};}
 function buildSnap(){const slots=[slotPack(player,0)];bots.forEach((b,i)=>slots.push(slotPack(b,i+1)));
  const c=[];for(const z of commons){if(z.dead&&z.deathT>1.5)continue;c.push([z.id,nq(z.x),nq(z.z),nq(z.yaw),Math.round(z.hp),z.dead?1:0,z.state==='rush'?1:0,nq(z.fall||0),z.shirt,z.pants,z.skin]);}
@@ -1524,7 +1587,8 @@ function buildSnap(){const slots=[slotPack(player,0)];bots.forEach((b,i)=>slots.
  return {t:'snap',seq:++NET.seq,slots,c,s,doors:DOOR_IDS.map(id=>doors[id]?1:0),safe:safeIndex,items:items.map(i=>i.taken?'1':'0').join(''),
   obj:S.obj,objT:$('obj').textContent||'',phase:S.phase,riding:S.riding?1:0,lobby:S.inLobby?1:0,elev:S.elevT<0?-1:Math.max(0,Math.ceil(30-(S.t-S.elevT))),elevA:S.elevArrived?1:0,
   dir:S.dirOn?DIR.mode:'WAITING',inten:Math.round(DIR.intensity),ev:NET.events.splice(0,NET.events.length),end:S.endPack||null,ff:NET.ff?1:0,round:NET.round||0,
-  bridge:S.bridge==='up'?0:S.bridge==='fall'?1:2,bridgeT:nq(S.bridgeT)};}
+  bridge:S.bridge==='up'?0:S.bridge==='fall'?1:2,bridgeT:nq(S.bridgeT),
+  boat:BOAT.show?[nq(BOAT.x),nq(BOAT.z),nq(BOAT.yaw),nq(BOAT.stroke),BOAT.beached?1:0]:null};}
 function syncInvFrom(me){if(me.w==='pistol'||!WEAP[me.w]){player.slot='pistol';player.inv.pistol.mag=me.mag|0;return;}
  player.slot='primary';if(!player.inv.primary||player.inv.primary.type!==me.w)player.inv.primary={type:me.w,mag:me.mag|0,res:me.res<0?Infinity:me.res,bottomless:!!me.inf};
  else{player.inv.primary.mag=me.mag|0;player.inv.primary.res=me.res<0?Infinity:me.res;player.inv.primary.bottomless=!!me.inf;}
@@ -1562,15 +1626,16 @@ function applySnap(m){NET.snap=m;NET.snaps++;
   S.healT=me.heal>0?me.heal:0;S.revT=me.rev>0?me.rev:0;
   if(me.pin){if(!player.pinnedBy)player.pinnedBy={dead:false};}else player.pinnedBy=null;
   if(me.pull){if(!player.pulledBy)player.pulledBy={dead:false,x:player.x,z:player.z};}else player.pulledBy=null;
-  syncInvFrom(me);}
+  syncInvFrom(me);player.boatSeat=me.boat>=0?me.boat:null;}
  NET.puppetBySlot={};
- (m.slots||[]).filter(s=>s.slot!==NET.slot).forEach((s,i)=>{const b=bots[i];if(!b)return;NET.puppetBySlot[s.slot]=b;b.tx=s.x;b.tz=s.z;b.tyaw=s.yaw;b.hp=s.hp;b.down=!!s.down;b.kit=!!s.kit;b.flash=!!s.flash;b.heal=s.heal||0;
+ (m.slots||[]).filter(s=>s.slot!==NET.slot).forEach((s,i)=>{const b=bots[i];if(!b)return;NET.puppetBySlot[s.slot]=b;b.tx=s.x;b.tz=s.z;b.tyaw=s.yaw;b.hp=s.hp;b.down=!!s.down;b.kit=!!s.kit;b.flash=!!s.flash;b.heal=s.heal||0;b.boatSeat=s.boat>=0?s.boat:null;
   if(b.name!==s.name||b.col!==s.col)retag(b,s.name,s.col||'#fff');if(s.w&&s.w!==b.shownW)setGun(b,s.w);
   if(!b._seen||Math.hypot(b.x-s.x,b.z-s.z)>5){b.x=s.x;b.z=s.z;b.yaw=s.yaw;b._seen=1;}});
  syncCommons(m.c||[]);syncSpecials(m.s||[]);
  for(const e of m.ev||[])playNetEvent(e);
  if(m.ff!=null&&NET.role==='client')adoptFF(!!m.ff);
  if(m.bridge!=null){const name=m.bridge===0?'up':m.bridge===1?'fall':'swim';if(name==='up'){if(S.bridge!=='up')restoreSpan();}else if(S.bridge==='up')collapseBridge(true);if(S.bridge!=='up'){S.bridge=name;S.bridgeT=+m.bridgeT||0;poseBridge(S.bridgeT);}}
+ if(m.boat){BOAT.show=true;BOAT.beached=!!m.boat[4];BOAT.tx=m.boat[0];BOAT.tz=m.boat[1];BOAT.tyaw=m.boat[2];BOAT.stroke=m.boat[3]||0;if(BOAT.x==null||Math.hypot(BOAT.x-BOAT.tx,BOAT.z-BOAT.tz)>40){BOAT.x=BOAT.tx;BOAT.z=BOAT.tz;BOAT.yaw=BOAT.tyaw;}}else if(m.bridge===0)resetBoat();
  if(m.phase==='play'&&(S.phase==='dead'||S.phase==='done')){$('dead').classList.add('hidden');$('done').classList.add('hidden');$('hud').classList.remove('hidden');S.phase='play';S.complete=false;S.endPack=null;NET.paused=false;paintSound();paintFF();}
  if(m.phase==='done'&&S.phase!=='done'&&m.end)showNetDone(m.end);
  if(m.phase==='dead'&&S.phase==='play')showNetDead(m.end||{t:0,kills:0,dmg:0});}
@@ -1588,16 +1653,17 @@ function clientUpdate(dt){S.t+=dt;if(mouseRight&&!NET.paused&&!player.down&&S.t-
  if(NET.force){if(NET.force.yaw!=null)player.yaw=NET.force.yaw;if(NET.force.pitch!=null)player.pitch=NET.force.pitch;fire=aimOk&&!!NET.forceFire;if(!moveLocked){mx=+NET.force.mx||0;mz=+NET.force.mz||0;sprint=NET.force.sprint!==0;}}
  else if(aimOk||!moveLocked){fire=aimOk&&!!mouseDown;if(!moveLocked){const f=(keys.KeyW?1:0)-(keys.KeyS?1:0),s=(keys.KeyD?1:0)-(keys.KeyA?1:0);const fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw),rx=Math.cos(player.yaw),rz=-Math.sin(player.yaw);mx=f*fx+s*rx;mz=f*fz+s*rz;const L=Math.hypot(mx,mz);if(L>0){mx/=L;mz/=L;}sprint=!!(keys.ShiftLeft||keys.ShiftRight);}}
  if(moveLocked){player.vx=lerp(player.vx,0,1-Math.exp(-dt*12));player.vz=lerp(player.vz,0,1-Math.exp(-dt*12));}
- else{let spd=sprint?6.3:4.3;if(player.hp<30)spd*=.75;if(S.healT>0||S.revT>0)spd*=.35;if(S.bridge==='fall'&&S.bridgeT<1.15&&chAt(player)==='U')spd=0;else if(chAt(player)==='U')spd=Math.min(spd,2.2);player.vx=lerp(player.vx,mx*spd,1-Math.exp(-dt*12));player.vz=lerp(player.vz,mz*spd,1-Math.exp(-dt*12));moveEnt(player,player.vx*dt,player.vz*dt,.35);}
+ else{const seated=player.boatSeat!=null&&BOAT.show;let spd=sprint?6.3:4.3;if(player.hp<30)spd*=.75;if(S.healT>0||S.revT>0)spd*=.35;if(seated)spd=0;else if(S.bridge==='fall'&&chAt(player)==='U')spd=0;else if(chAt(player)==='U')spd=Math.min(spd,2.2);player.vx=lerp(player.vx,mx*spd,1-Math.exp(-dt*12));player.vz=lerp(player.vz,mz*spd,1-Math.exp(-dt*12));if(!seated)moveEnt(player,player.vx*dt,player.vz*dt,.35);}
  const tc=chAt(player);if(tc==='F'||tc==='x')player.burnT=.3;player.burnT-=dt;player.bob+=dt*Math.hypot(player.vx,player.vz)*1.9;
- sendInput(dt,{mx,mz,sprint,fire,use:!!keys.KeyE&&!NET.paused&&!player.down});smoothRemote(dt);updateFx(dt,region());}
+ const rowing=player.boatSeat!=null&&BOAT.show;
+ sendInput(dt,{mx,mz,sprint,fire,use:!!keys.KeyE&&!NET.paused&&!player.down,row:rowing?((keys.KeyW?1:0)-(keys.KeyS?1:0)):0,turn:rowing?((keys.KeyD?1:0)-(keys.KeyA?1:0)):0});smoothRemote(dt);updateFx(dt,region());}
 function sendInput(dt,st){NET.acc=(NET.acc||0)+dt;if(NET.acc<1/20&&!NET.edges.length)return;NET.acc=0;
- const msg={t:'in',seq:++NET.iseq,y:player.yaw,p:player.pitch,mx:+st.mx||0,mz:+st.mz||0,sprint:st.sprint?1:0,fire:st.fire?1:0,use:st.use?1:0,edges:NET.edges.splice(0,NET.edges.length)};
+ const msg={t:'in',seq:++NET.iseq,y:player.yaw,p:player.pitch,mx:+st.mx||0,mz:+st.mz||0,sprint:st.sprint?1:0,fire:st.fire?1:0,use:st.use?1:0,row:+st.row||0,turn:+st.turn||0,edges:NET.edges.splice(0,NET.edges.length)};
  if(NET.conn&&NET.conn.open)NET.conn.send(msg);}
 function onClientInput(peerId,m){const b=bots.find(x=>x.peerId===peerId);if(!b||!m)return;b.seenAt=performance.now();if(m.seq!=null&&b.inSeq!=null&&m.seq<=b.inSeq)return;b.inSeq=m.seq||0;
  let mx=clamp(+m.mx||0,-1,1),mz=clamp(+m.mz||0,-1,1);const L=Math.hypot(mx,mz);if(L>1){mx/=L;mz/=L;}
  const edges=Array.isArray(m.edges)?m.edges.slice(0,8).filter(e=>typeof e==='string'&&e.length<12):[];
- b.inp={mx,mz,y:Number.isFinite(+m.y)?+m.y:b.yaw,p:clamp(+m.p||0,-1.45,1.45),sprint:m.sprint?1:0,fire:m.fire?1:0,use:m.use?1:0,edges};b.inpAt=performance.now();}
+ b.inp={mx,mz,y:Number.isFinite(+m.y)?+m.y:b.yaw,p:clamp(+m.p||0,-1.45,1.45),sprint:m.sprint?1:0,fire:m.fire?1:0,use:m.use?1:0,row:clamp(+m.row||0,-1,1),turn:clamp(+m.turn||0,-1,1),edges};b.inpAt=performance.now();}
 function renderRoster(list){NET.roster=list;$('roster').innerHTML=list.length?list.map(p=>`<div class="mem"><div class="n"><span>${p.you?'YOU · ':''}${p.name}</span><span>${p.bot?'BOT':'LIVE'}</span></div></div>`).join(''):'<div class="tiny">Connecting…</div>';}
 function hostRoster(){const list=[{slot:0,name:NET.name,you:NET.role==='host',bot:false,pid:NET.peer?NET.peer.id:''}];bots.forEach((b,i)=>list.push({slot:i+1,name:b.net?b.name:b.botName,you:false,bot:!b.net,pid:b.net?(b.peerId||''):''}));return list;}
 function broadcastRoster(){const mine=hostRoster();renderRoster(mine);const players=mine.map(p=>({slot:p.slot,name:p.name,bot:p.bot,pid:p.pid||''}));for(const c of NET.conns.values())if(c.open)c.send({t:'roster',players});rememberVoiceNames(players);refreshVoice();}
@@ -1749,7 +1815,7 @@ window.__game={autopilot,update,updateCamera,fire,AP,useTargets,moveEnt,collide,
  asClient(){NET.role='client';paintFF();paintRestart();},
  sent(){return NET._sent||[];},
  simulate(sec){const dt=1/30,n=Math.round(sec*30);for(let i=0;i<n&&S.phase==='play';i++){if(AP.on)autopilot(dt);updateCamera(dt);update(dt);}updateCamera(1/30);updateHud(1);
-  return {t:+S.t.toFixed(1),phase:S.phase,obj:S.obj,objText:OBJ[S.obj],safe:safeIndex,hp:Math.round(player.hp),pos:[+(player.x/T).toFixed(1),+(player.z/T).toFixed(1)],tile:chAt(player),kills:S.kills,skills:S.skills,commons:aliveCommons(),specials:specials.filter(s=>!s.dead).map(s=>s.type+':'+s.state),bots:bots.map(b=>b.name+':'+Math.round(b.hp)+(b.down?'D':'')),dmg:Math.round(S.dmg),ff:S.ff,dir:DIR.mode,bridge:S.bridge,bridgeT:+S.bridgeT.toFixed(2),y:+player.y.toFixed(2)};},
+  return {t:+S.t.toFixed(1),phase:S.phase,obj:S.obj,objText:OBJ[S.obj],safe:safeIndex,hp:Math.round(player.hp),pos:[+(player.x/T).toFixed(1),+(player.z/T).toFixed(1)],tile:chAt(player),kills:S.kills,skills:S.skills,commons:aliveCommons(),specials:specials.filter(s=>!s.dead).map(s=>s.type+':'+s.state),bots:bots.map(b=>b.name+':'+Math.round(b.hp)+(b.down?'D':'')+(b.boatSeat!=null?'B':'')),dmg:Math.round(S.dmg),ff:S.ff,dir:DIR.mode,bridge:S.bridge,bridgeT:+S.bridgeT.toFixed(2),y:+player.y.toFixed(2),seat:player.boatSeat,boat:BOAT.show?[+BOAT.x.toFixed(1),+BOAT.z.toFixed(1),+BOAT.yaw.toFixed(2),BOAT.oars.length,BOAT.beached?1:0]:null};},
  lookAt(x,y,z){const dx=x-player.x,dz=z-player.z;player.yaw=Math.atan2(-dx,-dz);player.pitch=Math.atan2(y-player.y,Math.hypot(dx,dz));updateCamera(1);},
  teleport(tx,tz){player.x=(tx+.5)*T;player.z=(tz+.5)*T;player.y=groundAt(player.x,player.z)+1.6;updateCamera(1);},
  spawnCommon,spawnSpecial,spawnHorde,DIR,render,routeAtStart:route[tileOf(player)]};
