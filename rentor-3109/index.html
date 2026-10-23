@@ -112,6 +112,7 @@ table.stats td:last-child{text-align:right;font-weight:700}
 #tbtns button.fire{width:86px;height:86px;background:rgba(154,52,18,.6);font-weight:700}
 #tbtns button.nightonly{display:none}
 body.afterdark #tbtns button.nightonly{display:inline-block}
+body.downed #tbtns button[data-act="shove"]{display:none}
 .manual{max-width:980px;margin:24px auto;padding:8px 18px 28px}
 .manual h2{letter-spacing:4px}
 .lead{font-size:17px;max-width:720px;margin:8px auto 16px;line-height:1.45}
@@ -2332,7 +2333,7 @@ function damageZombie(z, dmg){
 
 function aimDir(spread){
   camera.rotation.set(player.pitch, player.yaw, 0, 'YXZ');
-  camera.position.set(player.x, 1.55, player.z);
+  camera.position.set(player.x, player.down ? 0.7 : 1.5, player.z);
   camera.updateMatrixWorld();
   const dir = new THREE.Vector3();
   camera.getWorldDirection(dir);
@@ -2356,11 +2357,14 @@ function rayZombie(origin, dir, maxD){
   }
   return best ? {z:best, t:bestT} : null;
 }
+function canAim(){
+  return S.phase === 'night' && !S.panel && (TOUCH || AUTOTEST || document.pointerLockElement === renderer.domElement);
+}
 function canFight(){
-  return S.phase === 'night' && !player.down && !S.panel && (TOUCH || AUTOTEST || document.pointerLockElement === renderer.domElement);
+  return canAim() && !player.down;
 }
 function fire(){
-  if (!canFight()) return;
+  if (!canAim()) return;
   const w = curW();
   if (!w) return;
   const def = WEAP[w.type];
@@ -2370,7 +2374,7 @@ function fire(){
   player.fireCd = def.rate;
   S.muzzle = 1;
   sfx('shot');
-  const origin = new THREE.Vector3(player.x, 1.5, player.z);
+  const origin = new THREE.Vector3(player.x, player.down ? 0.7 : 1.5, player.z);
   for (let i = 0; i < def.pellets; i++){
     const dir = aimDir(def.spread);
     const hit = rayZombie(origin, dir, 70);
@@ -2383,7 +2387,7 @@ function fire(){
 }
 function startReload(){
   const w = curW();
-  if (!w || player.reloadT > 0 || player.down) return;
+  if (!w || player.reloadT > 0) return;
   const def = WEAP[w.type];
   if (w.mag >= def.mag || w.res <= 0) return;
   player.reloadT = def.reload;
@@ -2460,8 +2464,8 @@ function die(){
   player.hp = 0;
   S.deaths += 1;
   pay(1500);
-  player.x = 0; player.z = -3; player.yaw = Math.PI; player.pitch = 0.4;
-  toast('The street took you. Dawn finds you at the desk. −$1,500');
+  player.x = 0; player.z = -3; player.yaw = Math.PI; player.pitch = 0;
+  toast('The street took you. You can still shoot. Dawn finds you at the desk. −$1,500');
 }
 
 function tickZombies(dt){
@@ -4100,7 +4104,7 @@ function objectivePoint(){
   return null;
 }
 function goalLine(){
-  if (player.down) return 'Down until dawn. You wake at the desk.';
+  if (player.down) return 'Down until dawn. You can still shoot. You wake at the desk.';
   if (net.role === 'client' && (!net.latest || !net.latest.playing)) return 'Waiting for the host to open the day.';
   if (S.phase === 'night') return inOffice() ? 'Stay inside 3109 until dawn.' : 'Get inside 3109. The office is south.';
   if (S.urgent && !S.urgent.done) return urgentSpot().label + '. Then get back inside 3109 before dark.';
@@ -4211,7 +4215,10 @@ function setOverlays(){
   el.title.classList.toggle('hidden', S.mode !== 'title');
   el.guide.classList.toggle('hidden', S.mode !== 'guide');
   el.year.classList.toggle('hidden', S.mode !== 'year');
-  if (!play) document.body.classList.remove('afterdark');
+  if (!play){
+    document.body.classList.remove('afterdark');
+    document.body.classList.remove('downed');
+  }
 }
 function openGuide(){
   S.mode = 'guide';
@@ -4422,9 +4429,9 @@ function updateHud(){
   el.hp.classList.toggle('safe', safe);
   el.safe.classList.toggle('hidden', !safe);
   el.downmsg.classList.toggle('hidden', !player.down);
-  if (player.down) el.downmsg.textContent = 'OUT COLD · back at the desk at dawn · −$1,500';
+  if (player.down) el.downmsg.textContent = 'OUT COLD · you can still shoot · back at the desk at dawn · −$1,500';
   const night = S.phase === 'night';
-  el.xh.classList.toggle('hidden', !night || player.down);
+  el.xh.classList.toggle('hidden', !night);
   el.ammo.classList.toggle('hidden', !night);
   if (night){
     const w = curW();
@@ -4463,7 +4470,8 @@ function updateHud(){
   else if (S.haul && S.haul.stage === 'wagon') hint = 'The cops are taking them to debtors\' jail.';
   else if (S.phase === 'day' && !S.offered) hint = 'A Ferndale signing calls late. Finish the gold pin first.';
   else if (S.urgent && !S.urgent.done) hint = 'Take a car to the gold pin, then get back inside 3109.';
-  else if (night && !inOffice() && !player.down) hint = 'The gold pin is 3109. Get inside.';
+  else if (player.down) hint = 'You can still shoot. Dawn puts you back at the desk.';
+  else if (night && !inOffice()) hint = 'The gold pin is 3109. Get inside.';
   else if (night && inOffice()) hint = 'Safe until dawn. Stay inside.';
   if (hint !== el.hint.dataset.current){
     el.hint.dataset.current = hint;
@@ -4471,7 +4479,8 @@ function updateHud(){
   }
   el.hint.textContent = hint;
   el.hint.classList.toggle('hidden', !hint || hintDismissed === hint);
-  document.body.classList.toggle('afterdark', night && !player.down);
+  document.body.classList.toggle('afterdark', night);
+  document.body.classList.toggle('downed', player.down);
   el.speed.textContent = player.car ? ('DRIVING ' + Math.round(Math.abs(player.car.speed))) : '';
   el.obj.replaceChildren();
   if (haulLive()){
@@ -4546,7 +4555,7 @@ function updateHud(){
   el.dmg.style.opacity = String(S.hurt);
   for (let i = 0; i < PICKUPS.length; i++) pickupMeshes[i].visible = night;
   fists.visible = night && !curW();
-  for (const type of ORDER) vmGuns[type].visible = night && player.slot === type && !player.down;
+  for (const type of ORDER) vmGuns[type].visible = night && player.slot === type;
   drawMap();
 }
 function skyColor(hex){ return new THREE.Color(hex); }
@@ -4670,7 +4679,7 @@ function tickPlayer(dt){
   S.muzzle = Math.max(0, S.muzzle - dt * 6);
   const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
   muzzle.intensity = S.muzzle * 6;
-  muzzle.position.set(player.x + fx * 0.7, 1.45, player.z + fz * 0.7);
+  muzzle.position.set(player.x + fx * 0.7, player.down ? 0.55 : 1.45, player.z + fz * 0.7);
   if (mouseLeft){
     const w = curW();
     if (w && WEAP[w.type].auto) fire();
@@ -4705,7 +4714,7 @@ function tickPlayer(dt){
   camera.position.set(player.x, eye + bob + ride, player.z);
   const leanTo = player.car ? clamp(-(player.car.steer || 0) * 0.055, -0.08, 0.08) : 0;
   player.lean = lerp(player.lean, leanTo, 1 - Math.exp(-dt * 7));
-  camera.rotation.set(player.down ? 0.5 : player.pitch, player.yaw, player.lean, 'YXZ');
+  camera.rotation.set(player.pitch, player.yaw, player.lean, 'YXZ');
   const fovTo = player.car ? clamp(78 + Math.abs(player.car.speed) * 0.4, 78, 90) : 78;
   const fov = lerp(camera.fov, fovTo, 1 - Math.exp(-dt * 3.2));
   if (Math.abs(fov - camera.fov) > 0.02){
