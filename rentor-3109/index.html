@@ -9,18 +9,34 @@ canvas{display:block}
 #hud{position:fixed;inset:0;pointer-events:none;z-index:2}
 #clock{position:absolute;top:14px;left:50%;transform:translateX(-50%);text-align:center;min-width:220px;background:rgba(8,10,14,.62);border:1px solid rgba(228,177,90,.45);padding:8px 18px 10px;border-radius:4px}
 #clock b{display:block;font-size:40px;letter-spacing:2px;font-variant-numeric:tabular-nums;line-height:1}
-#clock .tod{display:block;letter-spacing:3px;font-size:12px;opacity:.8;margin-top:2px}
+#clock .tod{display:block;letter-spacing:2px;font-size:15px;opacity:.9;margin-top:2px}
 #clock.warn{border-color:#ff5a4a;box-shadow:0 0 24px rgba(255,60,40,.35)}
 #clock.warn b{color:#ffb0a6}
 #clock.night{border-color:#7f96c4}
-#hint{position:absolute;top:168px;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:.4px;text-shadow:0 1px 2px #000;max-width:560px;text-align:center}
-#goal{position:absolute;top:108px;left:50%;transform:translateX(-50%);max-width:min(680px,92vw);text-align:center;font-size:17px;font-weight:700;letter-spacing:.2px;line-height:1.35;text-shadow:0 2px 8px #000;background:rgba(8,10,14,.72);border:1px solid rgba(228,177,90,.7);padding:8px 14px;border-radius:6px}
-#obj{position:absolute;top:16px;left:16px;max-width:320px;font-size:14px;line-height:1.45;text-shadow:0 1px 2px #000}
-#obj div{margin:0 0 4px}
-#obj .hot{color:#ffb15a}
-#feed{position:absolute;left:16px;bottom:108px;max-width:420px;font-size:14px;line-height:1.4;text-shadow:0 1px 2px #000}
+#goalstack{position:absolute;top:108px;left:50%;transform:translateX(-50%);width:min(740px,calc(100vw - 500px));z-index:3;text-align:center;pointer-events:auto}
+#hint{position:static;display:block;font-size:18px;font-weight:650;line-height:1.35;color:#ffe7b8;background:rgba(8,10,14,.88);border:1px solid rgba(228,177,90,.7);border-top:0;border-radius:0 0 8px 8px;padding:8px 18px 12px;cursor:pointer}
+#hint.hidden{display:none!important}
+#goal{position:static;transform:none;left:auto;top:auto;max-width:none;width:auto;text-align:center;font-size:22px;font-weight:700;letter-spacing:.2px;line-height:1.35;text-shadow:0 2px 8px #000;background:rgba(8,10,14,.88);border:1px solid rgba(228,177,90,.7);padding:12px 18px;border-radius:8px 8px 0 0;margin:0}
+#goalstack:not(:has(#hint:not(.hidden))) #goal{border-radius:8px}
+#track{position:absolute;top:16px;left:16px;width:228px;z-index:3;background:rgba(8,10,14,.88);border:1px solid rgba(228,177,90,.75);border-radius:8px;padding:10px 12px 12px;pointer-events:none}
+#trackkicker{font-size:13px;letter-spacing:2px;color:#e4b15a;font-weight:700}
+#trackcount{font-size:32px;font-weight:800;letter-spacing:.2px;line-height:1.1;margin-top:2px}
+#trackbar{height:14px;background:#2a241c;border-radius:7px;margin:8px 0 6px;overflow:hidden}
+#trackfill{display:block;height:100%;width:0;background:#e4b15a;border-radius:7px}
+#tracknote{font-size:18px;font-weight:750}
+#track.behind #trackfill{background:#ff7a66}
+#track.behind #tracknote{color:#ffb0a6}
+#track.ahead #trackfill{background:#8fce6a}
+#track.ahead #tracknote{color:#d5ecc4}
+#track.done #tracknote{color:#ffe7b8}
+#obj{display:none}
+#feed{position:absolute;left:16px;bottom:112px;max-width:min(520px,46vw);font-size:18px;line-height:1.35;background:rgba(8,10,14,.9);border:1px solid rgba(228,177,90,.55);border-radius:8px;padding:12px 14px;pointer-events:auto;cursor:pointer}
+#feed:empty{display:none!important}
+#feed div{margin:0 0 8px}
+#feed div:last-child{margin:0}
 #vitals{position:absolute;left:16px;bottom:16px;width:240px;background:rgba(8,10,14,.55);padding:8px 10px;border-radius:4px}
-#cash{font-size:22px;font-weight:700;letter-spacing:.5px}
+#cashlabel{font-size:13px;letter-spacing:2px;color:#e4b15a;font-weight:700}
+#cash{font-size:28px;font-weight:800;letter-spacing:.4px}
 #hp{height:8px;background:#241418;margin-top:6px;border-radius:2px}
 #hp i{display:block;height:100%;background:#d45448;width:100%}
 #hp.safe i{background:#d4a24a}
@@ -38,7 +54,7 @@ canvas{display:block}
 #xh .t,#xh .b{width:2px;height:8px;left:-1px}
 #xh .l,#xh .r{height:2px;width:8px;top:-1px}
 #xh .t{top:-14px}#xh .b{top:6px}#xh .l{left:-14px}#xh .r{left:6px}
-#prompt{position:absolute;top:62%;left:50%;transform:translateX(-50%);background:rgba(8,10,14,.7);border:1px solid rgba(228,177,90,.5);padding:6px 14px;border-radius:3px;letter-spacing:.4px}
+#prompt{position:absolute;top:62%;left:50%;transform:translateX(-50%);background:rgba(8,10,14,.88);border:1px solid rgba(228,177,90,.7);padding:10px 16px;border-radius:8px;letter-spacing:.3px;font-size:18px;font-weight:700}
 #downmsg{position:absolute;top:38%;width:100%;text-align:center;font-size:28px;letter-spacing:2px;color:#ffb0a6;text-shadow:0 2px 8px #000}
 #dmg{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(120,0,0,.85));opacity:0}
 #talkdim{position:fixed;inset:0;z-index:7;background:rgba(6,8,12,.62);pointer-events:none}
@@ -64,7 +80,8 @@ canvas{display:block}
 #rname{font-family:Palatino,Georgia,serif;font-size:26px;margin:2px 0 6px}
 #rline{margin:0;font-size:18px;line-height:1.4}
 #ryou{margin:0 0 6px;font-size:13px;color:#5c5146}
-#banner{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);z-index:5;max-width:min(560px,92vw);background:rgba(8,10,14,.88);border:2px solid #e4b15a;color:#f4efe6;border-radius:8px;padding:14px 18px;text-align:center;font-size:22px;font-weight:700;letter-spacing:.2px;line-height:1.3}
+#banner{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);z-index:5;max-width:min(640px,92vw);background:rgba(8,10,14,.92);border:2px solid #e4b15a;color:#f4efe6;border-radius:10px;padding:18px 22px;text-align:center;font-size:28px;font-weight:750;letter-spacing:.2px;line-height:1.3;pointer-events:auto;cursor:pointer}
+#bannercue,#rcue{margin:10px 0 0;font-size:16px;letter-spacing:.3px;font-weight:650;color:#ffe7b8}
 .screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,rgba(12,16,24,.35),rgba(6,8,12,.88));z-index:10}
 .card{max-width:760px;padding:28px 34px;text-align:center}
 .kicker{letter-spacing:4px;font-size:12px;color:#e4b15a}
@@ -122,9 +139,12 @@ body.talking #feed{opacity:0}
 @media (max-width:800px){.cols{grid-template-columns:1fr}.manual{padding-top:12px}}
 body.touching #clock{top:calc(8px + env(safe-area-inset-top));padding:6px 10px}
 body.touching #clock b{font-size:28px}
-body.touching #goal{top:70px;font-size:13px;max-width:94vw;padding:4px 8px}
-body.touching #hint{top:116px;font-size:12px;padding:0 12px}
-body.touching #obj{top:78px;max-width:46vw;font-size:12px}
+body.touching #goalstack{top:124px;width:min(94vw,740px)}
+body.touching #goal{font-size:18px;padding:8px 10px}
+body.touching #hint{font-size:16px;padding:6px 10px 8px}
+body.touching #track{top:70px;left:8px;width:min(42vw,180px);padding:8px}
+body.touching #trackcount{font-size:22px}
+body.touching #tracknote{font-size:15px}
 body.touching #compass{display:none}
 body.touching #mapwrap{top:calc(6px + env(safe-area-inset-top));right:8px;width:108px;padding:4px}
 body.touching #minimap{width:100px;height:100px}
@@ -146,16 +166,16 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
 <div id="hud" class="hidden">
  <div id="dmg"></div>
  <div id="clock"><b id="count">5:00</b><span class="tod" id="tod">DAY · JANUARY · 8:00 AM</span></div>
- <div id="goal"></div>
- <div id="banner" class="hidden"></div>
- <div id="hint"></div>
+ <div id="goalstack"><div id="goal"></div><div id="hint"></div></div>
+ <div id="track"><div id="trackkicker">STOPS</div><div id="trackcount">0 of 0</div><div id="trackbar"><i id="trackfill"></i></div><div id="tracknote">0%</div></div>
+ <div id="banner" class="hidden"><div id="bannerline"></div><div id="bannercue">Esc closes this</div></div>
  <div id="speed"></div>
  <div id="obj"></div>
  <div id="compass"></div>
  <div id="mapwrap"><canvas id="minimap" width="312" height="312"></canvas><div id="mapcap">NORTH</div></div>
  <div id="feed"></div>
  <div id="pop"></div>
- <div id="vitals"><div id="cash"></div><div id="hp"><i id="hpfill"></i></div><div id="safe" class="hidden">SAFE · 3109</div></div>
+ <div id="vitals"><div id="cashlabel">DESK</div><div id="cash"></div><div id="hp"><i id="hpfill"></i></div><div id="safe" class="hidden">SAFE · 3109</div></div>
  <div id="ammo" class="hidden"><div id="wname"></div><div id="acount"></div></div>
  <div id="xh" class="hidden"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i></div>
  <div id="prompt" class="hidden"></div>
@@ -180,7 +200,7 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
  <p id="phonename">DESK PHONE</p>
  <p id="phonenum">—</p>
  <div id="phonekeys"></div>
- <p id="phonehint">The cops pick up anyone you have thrown in the street. Station 444-0191. They go to debtors' jail.</p>
+ <p id="phonehint">The cops pick up anyone you have thrown in the street. Station 444-0191. They open the back seat. Debtors' jail is the stop.</p>
 </div>
 <div id="talkdim" class="hidden"></div>
 <div id="panel" class="hidden">
@@ -199,6 +219,7 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
  <div id="rname"></div>
  <div id="ryou" class="hidden"></div>
  <p id="rline"></p>
+ <p id="rcue">Esc or click closes this</p>
 </div>
 <div id="title" class="screen"><div class="card">
  <div class="kicker">3109 H STREET · EUREKA</div>
@@ -208,7 +229,7 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
  <div class="controls">
   <div><b>WASD</b>Move</div><div><b>MOUSE</b>Look</div><div><b>SHIFT</b>Sprint</div>
   <div><b>E</b>Door, car, desk</div><div><b>F</b>Grab, throw</div><div><b>P</b>Phone</div>
-  <div><b>ESC</b>Close a note</div><div><b>CLICK</b>Capture mouse</div>
+  <div><b>ESC</b>Close notes</div><div><b>CLICK</b>Capture mouse</div>
   <div><b>M</b>Street noise</div>
  </div>
  <div class="soundrow">
@@ -238,14 +259,14 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
   <section>
    <p class="rule">The route</p>
    <h3>Work the list</h3>
-   <p>Earn the rent. The card at the top names the next stop. The gold pin on the corner map is that door, and a line runs from you to it. North is the top of the map. 3109 sits on H Street just south of Harris. F Street, to the west, is Henderson Center. Everding runs south of the office.</p>
+   <p>Earn the rent. The card at the top names the next stop. The stops card at the upper left shows how many are done, and whether the day is on track. The gold pin on the corner map is the next door, and a line runs from you to it. North is the top of the map. 3109 sits on H Street just south of Harris. F Street, to the west, is Henderson Center. Everding runs south of the office. Esc closes a note.</p>
    <p>H Street ends at a circle in Ferndale. That is not a place to wait. Turn around. 3109 is south.</p>
   </section>
   <section>
    <p class="rule">The stops</p>
    <h3>Go inside</h3>
    <p>Step up to the door and go in. Some homes are ordinary. Some are packed to the ceiling. Look around, then talk. The person stands in the center of the screen. Their answer stays on that card. The street has its own noise. The street slider turns that noise down, or off. A talk is still spoken.</p>
-   <p>Ask for the rent first. If they will not pay, grab them, walk them outside, and throw them into the street. P opens the phone. Dial 444-0191. The cops put them in the wagon and take them to debtors' jail.</p>
+   <p>Ask for the rent first. They say, what about my human rights. The rent is still due. If they will not pay, grab them, walk them outside, and throw them into the street. P opens the phone. Dial 444-0191. The cops pull up, open the back seat, and take them to debtors' jail.</p>
    <p>A missed month cools them off. Another one and they leave, and the unit sits vacant until you place someone new.</p>
   </section>
   <section>
@@ -408,6 +429,8 @@ const el = {
   title:$('title'), guide:$('guide'), year:$('year'), yearstats:$('yearstats'), yearformula:$('yearformula'),
   touch:$('touch'), stickzone:$('stickzone'), lookpad:$('lookpad'), stick:$('stick'), knob:$('knob'),
   goal:$('goal'), speed:$('speed'), map:$('minimap'),
+  track:$('track'), trackcount:$('trackcount'), trackfill:$('trackfill'), tracknote:$('tracknote'),
+  bannerline:$('bannerline'),
 };
 
 let TOUCH = false;
@@ -2529,6 +2552,18 @@ function addJail(){
   JAIL.door = {x:x1 + 2.4, z};
   JAIL.cell = {x:x - 1.7, z};
 }
+function addRearDoor(mesh){
+  const hinge = new THREE.Group();
+  hinge.position.set(0.82, 0.42, 0.96);
+  mesh.add(hinge);
+  const paint = carPaintMat(0x1a2744);
+  box(0.07, 0.96, 0.82, paint, 0.05, 0.5, -0.42, hinge);
+  box(0.02, 0.9, 0.74, 0xc4b6a4, 0.01, 0.5, -0.42, hinge);
+  const glass = box(0.02, 0.34, 0.4, carGlass, 0.08, 0.74, -0.36, hinge);
+  glass.castShadow = false;
+  box(0.04, 0.08, 0.14, chromeMat, 0.09, 0.48, -0.62, hinge);
+  return hinge;
+}
 function makeWagon(){
   const mesh = buildCarMesh(0x1a2744);
   const redMat = new THREE.MeshLambertMaterial({color:0xff2a2a, emissive:0xff2a2a, emissiveIntensity:0.2});
@@ -2536,13 +2571,14 @@ function makeWagon(){
   const red = box(0.24, 0.1, 0.22, redMat, -0.2, 1.48, -0.05, mesh);
   const blue = box(0.24, 0.1, 0.22, blueMat, 0.2, 1.48, -0.05, mesh);
   box(0.7, 0.06, 0.28, 0xf4efe6, 0, 1.4, -0.05, mesh);
+  const door = addRearDoor(mesh);
   mesh.visible = false;
   scene.add(mesh);
   const cop = makePerson(0x1a2744);
   cop.sprite.visible = false;
   cop.mesh.visible = false;
   scene.add(cop.mesh);
-  wagon = {on:false, step:'toScene', goal:'pickup', x:-2.2, z:6, yaw:Math.PI, speed:0, mesh, red, blue, cop, copX:0, copZ:0, propId:'', wait:0, points:[]};
+  wagon = {on:false, step:'toScene', goal:'pickup', x:-2.2, z:6, yaw:Math.PI, speed:0, mesh, red, blue, cop, copX:0, copZ:0, propId:'', wait:0, points:[], door, doorAngle:0, doorTarget:0, tossFrom:null};
 }
 function setSiren(on){
   const ctx = ac();
@@ -2575,6 +2611,24 @@ function flashBar(){
 }
 function sidePos(){
   return {x:wagon.x + Math.cos(wagon.yaw) * 1.7, z:wagon.z - Math.sin(wagon.yaw) * 1.7};
+}
+function wagonPoint(lx, ly, lz){
+  const yaw = -wagon.yaw;
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  return {x:wagon.x + lx * c + lz * s, y:ly, z:wagon.z - lx * s + lz * c};
+}
+function doorStand(){
+  return wagonPoint(1.9, 0, 0.78);
+}
+function shutDoor(){
+  wagon.doorTarget = 0;
+  wagon.doorAngle = 0;
+  if (wagon.door) wagon.door.rotation.y = 0;
+}
+function swingDoor(dt){
+  const target = wagon.doorTarget * 1.35;
+  wagon.doorAngle = lerp(wagon.doorAngle, target, 1 - Math.exp(-dt * 7));
+  wagon.door.rotation.y = -wagon.doorAngle;
 }
 function tenantXZ(){
   const p = propById(wagon.propId);
@@ -2671,13 +2725,42 @@ function escortTenant(){
   p.avatar.mesh.position.set(wagon.copX - Math.sin(yaw) * 0.7, 0, wagon.copZ - Math.cos(yaw) * 0.7);
   p.avatar.mesh.rotation.set(0, yaw, 0);
 }
-function rideTenant(){
+function seatTenant(){
   const p = propById(wagon.propId);
   if (!p || !p.avatar) return;
-  loosePerson(p.avatar.mesh);
-  p.avatar.mesh.visible = true;
-  p.avatar.mesh.position.set(wagon.x - Math.sin(wagon.yaw) * 0.15, 0.55, wagon.z - Math.cos(wagon.yaw) * 0.15);
-  p.avatar.mesh.rotation.set(0, wagon.yaw, 0);
+  const mesh = p.avatar.mesh;
+  if (mesh.parent !== wagon.mesh) wagon.mesh.attach(mesh);
+  mesh.visible = true;
+  mesh.position.set(0.16, 0.58, 0.02);
+  mesh.rotation.set(1.05, 0, 0.25);
+}
+function tossTenant(u){
+  const p = propById(wagon.propId);
+  if (!p || !p.avatar || !wagon.tossFrom) return;
+  const mesh = p.avatar.mesh;
+  loosePerson(mesh);
+  const t = clamp(u, 0, 1);
+  const ease = t * t * (3 - 2 * t);
+  const from = wagon.tossFrom;
+  const seat = wagonPoint(0.2, 0.9, 0.15);
+  mesh.visible = true;
+  mesh.position.set(
+    lerp(from.x, seat.x, ease),
+    lerp(from.y, seat.y, ease) + Math.sin(t * Math.PI) * 1.05,
+    lerp(from.z, seat.z, ease)
+  );
+  mesh.rotation.set(Math.sin(t * Math.PI) * 1.35, wagon.yaw, t * 0.4);
+}
+function shoveCop(u){
+  const stand = doorStand();
+  const into = wagonPoint(1.28, 0, 0.72);
+  const t = Math.sin(clamp(u, 0, 1) * Math.PI);
+  wagon.cop.mesh.visible = true;
+  wagon.cop.mesh.position.set(lerp(stand.x, into.x, t), 0, lerp(stand.z, into.z, t));
+  wagon.cop.mesh.rotation.y = Math.atan2(into.x - stand.x, into.z - stand.z);
+}
+function rideTenant(){
+  seatTenant();
 }
 function driveToward(points, dt){
   const dest = points[0];
@@ -2711,6 +2794,7 @@ function stopWagon(){
   wagon.on = false;
   wagon.step = 'toScene';
   wagon.speed = 0;
+  shutDoor();
   if (wagon.mesh) wagon.mesh.visible = false;
   if (wagon.cop) wagon.cop.mesh.visible = false;
   setSiren(false);
@@ -2731,6 +2815,8 @@ function startWagon(propId){
   wagon.mesh.position.set(wagon.x, 0, wagon.z);
   wagon.mesh.rotation.y = -wagon.yaw;
   wagon.cop.mesh.visible = false;
+  wagon.tossFrom = null;
+  shutDoor();
   wagon.points = pickupPath(spot);
   setSiren(true);
 }
@@ -2753,9 +2839,16 @@ function tickWagon(dt){
   flashBar();
   switch (wagon.step){
     case 'toScene':
-      if (driveToward(wagon.points, dt)){ wagon.step = 'stepout'; wagon.wait = 0.35; setSiren(false); }
+      if (driveToward(wagon.points, dt)){
+        wagon.step = 'stepout';
+        wagon.wait = 0.45;
+        wagon.doorTarget = 1;
+        setSiren(false);
+        say('Cop', 'Not you again.');
+      }
       break;
     case 'stepout':
+      swingDoor(dt);
       wagon.wait -= dt;
       if (wagon.wait <= 0){
         const side = sidePos();
@@ -2764,16 +2857,39 @@ function tickWagon(dt){
       }
       break;
     case 'approach':
+      swingDoor(dt);
       if (walkCopTo(tenantXZ(), dt, 0.75)) wagon.step = 'escort';
       break;
     case 'escort':
+      swingDoor(dt);
       escortTenant();
-      if (walkCopTo(sidePos(), dt, 0.85)){ wagon.step = 'board'; wagon.wait = 0.4; }
+      if (walkCopTo(doorStand(), dt, 0.65)){
+        const who = propById(wagon.propId);
+        const w = worldXZ(who.avatar.mesh);
+        wagon.tossFrom = {x:w.x, y:w.y, z:w.z};
+        wagon.step = 'toss';
+        wagon.wait = 0;
+        say(who.resident, 'Oh, boy, here we go again.');
+      }
       break;
-    case 'board':
-      escortTenant();
+    case 'toss':
+      swingDoor(dt);
+      wagon.wait += dt;
+      tossTenant(wagon.wait / 0.85);
+      shoveCop(wagon.wait / 0.85);
+      if (wagon.wait >= 0.85){
+        seatTenant();
+        wagon.doorTarget = 0;
+        wagon.step = 'shut';
+        wagon.wait = 0.55;
+      }
+      break;
+    case 'shut':
+      swingDoor(dt);
+      seatTenant();
       wagon.wait -= dt;
       if (wagon.wait <= 0){
+        shutDoor();
         wagon.cop.mesh.visible = false;
         wagon.points = returnPath({x:wagon.x, z:wagon.z});
         wagon.step = 'toJail';
@@ -3099,6 +3215,67 @@ let pendingWho = '';
 let replyLife = 0;
 let bannerLife = 0;
 let shownObj = '';
+let hintDismissed = '';
+function dayTrack(){
+  let total = S.tasks.length;
+  let done = 0;
+  for (const t of S.tasks) if (t.done) done += 1;
+  if (S.urgent){
+    total += 1;
+    if (S.urgent.done) done += 1;
+  }
+  const pct = total ? Math.round(done / total * 100) : 0;
+  let pace = 'On track';
+  let tone = 'ok';
+  if (player.down){
+    pace = 'Down';
+    tone = 'behind';
+  } else if (S.phase === 'night'){
+    pace = inOffice() ? 'Inside' : 'Get inside';
+    tone = inOffice() ? 'done' : 'behind';
+  } else if (total && done >= total){
+    pace = 'Stops done';
+    tone = 'done';
+  } else if (total){
+    const used = clamp(1 - S.left / DAY_LEN, 0, 1);
+    const got = done / total;
+    if (used >= 0.2 && got + 0.2 < used){
+      pace = 'Behind';
+      tone = 'behind';
+    } else if (got > used + 0.12){
+      pace = 'Ahead';
+      tone = 'ahead';
+    }
+  }
+  return {done, total, pct, pace, tone};
+}
+function dismissBubbles(){
+  let n = 0;
+  if (!el.reply.classList.contains('hidden')){
+    replyLife = 0;
+    el.reply.classList.add('hidden');
+    n += 1;
+  }
+  if (bannerLife > 0 || !el.banner.classList.contains('hidden')){
+    bannerLife = 0;
+    el.banner.classList.add('hidden');
+    n += 1;
+  }
+  if (el.feed.childElementCount){
+    el.feed.replaceChildren();
+    n += 1;
+  }
+  if (el.hint.textContent && !el.hint.classList.contains('hidden')){
+    hintDismissed = el.hint.textContent;
+    el.hint.classList.add('hidden');
+    n += 1;
+  }
+  if (n){
+    syncTalk();
+    sfx('click');
+  }
+  return n > 0;
+}
 let audioCtx = null;
 let noiseBuf = null;
 let amb = null;
@@ -3687,7 +3864,9 @@ function doTask(t){
       openPanel({
         face: p.resident || 'Resident',
         title:'Rent · ' + p.addr,
-        body:(p.resident || 'The resident') + ' owes ' + money(p.rent) + '. Ask for it before anything else. If they will not pay, they leave with you.',
+        yours:'The rent is due.',
+        heard:'What about my human rights?',
+        body:(p.resident || 'The resident') + ' owes ' + money(p.rent) + '. The rent is still due. If they will not pay, they leave with you.',
         choices:[
           {label:'Take ' + money(p.rent) + ' and leave a receipt.', apply(){
             t.done = true;
@@ -3708,6 +3887,8 @@ function doTask(t){
           }},
         ],
       });
+      speak('What about my human rights?', p.resident || 'Resident', true);
+      toast('What about my human rights?');
       break;
     case 'repair':
       openPanel({
@@ -4218,26 +4399,38 @@ function updateHud(){
   const line = nextSentence();
   el.goal.textContent = line;
   el.goal.classList.toggle('hidden', !line);
+  const track = dayTrack();
+  el.trackcount.textContent = track.done + ' of ' + track.total;
+  el.trackfill.style.width = track.pct + '%';
+  el.tracknote.textContent = track.pct + '% · ' + track.pace;
+  el.track.classList.remove('behind', 'ahead', 'done');
+  if (track.tone === 'behind' || track.tone === 'ahead' || track.tone === 'done') el.track.classList.add(track.tone);
   const mark = objectivePoint();
   const markKey = mark ? mark.label : '';
   if (markKey !== shownObj){
     shownObj = markKey;
     if (markKey){
-      el.banner.textContent = 'Next · ' + markKey;
+      el.bannerline.textContent = 'Next · ' + markKey;
       bannerLife = 3.4;
     }
   }
   if (bannerLife > 0 && !S.panel){
     el.banner.classList.remove('hidden');
   } else el.banner.classList.add('hidden');
-  if (S.haul && S.haul.stage === 'drag') el.hint.textContent = 'F grabs. Walk them out. F or the mouse throws them into the street.';
-  else if (S.haul && S.haul.stage === 'call') el.hint.textContent = 'P opens the phone. Dial 444-0191.';
-  else if (S.haul && S.haul.stage === 'wagon') el.hint.textContent = 'The cops are taking them to debtors\' jail.';
-  else if (S.phase === 'day' && !S.offered) el.hint.textContent = 'A Ferndale signing calls late. Finish the gold pin first.';
-  else if (S.urgent && !S.urgent.done) el.hint.textContent = 'Take a car to the gold pin, then get back inside 3109.';
-  else if (night && !inOffice() && !player.down) el.hint.textContent = 'The gold pin is 3109. Get inside.';
-  else if (night && inOffice()) el.hint.textContent = 'Safe until dawn. Stay inside.';
-  else el.hint.textContent = 'The gold pin is the next door. Press E when you reach it.';
+  let hint = 'The gold pin is the next door. Press E when you reach it.';
+  if (S.haul && S.haul.stage === 'drag') hint = 'F grabs. Walk them out. F or the mouse throws them into the street.';
+  else if (S.haul && S.haul.stage === 'call') hint = 'P opens the phone. Dial 444-0191.';
+  else if (S.haul && S.haul.stage === 'wagon') hint = 'The cops are taking them to debtors\' jail.';
+  else if (S.phase === 'day' && !S.offered) hint = 'A Ferndale signing calls late. Finish the gold pin first.';
+  else if (S.urgent && !S.urgent.done) hint = 'Take a car to the gold pin, then get back inside 3109.';
+  else if (night && !inOffice() && !player.down) hint = 'The gold pin is 3109. Get inside.';
+  else if (night && inOffice()) hint = 'Safe until dawn. Stay inside.';
+  if (hint !== el.hint.dataset.current){
+    el.hint.dataset.current = hint;
+    hintDismissed = '';
+  }
+  el.hint.textContent = hint;
+  el.hint.classList.toggle('hidden', !hint || hintDismissed === hint);
   document.body.classList.toggle('afterdark', night && !player.down);
   el.speed.textContent = player.car ? ('DRIVING ' + Math.round(Math.abs(player.car.speed))) : '';
   el.obj.replaceChildren();
@@ -4792,6 +4985,27 @@ window.__rentor = {
   throwHold(){ return throwPerson(); },
   dial(n){ phoneDigits = String(n || '').replace(/\D/g, ''); return placeCall(); },
   wagonStep(){ return wagon && wagon.on ? wagon.step : 'idle'; },
+  wagonDoor(){
+    if (!wagon) return {angle:0, x:0, z:0, yaw:0, step:'idle'};
+    let hinge = null, tip = null;
+    if (wagon.door){
+      const h = worldXZ(wagon.door);
+      hinge = {x:h.x, y:h.y, z:h.z};
+      const leaf = wagon.door.children[0];
+      if (leaf){
+        const t = worldXZ(leaf);
+        tip = {x:t.x, y:t.y, z:t.z};
+      }
+    }
+    const cop = wagon.cop && wagon.cop.mesh.visible ? worldXZ(wagon.cop.mesh) : null;
+    return {
+      angle:wagon.door ? wagon.door.rotation.y : 0,
+      x:wagon.x, z:wagon.z, yaw:wagon.yaw,
+      step:wagon.on ? wagon.step : 'idle',
+      hinge, tip,
+      cop: cop ? {x:cop.x, y:cop.y, z:cop.z} : null,
+    };
+  },
   bg(){ return bgVol; },
   setBg(v){ applyBg(v); },
   person(id){
@@ -4863,6 +5077,22 @@ el.reply.addEventListener('click', () => {
   syncTalk();
   sfx('click');
 });
+el.banner.addEventListener('click', () => {
+  bannerLife = 0;
+  el.banner.classList.add('hidden');
+  sfx('click');
+});
+el.feed.addEventListener('click', () => {
+  if (!el.feed.childElementCount) return;
+  el.feed.replaceChildren();
+  sfx('click');
+});
+el.hint.addEventListener('click', () => {
+  if (!el.hint.textContent || el.hint.classList.contains('hidden')) return;
+  hintDismissed = el.hint.textContent;
+  el.hint.classList.add('hidden');
+  sfx('click');
+});
 document.addEventListener('pointerdown', () => unlockAudio());
 function bindStreet(inputId, buttonId){
   const input = $(inputId);
@@ -4888,7 +5118,13 @@ document.addEventListener('keydown', e => {
     if (e.code === 'Backspace'){ phoneDigits = phoneDigits.slice(0, -1); renderPhone(); return; }
     if (/^Digit[0-9]$/.test(e.code)){ pushDigit(e.code.slice(5)); return; }
   }
-  if (e.code === 'Escape'){ dismissPanel(); mouseLeft = false; mouseRight = false; }
+  if (e.code === 'Escape'){
+    if (S.panel) dismissPanel();
+    else dismissBubbles();
+    mouseLeft = false;
+    mouseRight = false;
+    e.preventDefault();
+  }
   if (e.code === 'KeyE' && !e.repeat) interact();
   if (e.code === 'KeyF' && !e.repeat) useGrab();
   if (e.code === 'KeyP' && !e.repeat) togglePhone();
