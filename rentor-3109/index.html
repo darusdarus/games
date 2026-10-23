@@ -124,6 +124,17 @@ button.alt{background:#243044}
 #pface,#rface{width:168px;height:202px;border-radius:12px;background:#d9cbb8;display:block;margin:6px auto 4px;border:3px solid #1c1915}
 #speed{position:absolute;right:16px;bottom:92px;font-size:13px;letter-spacing:1px;text-shadow:0 1px 2px #000}
 #pop{position:absolute;left:18px;bottom:86px;font-size:22px;font-weight:700;letter-spacing:.4px;text-shadow:0 2px 8px #000;opacity:0}
+.soundrow{display:flex;align-items:center;justify-content:center;gap:10px;margin:2px auto 14px;max-width:480px}
+.soundrow button,#sound button{font:inherit;letter-spacing:1px;font-weight:700;color:#e4b15a;background:transparent;border:0;padding:0;cursor:pointer}
+.soundrow button{font-size:14px}
+.soundrow input{width:190px;accent-color:#e4b15a;cursor:pointer}
+.soundrow span,#sound span{min-width:44px;font-variant-numeric:tabular-nums;text-align:left}
+.soundrow span{font-size:14px}
+#sound{display:none;position:fixed;z-index:12;left:272px;bottom:16px;width:236px;align-items:center;gap:8px;background:rgba(8,10,14,.88);border:1px solid rgba(228,177,90,.7);border-radius:4px;padding:7px 10px;pointer-events:auto}
+body.playing #sound{display:flex}
+#sound button{font-size:12px}
+#sound input{flex:1;min-width:0;accent-color:#e4b15a;cursor:pointer}
+#sound span{font-size:12px;text-align:right}
 body.talking #feed{opacity:0}
 @media (max-width:800px){.cols{grid-template-columns:1fr}.manual{padding-top:12px}}
 body.touching #clock{top:calc(8px + env(safe-area-inset-top));padding:6px 10px}
@@ -141,6 +152,7 @@ body.touching #ammo{top:calc(8px + env(safe-area-inset-top));right:122px;bottom:
 body.touching #vitals{bottom:calc(210px + env(safe-area-inset-bottom));width:min(46vw,200px)}
 body.touching #pop{bottom:calc(268px + env(safe-area-inset-bottom))}
 body.touching #feed{display:none}
+body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-area-inset-top));width:min(42vw,168px)}
 @media (max-width:900px),(max-height:520px){
  .screen{overflow:auto;align-items:flex-start;padding:16px 0}
  h1{font-size:46px;letter-spacing:4px}
@@ -168,6 +180,11 @@ body.touching #feed{display:none}
  <div id="xh" class="hidden"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i></div>
  <div id="prompt" class="hidden"></div>
  <div id="downmsg" class="hidden">OUT COLD</div>
+</div>
+<div id="sound">
+ <button type="button" id="bgbtnplay">STREET</button>
+ <input id="bgsoundplay" type="range" min="0" max="100" step="1" value="100" aria-label="Street noise volume">
+ <span id="bglabelplay">100%</span>
 </div>
 <div id="touch" class="hidden">
  <div id="stickzone"></div><div id="lookpad"></div>
@@ -213,6 +230,12 @@ body.touching #feed{display:none}
   <div><b>WASD</b>Move</div><div><b>MOUSE</b>Look</div><div><b>SHIFT</b>Sprint</div>
   <div><b>E</b>Door, car, desk</div><div><b>F</b>Grab, throw</div><div><b>P</b>Phone</div>
   <div><b>ESC</b>Close notes</div><div><b>CLICK</b>Capture mouse</div>
+  <div><b>M</b>Street noise</div>
+ </div>
+ <div class="soundrow">
+  <button type="button" id="bgbtn">Street noise</button>
+  <input id="bgsound" type="range" min="0" max="100" step="1" value="100" aria-label="Street noise volume">
+  <span id="bglabel">100%</span>
  </div>
  <p class="touchhelp">Left side moves, right side looks. USE opens a door or a car. GRAB takes a person. PHONE dials the station. The clock never stops while a note is open. Be back at the office before dark.</p>
  <button class="big" id="playbtn" type="button">READ THE DESK MANUAL</button>
@@ -242,7 +265,7 @@ body.touching #feed{display:none}
   <section>
    <p class="rule">The stops</p>
    <h3>Go inside</h3>
-   <p>Step up to the door and go in. Some homes are ordinary. Some are packed to the ceiling. Look around, then talk. The person stands in the center of the screen. Their answer stays on that card. The street has its own noise, and a talk is spoken.</p>
+   <p>Step up to the door and go in. Some homes are ordinary. Some are packed to the ceiling. Look around, then talk. The person stands in the center of the screen. Their answer stays on that card. The street has its own noise. The street slider turns that noise down, or off. A talk is still spoken.</p>
    <p>Ask for the rent first. They say, what about my human rights. The rent is still due. If they will not pay, grab them, walk them outside, and throw them into the street. P opens the phone. Dial 444-0191. The cops pull up, open the back seat, and take them to debtors' jail.</p>
    <p>A missed month cools them off. Another one and they leave, and the unit sits vacant until you place someone new.</p>
   </section>
@@ -2567,7 +2590,7 @@ function setSiren(on){
     a.frequency.value = 640;
     b.frequency.value = 520;
     g.gain.value = 0;
-    a.connect(g); b.connect(g); g.connect(ctx.destination);
+    a.connect(g); b.connect(g); g.connect(bgOut(ctx));
     a.start(); b.start();
     siren = {a, b, g};
   }
@@ -3260,6 +3283,59 @@ let stepAcc = 0;
 let birdIn = 2.5;
 let whooshIn = 4;
 let audioFault = false;
+let bgVol = 1;
+let bgHeld = 1;
+let bgBus = null;
+function readBg(){
+  try {
+    const held = Number(localStorage.getItem('rentor-bg-held'));
+    if (Number.isFinite(held) && held > 0) bgHeld = clamp(held, 0, 1);
+    const raw = localStorage.getItem('rentor-bg');
+    if (raw == null || raw === '') return;
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return;
+    bgVol = clamp(n, 0, 1);
+    if (bgVol > 0) bgHeld = bgVol;
+  } catch (err) { /* keep the default when storage is blocked */ }
+}
+readBg();
+function writeBg(){
+  try {
+    localStorage.setItem('rentor-bg', String(bgVol));
+    localStorage.setItem('rentor-bg-held', String(bgHeld));
+  } catch (err) { /* the slider still works for this visit */ }
+}
+function bgOut(ctx){
+  if (!bgBus){
+    bgBus = ctx.createGain();
+    bgBus.gain.value = bgVol;
+    bgBus.connect(ctx.destination);
+  }
+  return bgBus;
+}
+function paintBg(){
+  const pct = Math.round(bgVol * 100);
+  const word = pct === 0 ? 'Off' : pct + '%';
+  const title = $('bgsound');
+  const play = $('bgsoundplay');
+  if (title && Number(title.value) !== pct) title.value = String(pct);
+  if (play && Number(play.value) !== pct) play.value = String(pct);
+  const a = $('bglabel');
+  const b = $('bglabelplay');
+  if (a) a.textContent = word;
+  if (b) b.textContent = word;
+}
+function applyBg(v){
+  const next = clamp(v, 0, 1);
+  if (next > 0) bgHeld = next;
+  bgVol = next;
+  if (bgBus && audioCtx) bgBus.gain.setTargetAtTime(bgVol, audioCtx.currentTime, 0.05);
+  writeBg();
+  paintBg();
+}
+function toggleBg(){
+  applyBg(bgVol > 0 ? 0 : bgHeld);
+}
 function ac(){
   if (AUTOTEST || audioFault) return null;
   try {
@@ -3293,7 +3369,7 @@ function startAmbience(){
   for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
   const master = ctx.createGain();
   master.gain.value = 0.9;
-  master.connect(ctx.destination);
+  master.connect(bgOut(ctx));
   const bed = ctx.createBufferSource();
   bed.buffer = noiseBuf;
   bed.loop = true;
@@ -3369,7 +3445,7 @@ function chirp(){
   o.frequency.exponentialRampToValueAtTime(2200 + Math.random() * 500, now + 0.12);
   g.gain.setValueAtTime(0.03, now);
   g.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
-  o.connect(g).connect(ctx.destination);
+  o.connect(g).connect(bgOut(ctx));
   o.start();
   o.stop(now + 0.22);
 }
@@ -3388,7 +3464,7 @@ function passBy(){
   g.gain.setValueAtTime(0.0001, now);
   g.gain.linearRampToValueAtTime(0.08, now + 0.25);
   g.gain.exponentialRampToValueAtTime(0.0001, now + 0.9);
-  src.connect(f).connect(g).connect(ctx.destination);
+  src.connect(f).connect(g).connect(bgOut(ctx));
   src.start();
   src.stop(now + 0.95);
 }
@@ -3413,11 +3489,11 @@ function tickAudio(dt){
     const spd = driving ? Math.abs(player.car.speed) : 0;
     amb.engine.frequency.setTargetAtTime(46 + spd * 7, audioCtx.currentTime, 0.1);
     amb.engineGain.gain.setTargetAtTime(driving ? 0.03 + spd * 0.004 : 0, audioCtx.currentTime, 0.1);
-    if (outside && !night && !talking){
+    if (bgVol > 0 && outside && !night && !talking){
       birdIn -= dt;
       if (birdIn <= 0){ birdIn = 3 + Math.random() * 5; chirp(); }
     }
-    if (outside && !talking){
+    if (bgVol > 0 && outside && !talking){
       whooshIn -= dt;
       if (whooshIn <= 0){ whooshIn = 7 + Math.random() * 8; passBy(); }
     }
@@ -4127,6 +4203,7 @@ function yearEnd(){
 function setOverlays(){
   const play = S.mode === 'play';
   el.hud.classList.toggle('hidden', !play);
+  document.body.classList.toggle('playing', play);
   el.title.classList.toggle('hidden', S.mode !== 'title');
   el.guide.classList.toggle('hidden', S.mode !== 'guide');
   el.year.classList.toggle('hidden', S.mode !== 'year');
@@ -4929,6 +5006,8 @@ window.__rentor = {
       cop: cop ? {x:cop.x, y:cop.y, z:cop.z} : null,
     };
   },
+  bg(){ return bgVol; },
+  setBg(v){ applyBg(v); },
   person(id){
     const p = propById(id);
     if (!p || !p.avatar) return null;
@@ -5015,8 +5094,22 @@ el.hint.addEventListener('click', () => {
   sfx('click');
 });
 document.addEventListener('pointerdown', () => unlockAudio());
+function bindStreet(inputId, buttonId){
+  const input = $(inputId);
+  const button = $(buttonId);
+  input.addEventListener('input', () => applyBg(Number(input.value) / 100));
+  button.addEventListener('click', () => toggleBg());
+  input.parentElement.addEventListener('pointerdown', () => {
+    if (document.pointerLockElement) document.exitPointerLock();
+  });
+}
+bindStreet('bgsound', 'bgbtn');
+bindStreet('bgsoundplay', 'bgbtnplay');
+paintBg();
 document.addEventListener('keydown', e => {
   unlockAudio();
+  const typing = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA');
+  if (!typing && e.code === 'KeyM' && !e.repeat) toggleBg();
   keys[e.code] = true;
   if (S.mode !== 'play') return;
   if (phoneOn && !e.repeat){
