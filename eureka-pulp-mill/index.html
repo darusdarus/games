@@ -111,6 +111,12 @@ body.touching #pinmsg{font-size:18px;padding:0 16px;box-sizing:border-box}
 .soundrow{display:flex;gap:10px;align-items:center;justify-content:center;margin:12px auto 0;font-size:13px;letter-spacing:1px;text-transform:uppercase}
 .soundrow input[type=range]{width:180px;accent-color:#c33}
 .soundrow button{font:inherit;background:transparent;color:#eee;border:0;cursor:pointer;letter-spacing:1px;text-transform:uppercase;padding:4px 0}
+.hostopts{display:flex;flex-direction:column;gap:8px;align-items:center;margin:14px auto 0}
+.optline{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;font-size:13px;letter-spacing:1px;text-transform:uppercase}
+.optline input[type=range]{width:160px;accent-color:#c33}
+button.chip{font:inherit;font-size:13px;letter-spacing:1px;text-transform:uppercase;padding:6px 12px;background:#2a2a2a;color:#eee;border:1px solid #555;border-radius:3px;cursor:pointer}
+button.chip.on{background:#b22;border-color:#b22;color:#fff}
+button.chip:disabled{opacity:.55;cursor:default}
 #sound{position:fixed;left:304px;bottom:22px;z-index:7;display:flex;gap:8px;align-items:center;background:rgba(0,0,0,.55);padding:6px 10px;border-radius:3px;font-size:12px;letter-spacing:1px;text-transform:uppercase;pointer-events:auto}
 #sound input[type=range]{width:120px;accent-color:#c33}
 #sound button{font:inherit;background:transparent;color:#eee;border:0;cursor:pointer;letter-spacing:1px;text-transform:uppercase}
@@ -158,11 +164,11 @@ body.touching #ffplay{left:8px;bottom:auto;top:calc(330px + env(safe-area-inset-
 <div id="title" class="screen"><div class="card">
  <div class="kicker">AN ORIGINAL LOW-POLY SIM · EUREKA, CALIFORNIA</div>
  <h1>EUREKA</h1><h2>PULP MILL</h2>
- <div class="sub">Start on Trinity Street in Myrtletown. The road turns through Redwood Acres, up the Redwood Sky Walk, through Sequoia Park Zoo and the tree walk, into the Carson Mansion, then a zipline down to the slough bridge.<br>Safe rooms at the fair hall, the zoo, 3109 H Street, the mansion, and the Samoa Cookhouse. The channel span is long and high. If it goes, row the skiff — four oars, W rows, A and D turn.</div>
+ <div class="sub" id="blurb">Start on Trinity Street in Myrtletown. The road turns through Redwood Acres, up the Redwood Sky Walk, through Sequoia Park Zoo and the tree walk, into the Carson Mansion, then a zipline down to the slough bridge.<br>Safe rooms at the fair hall, the zoo, 3109 H Street, the mansion, and the Samoa Cookhouse. The channel span is long and high. If it goes, row the skiff — four oars, W rows, A and D turn.</div>
  <div class="controls">
   <div><b>WASD</b>Move</div><div><b>MOUSE</b>Look</div><div><b>L-CLICK</b>Shoot</div>
   <div><b>R-CLICK</b>Shove (hold)</div><div><b>R</b>Reload</div><div><b>1 / 2</b>Primary / Pistol</div>
-  <div><b>E</b>Use / Zipline / Revive</div><div><b>W / A D</b>Row / turn the skiff</div><div><b>H</b>Heal (first aid)</div><div><b>F</b>Flashlight</div>
+  <div id="eline"><b>E</b>Use / Zipline / Revive</div><div><b>W / A D</b>Row / turn the skiff</div><div><b>H</b>Heal (first aid)</div><div><b>F</b>Flashlight</div>
   <div><b>SHIFT</b>Sprint</div><div><b>ESC / P</b>Pause</div><div><b>M</b>Mute</div>
   <div><b>V</b>Talk (hold)</div><div><b>G</b>God fly</div>
  </div>
@@ -173,6 +179,17 @@ body.touching #ffplay{left:8px;bottom:auto;top:calc(330px + env(safe-area-inset-
   <span id="bglabel">70%</span>
  </div>
  <div class="tiny">Wind, fire, and the chopper. Off leaves shots, barks, and voices on. M still mutes everything.</div>
+ <div class="hostopts">
+  <div class="optline"><span>Map</span>
+   <button type="button" class="chip" data-layout="town">Town</button>
+   <button type="button" class="chip" data-layout="linear">Linear</button>
+  </div>
+  <div class="optline"><span>Swarm</span>
+   <input class="swarm" type="range" min="0" max="200" step="10" value="100" aria-label="Swarm size">
+   <span class="swarmlab">100%</span>
+  </div>
+ </div>
+ <div class="tiny">Town follows the skywalk, the zoo, and the mansion zipline. Linear is the straight road and the long bridge. Changing the map reloads the chapter.</div>
  <button class="big" id="playbtn">CLICK TO PLAY</button>
  <div class="cooprow">
   <input id="pname" maxlength="16" autocomplete="off" spellcheck="false" aria-label="Your name">
@@ -183,7 +200,7 @@ body.touching #ffplay{left:8px;bottom:auto;top:calc(330px + env(safe-area-inset-
   <input id="joincode" maxlength="6" autocomplete="off" spellcheck="false" placeholder="ROOM" aria-label="Room code" style="letter-spacing:4px;text-transform:uppercase;width:120px">
   <button class="big alt" id="joingo" type="button">JOIN ROOM</button>
  </div>
- <div class="tiny" id="roomhint">Solo, or co-op for up to 4 players. Share the room link — no server. Hold V to talk. The host restarts the room and sets friendly fire.</div>
+ <div class="tiny" id="roomhint">Solo, or co-op for up to 4 players. Share the room link — no server. Hold V to talk. The host picks the map and the swarm, sets friendly fire, and restarts the room.</div>
  <div class="tiny"><a href="/dead-center/" style="color:#ccc">Dead Center, the hotel</a></div>
  <div class="tiny">Headphones recommended · Built by Grok Bot</div>
  <div class="tiny">Landmark photos: Carson Mansion and the Samoa mill, Tomas Sennett (public domain); Samoa Bridge, JP Smith (public domain); Samoa Cookhouse, Missvain (CC BY 4.0); Sequoia Park Zoo aviary, Missvain (CC0); Old Town Eureka, Pamla J. Eisenberg (CC BY 2.0); 935 3rd Street, Joe Mabel (CC BY 4.0). Full sources in tex/CREDITS.txt. Redwood Acres, the redwood path, and Myrtletown were provided for this game. Bay water shading adapted from web-ocean by Maksymilian Dendura, MIT, 2026.</div>
@@ -197,6 +214,16 @@ body.touching #ffplay{left:8px;bottom:auto;top:calc(330px + env(safe-area-inset-
  <div id="roster"></div>
  <button class="big alt" id="micbtn" type="button">ENABLE MIC</button>
  <button class="big alt" id="ffbtn" type="button">Friendly fire: On</button>
+ <div class="hostopts">
+  <div class="optline"><span>Map</span>
+   <button type="button" class="chip" data-layout="town">Town</button>
+   <button type="button" class="chip" data-layout="linear">Linear</button>
+  </div>
+  <div class="optline"><span>Swarm</span>
+   <input class="swarm" type="range" min="0" max="200" step="10" value="100" aria-label="Swarm size">
+   <span class="swarmlab">100%</span>
+  </div>
+ </div>
  <button class="big" id="startcoop" type="button">START RUN</button>
  <div class="tiny" id="lobbystatus">Share the link. Empty slots stay bots.</div>
  <button class="ghost" id="lobbycancel" type="button">CANCEL</button>
@@ -207,7 +234,19 @@ body.touching #ffplay{left:8px;bottom:auto;top:calc(330px + env(safe-area-inset-
  <div class="sub" id="discotxt"></div>
  <button class="big" id="discobtn" type="button">RETURN TO TITLE</button>
 </div></div>
-<div id="pause" class="screen hidden"><div class="card"><h2>PAUSED</h2><button class="big" id="resumebtn">RESUME</button><button class="big alt hidden" id="ffpause" type="button">Friendly fire: On</button><button class="big alt" id="pausereset" type="button">RESTART CHAPTER</button><div class="tiny" id="pausehint">Click to recapture the mouse</div></div></div>
+<div id="pause" class="screen hidden"><div class="card"><h2>PAUSED</h2><button class="big" id="resumebtn">RESUME</button><button class="big alt hidden" id="ffpause" type="button">Friendly fire: On</button>
+ <div class="hostopts">
+  <div class="optline"><span>Map</span>
+   <button type="button" class="chip" data-layout="town">Town</button>
+   <button type="button" class="chip" data-layout="linear">Linear</button>
+  </div>
+  <div class="optline"><span>Swarm</span>
+   <input class="swarm" type="range" min="0" max="200" step="10" value="100" aria-label="Swarm size">
+   <span class="swarmlab">100%</span>
+  </div>
+ </div>
+ <div class="tiny">A new map reloads this chapter and keeps the room.</div>
+ <button class="big alt" id="pausereset" type="button">RESTART CHAPTER</button><div class="tiny" id="pausehint">Click to recapture the mouse</div></div></div>
 <div id="dead" class="screen hidden"><div class="card"><h1>YOU DIED</h1><h2 id="deadsub">THE MILL KEPT ANOTHER ONE</h2><div id="deadstats"></div><button class="big" id="restartbtn">RESTART CHAPTER</button></div></div>
 <div id="done" class="screen hidden"><div class="card"><div class="kicker">CHOPPER AWAY</div><h1>CHAPTER COMPLETE</h1><h2>EUREKA · PULP MILL</h2><div id="donestats"></div><button class="big" id="againbtn">PLAY AGAIN</button></div></div>
 <div id="sound" class="hidden"><button type="button" id="bgtoggle2">Background</button><input id="bgplay" type="range" min="0" max="100" value="70" aria-label="Background volume"><span id="bglabel2">70%</span></div>
@@ -228,16 +267,25 @@ const rand=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.le
 const clamp=(v,a,b)=>v<a?a:v>b?b:v, lerp=(a,b,t)=>a+(b-a)*t;
 function angDiff(a,b){let d=b-a;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;return d;}
 const lerpAng=(a,b,t)=>a+angDiff(a,b)*clamp(t,0,1);
+function readStored(key){try{return localStorage.getItem(key);}catch(e){return null;}}
+function writeStored(key,val){try{localStorage.setItem(key,val);}catch(e){}}
+const LAYOUT=(QS.get('layout')==='linear'||QS.get('layout')==='town')?QS.get('layout'):(readStored('eureka-layout')==='linear'?'linear':'town');
+writeStored('eureka-layout',LAYOUT);
+function storedSwarm(){const raw=readStored('eureka-swarm');if(raw==null||raw==='')return 100;const n=Number(raw);return Number.isFinite(n)?clamp(Math.round(n/10)*10,0,200):100;}
+NET.swarm=storedSwarm();
+if(LAYOUT==='linear'){
+ $('blurb').innerHTML='Start on Trinity Street. The road runs straight through Redwood Acres, the redwoods, Sequoia Park Zoo, 3109 H Street, and the Carson Mansion.<br>Safe rooms at the fair hall, the zoo, the office, the mansion, and the Samoa Cookhouse. The channel span is long and high. If it goes, row the skiff — four oars, W rows, A and D turn.';
+ $('eline').innerHTML='<b>E</b>Use / Revive';
+}
 
 /* ================= LEVEL MAP (2m tiles) =================
-   Trinity St in Myrtletown turns south, through Redwood Acres, up the
-   Redwood Sky Walk (100 ft), down into Sequoia Park Zoo, along the tree
-   walk, through 3109 H Street, and inside the Carson Mansion. A zipline
-   is the only way from the tower to the slough bridge, then the channel span.
-   Progress is +x. Safe rooms are K. Doors are D. deckY lifts a tile off the ground. */
+   Town: Trinity turns south through Redwood Acres, the Sky Walk, the zoo,
+   the tree walk, and the Carson Mansion. A zipline is the only way from
+   the tower to the slough bridge. Linear: the straight z=7..9 road.
+   Both keep the long channel span. Progress is +x. Safe rooms are K. */
 const EXTRA=366;
-const T=2,W=206+EXTRA,H=42,N=W*H,INF=1e9;
-const G=[];for(let z=0;z<H;z++)G.push(new Array(W).fill(' '));
+const T=2,W=206+EXTRA,H=LAYOUT==='linear'?16:42,N=W*H,INF=1e9;
+const G=[];for(let z=0;z<H;z++)G.push(new Array(W).fill(LAYOUT==='linear'?'#':' '));
 const zoneAt=new Uint8Array(N);
 const doorOf=new Int16Array(N).fill(-1);
 const deckY=new Float32Array(N);deckY.fill(NaN);
@@ -245,7 +293,13 @@ const DOOR_IDS=[];
 const doors={};
 const FIN={stx:194,stn:5,callX:200.5*T,callZ:8.5*T,padX:203.5*T,padZ:8*T,gateX:144.5*T,gateZ:8.5*T};
 let safeIndex=0;
-const SAFES=[
+const SAFES=LAYOUT==='linear'?[
+ {name:'Redwood Acres',x0:38,x1:40,z0:7,z1:9,inn:'acresIn',out:'acresOut',nextObj:2,line:'Out through the redwoods. The zoo is the next safe room.'},
+ {name:'Sequoia Park Zoo',x0:85,x1:87,z0:7,z1:9,inn:'zooIn',out:'zooOut',nextObj:3,line:'H Street next. The Rentor office is 3109.'},
+ {name:'Rentor, 3109 H Street',x0:108,x1:111,z0:7,z1:9,inn:'rentorIn',out:'rentorOut',nextObj:4,line:'Old Town. The Carson Mansion is on the bay.'},
+ {name:'Carson Mansion',x0:130,x1:133,z0:7,z1:9,inn:'mansionIn',out:'mansionOut',nextObj:5,line:'Samoa bridge next. The cookhouse is on the far side.'},
+ {name:'Samoa Cookhouse',x0:170,x1:173,z0:7,z1:9,inn:'cookIn',out:'cookOut',nextObj:8,line:'The mill road. The chopper is on the roof.'},
+]:[
  {name:'Redwood Acres',x0:37,x1:40,z0:25,z1:27,inn:'acresIn',out:'acresOut',nextObj:2,line:'Up the Redwood Sky Walk. The zoo is under the canopy.'},
  {name:'Sequoia Park Zoo',x0:105,x1:108,z0:28,z1:30,inn:'zooIn',out:'zooOut',nextObj:3,line:'Out on the tree walk. H Street is next. The Rentor office is 3109.'},
  {name:'Rentor, 3109 H Street',x0:117,x1:120,z0:11,z1:13,inn:'rentorIn',out:'rentorOut',nextObj:4,line:'Old Town. You go through the Carson Mansion. The tower faces the bay.'},
@@ -269,6 +323,7 @@ function rampZ(z0,z1,x0,x1,y0,y1,zn){const step=z1>=z0?1:-1,n=Math.abs(z1-z0)||1
   for(let x=x0;x<=x1;x++){put(x,z,'.',zn);elev(x,z,y);}
   for(const x of [x0-1,x1+1]){if(x<0||x>=W)continue;const c=G[z][x];if(c==='.'||c==='D'||c==='K'||c==='m'||c==='n'||c==='w')continue;put(x,z,'=',zn);elev(x,z,y);}}}
 function pen(x0,z0,x1,z1,inside,zn){for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++){const edge=x===x0||x===x1||z===z0||z===z1;if(!edge&&G[z][x]!==' '&&G[z][x]!==inside)continue;put(x,z,edge?'=':inside,zn);}}
+if(LAYOUT==='town'){
 /* Myrtletown, Trinity Street, then a turn south onto the park road. */
 fill(4,3,8,6,'#',0);fill(10,3,14,6,'#',0);fill(4,10,9,13,'#',0);fill(11,10,14,13,'#',0);
 fill(10,16,14,20,'#',0);fill(18,12,22,18,'#',0);
@@ -316,8 +371,48 @@ for(let x=134;x<=143;x++)for(let z=4;z<=11;z++)if(G[z][x]===' ')put(x,z,'~',7);
 deck(138,7,141,9,3.5,7);rim(138,7,141,9,3.5,7);
 rampX(141,143,7,9,3.5,0,7);
 if(G[10][143]==='='){put(143,10,' ',0);deckY[10*W+143]=NaN;}
-const ZIP_A={x:143.5*T,y:12,z:21.5*T},ZIP_B={x:143.5*T,y:0,z:8.5*T};
 for(const [x,z] of [[49,30],[55,37],[63,28],[70,39],[78,16],[84,22],[91,8],[97,18],[109,14],[109,24],[116,6],[119,34],[46,36],[64,22],[86,28],[101,8]])if(z<H&&G[z][x]===' ')put(x,z,'t',2);
+}else{
+fill(2,2,12,5,'#',0);fill(2,11,12,13,'#',0);
+fill(2,6,16,6,'n',0);fill(2,10,16,10,'n',0);
+fill(3,7,17,9,'.',0);
+put(5,8,'w',0);put(6,8,'w',0);put(7,8,'w',0);
+for(const [x,z] of [[1,1],[4,6],[12,6],[2,13],[14,2],[8,14],[16,2]])put(x,z,'t',0);
+fill(18,7,19,9,'B',0);
+fill(16,3,23,6,'n',0);
+fill(20,7,31,9,'.',0);
+fill(28,3,44,13,'n',1);
+fill(34,1,41,14,'#',1);
+fill(35,6,40,10,'m',1);
+fill(38,7,40,9,'K',1);
+doorX('acresIn',34,7,9,1);doorX('acresOut',41,7,9,1);
+fill(42,7,46,9,'.',1);
+fill(47,2,70,13,'t',2);
+fill(47,7,54,9,'n',2);fill(52,4,60,7,'n',2);fill(58,7,70,10,'n',2);
+fill(71,3,90,13,'n',3);
+for(let x=74;x<=80;x++)put(x,6,'=',3);
+put(77,6,'n',3);fill(74,3,80,5,'n',3);
+for(let x=74;x<=80;x++)put(x,11,'=',3);
+put(76,11,'n',3);fill(74,12,80,13,'n',3);
+fill(82,1,88,14,'#',3);
+fill(83,6,87,10,'m',3);fill(85,7,87,9,'K',3);
+doorX('zooIn',82,7,9,3);doorX('zooOut',88,7,9,3);
+fill(89,7,94,9,'.',4);
+fill(95,3,97,13,'.',4);fill(93,7,103,9,'.',4);
+fill(104,1,112,14,'#',4);
+fill(105,6,111,10,'m',4);fill(108,7,111,9,'K',4);
+doorX('rentorIn',104,7,9,4);doorX('rentorOut',112,7,9,4);
+fill(113,7,123,9,'.',4);
+fill(122,2,136,6,'#',6);fill(125,3,134,5,'m',6);
+fill(124,2,134,14,'#',6);
+fill(125,6,133,11,'m',6);fill(130,7,133,9,'K',6);
+doorX('mansionIn',124,7,9,6);doorX('mansionOut',134,7,9,6);
+put(126,3,'I',6);
+for(let x=118;x<=143;x++)if(G[1][x]==='#')put(x,1,'~',6);
+fill(135,7,143,9,'.',4);
+}
+const ZIP_A=LAYOUT==='town'?{x:143.5*T,y:12,z:21.5*T}:{x:0,y:0,z:0};
+const ZIP_B=LAYOUT==='town'?{x:143.5*T,y:0,z:8.5*T}:{x:0,y:0,z:0};
 fill(144,1,144,14,'#',7);doorX('gate',144,7,9,7);
 fill(161,7,163,9,'.',8);
 fill(164,1,174,14,'#',8);
@@ -385,7 +480,7 @@ function dijkstra(srcs,doorsOpen=false,link=false){const d=new Float32Array(N).f
  while(h.size){const [dd,i]=h.pop();if(dd>d[i])continue;const x=i%W,z=(i/W)|0;
   for(const [ax,az] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+ax,nz=z+az;if(!ok(nx,nz))continue;const c=G[nz][nx];const ni=nz*W+nx,nd=dd+((c==='F'||c==='x')?6:1);if(nd<d[ni]){d[ni]=nd;h.push(nd,ni);}}
   if(link){const c=G[z][x];const ni=c==='e'?(z+5)*W+x:c==='f'?(z-5)*W+x:-1;if(ni>=0&&dd+1<d[ni]){d[ni]=dd+1;h.push(dd+1,ni);}}
-  if(doorsOpen&&z===8&&x===143){const ni=21*W+143,nd=dd+8;if(nd<d[ni]){d[ni]=nd;h.push(nd,ni);}}}
+  if(LAYOUT==='town'&&doorsOpen&&z===8&&x===143){const ni=21*W+143,nd=dd+8;if(nd<d[ni]){d[ni]=nd;h.push(nd,ni);}}}
  return d;}
 function goalTiles(){const ids=[];if(safeIndex<SAFES.length){const s=SAFES[safeIndex];for(let z=s.z0;z<=s.z1;z++)for(let x=s.x0;x<=s.x1;x++)if(G[z][x]==='K')ids.push(z*W+x);return ids;}
  for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(G[z][x]==='R')ids.push(z*W+x);return ids;}
@@ -448,7 +543,7 @@ const bridgeParts=[];
 const redwoodSpots=[];
 {const walls=[],trims=[],floors=[],ceils=[],obst=[],lamps=[],flick=[];
  for(let z=0;z<H;z++)for(let x=0;x<W;x++){const c=G[z][x],cx=(x+.5)*T,cz=(z+.5)*T;if(c===' '){if(x<BR_A)floors.push({x:cx,y:-0.42,z:cz,sx:T,sy:0.1,sz:T,c:x<20?0x3a4032:x<48?0x2c3a24:0x1c3018});continue;}
-  if(c==='t'){const red=zoneAt[z*W+x]===2;if(red){redwoodSpots.push([cx,cz,(28+((x*5+z*3)%14))*1,0.85+((x+z)%5)*0.12]);continue;}floors.push({x:cx,y:-0.12,z:cz,sx:T,sy:0.24,sz:T,c:0x3a4a32});const th=4.4;obst.push({x:cx,y:th/2,z:cz,sx:.35,sy:th,sz:.35,c:0x3a2a1c});obst.push({x:cx,y:th,z:cz,sx:2.4,sy:2.2,sz:2.4,c:pick([0x1d3a28,0x244432,0x163022])});continue;}
+  if(c==='t'){const red=LAYOUT==='town'&&zoneAt[z*W+x]===2;if(red){redwoodSpots.push([cx,cz,(28+((x*5+z*3)%14))*1,0.85+((x+z)%5)*0.12]);continue;}floors.push({x:cx,y:-0.12,z:cz,sx:T,sy:0.24,sz:T,c:0x3a4a32});const th=4.4;obst.push({x:cx,y:th/2,z:cz,sx:.35,sy:th,sz:.35,c:0x3a2a1c});obst.push({x:cx,y:th,z:cz,sx:2.4,sy:2.2,sz:2.4,c:pick([0x1d3a28,0x244432,0x163022])});continue;}
   if(c==='~'){if(x<BR_A||x>BR_B)floors.push({x:cx,y:-0.95,z:cz,sx:T,sy:0.1,sz:T,c:0x1a3e3c});continue;}
   if(c==='='){if(x>=BR_A&&x<=BR_B)continue;const base=deckY[z*W+x],by=base===base?base:0;obst.push({x:cx,y:by+0.62,z:cz,sx:T*0.96,sy:0.1,sz:0.1,c:0xcbb892});obst.push({x:cx,y:by+0.32,z:cz,sx:0.08,sy:0.64,sz:0.08,c:0x3a3028});continue;}
   if(c==='#'||c==='b'){let lo=1e9,hi=-1e9,mill=false,high=false;const zn=zoneAt[z*W+x];
@@ -496,6 +591,7 @@ function sign(text,bg,fg,x,y,z,ry,w,h){const m=new THREE.Mesh(new THREE.PlaneGeo
 const FACE=-Math.PI/2;
 sign('TRINITY ST','#2a241c','#f3ead4',8.2*T,2.5,7.7*T,FACE,2.2,0.42);
 sign('MYRTLETOWN','#2a241c','#f3ead4',10.2*T,3.1,7.7*T,FACE,2.4,0.42);
+if(LAYOUT==='town'){
 sign('REDWOOD ACRES','#7a3030','#fff',22*T,3.2,19.2*T,FACE,3.2,0.5);
 sign('REDWOOD SKY WALK','#1d3a28','#e8f0d8',52*T,32.4,31.2*T,FACE,3.6,0.48);
 sign('SEQUOIA PARK ZOO','#1d3a28','#e8f0d8',90*T,3.4,15.2*T,FACE,3.6,0.5);
@@ -512,6 +608,15 @@ sign('CARSON MANSION','#c4a882','#2a1c10',128*T,5.2,9.2*T,FACE,3.4,0.5);
 sign('INGOMAR CLUB','#2a1c10','#f0e2c4',128*T,4.4,9.2*T,FACE,2.6,0.4);
 sign('PINK LADY','#d48aa0','#3a1824',122*T,6.4,1.4*T,FACE,2.2,0.4);
 sign('SLOUGH BRIDGE','#6a5030','#f4efe4',139*T,5.2,6.2*T,FACE,2.6,0.42);
+}else{
+sign('REDWOOD ACRES','#7a3030','#fff',33.2*T,3.2,7.7*T,FACE,3.2,0.5);
+sign('SEQUOIA PARK ZOO','#1d3a28','#e8f0d8',81.2*T,3.3,7.7*T,FACE,3.6,0.5);
+sign('H STREET','#222','#f2efe8',96.5*T,2.8,4.2*T,0,1.8,0.4);
+sign('3109 H ST','#222','#f2efe8',103.2*T,3.1,7.7*T,FACE,2.2,0.42);
+sign('RENTOR','#6a1a1a','#fff',103.2*T,2.4,7.7*T,FACE,1.8,0.4);
+sign('CARSON MANSION','#c4a882','#2a1c10',123.2*T,4.2,7.7*T,FACE,3.4,0.5);
+sign('INGOMAR CLUB','#2a1c10','#f0e2c4',123.2*T,3.4,7.7*T,FACE,2.6,0.4);
+}
 sign('SAMOA BRIDGE','#8a6a12','#1a1408',143.2*T,3.4,7.7*T,FACE,2.8,0.5);
 sign('SAMOA COOKHOUSE','#8a2e28','#fff',(163.2+EXTRA)*T,3.2,7.7*T,FACE,3.4,0.5);
 sign('EUREKA PULP MILL','#3a2418','#f0d7a4',(188.2+EXTRA)*T,3.6,7.7*T,FACE,3.4,0.55);
@@ -552,6 +657,8 @@ function house(parent,x,w,wallH,depth,u0,u1){
  facade(parent,'myrtle-street.jpg',u0,0.16,u1,0.78,w*0.92,wallH*0.88,x,wallH*0.46,depth/2+0.04,0);
  solid(parent,0.42,wallH*0.42+1.1,0.42,0x6a5044,x+w*0.32,wallH+0.35,-depth*0.12);
 }
+const beasts=[];
+if(LAYOUT==='town'){
 {const row=grp('lm-myrtle',18,7.2,0);
  house(row,-8.2,5.2,3.6,5.8,0.12,0.34);
  house(row,-2.4,5.6,4.4,6.0,0.34,0.56);
@@ -647,8 +754,6 @@ box(2.4,0.9,0.8,0x3a2818,140*T,5.3,16.5*T,scene);
  box(0.08,0.42,0.08,0x222,0,0.15,0,seat);box(0.62,0.07,0.1,0xc4a56a,0,-0.12,0,seat);
  scene.add(seat);window.__trolley=seat;
 }
-function poseCable(){const seat=window.__trolley;if(!seat)return;let u=player.zipU;if(u==null)for(const b of bots)if(b.zipU!=null){u=b.zipU;break;}const t=u==null?0:Math.max(0,Math.min(1,u)),s=Math.sin(t*Math.PI);seat.position.set(ZIP_A.x+(ZIP_B.x-ZIP_A.x)*t,ZIP_A.y+(ZIP_B.y-ZIP_A.y)*t-s*2.8+1.05,ZIP_A.z+(ZIP_B.z-ZIP_A.z)*t);seat.rotation.y=Math.atan2(ZIP_B.x-ZIP_A.x,ZIP_B.z-ZIP_A.z);}
-const beasts=[];
 function beast(kind,x,z,y0){const g=new THREE.Group();g.position.set(x,y0,z);scene.add(g);const ph=Math.random()*6;
  if(kind==='otter'){solid(g,0.85,0.28,0.32,0x6a4a32,0,0.2,0);solid(g,0.28,0.22,0.26,0x5a3a28,0.42,0.32,0);solid(g,0.45,0.08,0.08,0x4a3424,-0.55,0.22,0);}
  else if(kind==='panda'){solid(g,0.55,0.42,0.7,0x8a3a22,0,0.55,0);solid(g,0.32,0.28,0.3,0xf2efe8,0.28,0.78,0);solid(g,0.5,0.1,0.1,0x6a3018,-0.15,0.7,-0.35);solid(g,0.16,0.9,0.16,0x5a4030,0.2,0.9,-0.15);}
@@ -667,6 +772,98 @@ beast('bear',105*T,21*T,0);beast('coyote',104.2*T,19.6*T,0);
 beast('eagle',95*T,28*T,1.6);beast('monkey',86*T,33*T,2.5);beast('monkey',87.2*T,32.6*T,2.2);
 beast('goat',91*T,32.2*T,0);beast('sheep',92.4*T,33*T,0);beast('peccary',90.2*T,31.2*T,0);
 window.__beasts=beasts;
+}else{
+{const row=grp('lm-myrtle',15,9.2,0);
+ house(row,-6.6,5.0,3.5,6.0,0.12,0.34);
+ house(row,-1.3,5.4,4.3,6.2,0.32,0.54);
+ house(row,3.7,4.8,3.2,5.6,0.52,0.72);
+ house(row,8.0,4.2,2.7,5.4,0.70,0.90);
+}
+{const camp=grp('lm-camp',37,10.1,0);
+ const spots=[[-6.2,0.08,0.34,0xe4ddd4],[-0.2,0.30,0.55,0xc8b8b0],[5.8,0.52,0.78,0xd5d0c6]];
+ for(const [x,u0,u1,body] of spots){
+  solid(camp,6.2,2.15,2.3,body,x,1.4,0);
+  solid(camp,1.7,0.7,2.15,shade(body,0.82),x+2.15,2.55,0.05);
+  facade(camp,'acres-camp.jpg',u0,0.18,u1,0.62,5.7,1.85,x,1.35,1.18,0);
+  for(const wx of [-2.0,1.7]){const wh=new THREE.Mesh(cylGeo,mat(0x1a1a1a));wh.rotation.z=Math.PI/2;wh.scale.set(0.36,0.22,0.36);wh.position.set(x+wx,0.36,1.02);camp.add(wh);}
+ }
+}
+{const fair=grp('lm-fair',53.2,13.15,0);
+ const booths=[[-3.4,0.05,0.28,0xc4483a],[0,0.32,0.55,0xd8a03a],[3.4,0.58,0.82,0x3a6a48]];
+ for(const [x,u0,u1,awn] of booths){
+  solid(fair,3.0,2.35,2.1,0x6a5344,x,1.18,0);
+  const a=solid(fair,3.3,0.08,1.35,awn,x,2.45,0.85);a.rotation.x=0.28;
+  facade(fair,'acres-fair.jpg',u0,0.28,u1,0.78,2.75,2.05,x,1.2,1.08,0);
+  cylMesh(fair,0.04,0.04,3.4,0xeeeeee,x+1.35,1.7,0.3,5);
+ }
+}
+{const tr=grp('lm-track',63.5,8.7,0);
+ for(let i=0;i<5;i++)solid(tr,11.5,0.36,0.8,i%2?0x6a4030:0x5c564c,0,0.4+i*0.4,-0.6-i*0.75);
+ solid(tr,12.2,0.1,4.6,0x7a3030,0,2.55,-2.2);
+ const rail=new THREE.Mesh(new THREE.TorusGeometry(4.6,0.1,6,24),mat(0xd0d0d0));rail.rotation.x=Math.PI/2;rail.scale.set(1,0.48,1);rail.position.set(0,0.85,1.7);tr.add(rail);
+ const dirt=new THREE.Mesh(new THREE.TorusGeometry(4.6,0.62,4,24),mat(0x7a5a40));dirt.rotation.x=Math.PI/2;dirt.scale.set(1,0.48,1);dirt.position.set(0,0.1,1.7);tr.add(dirt);
+ const inf=new THREE.Mesh(cropUVs(new THREE.CircleGeometry(3.5,22),0.18,0.22,0.82,0.75),photoMat('acres-track.jpg'));inf.rotation.x=-Math.PI/2;inf.scale.set(1,0.48,1);inf.position.set(0,0.12,1.7);tr.add(inf);
+ for(let k=0;k<10;k++){const a=k/10*Math.PI*2;solid(tr,0.12,0.7,0.12,0xc8c8c8,Math.cos(a)*4.6,0.4,1.7+Math.sin(a)*2.2);}
+}
+facade(scene,'acres-hall.jpg',0.06,0.16,0.94,0.7,11.2,4.7,67.88,2.65,7.6,-Math.PI/2);
+gable(scene,71.2,5.2,7.6,7.2,6.2,1.7,0x5a3830);
+solid(scene,0.2,4.8,0.2,0xf2efe8,67.7,2.5,2.3);solid(scene,0.2,4.8,0.2,0xf2efe8,67.7,2.5,12.6);
+{const woods=grp('lm-forest',0,0,0);
+ const redwoods=[[49,6,20,1.15],[51,10,22,1.15],[55,3,21,1.1],[59,3,23,1.2],[64,6,21,1.15],[68,6,22,1.2],[62,11,18,1.05],[69,11,20,1.1]];
+ for(const [tx,tz,h,r] of redwoods){const x=(tx+.5)*T,z=(tz+.5)*T;
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(r*0.72,r,h,8),barkMat);trunk.position.set(x,h/2,z);woods.add(trunk);
+  const a=new THREE.Mesh(sphGeo,mat(0x1a3824));a.scale.set(r*4.4,h*0.2,r*4.4);a.position.set(x,h-0.8,z);woods.add(a);
+  const b=new THREE.Mesh(sphGeo,mat(0x244832));b.scale.set(r*3.1,h*0.15,r*3.1);b.position.set(x,h*0.68,z);woods.add(b);
+ }
+}
+{const zoo=grp('lm-zoo',154,9.0,0);
+ for(const x of [-4.2,-2.1,0,2.1,4.2]){const rib=new THREE.Mesh(new THREE.TorusGeometry(4.15,0.08,5,16,Math.PI),mat(0x242824));rib.rotation.y=Math.PI/2;rib.position.set(x,0,0);zoo.add(rib);}
+ facade(zoo,'zoo.jpg',0.16,0.08,0.84,0.9,8.4,6.4,0,3.5,-2.55,0);
+ solid(zoo,9.2,0.22,8.6,0x3a4030,0,0.1,0);
+ for(let i=-4;i<=4;i++)solid(zoo,0.07,5.2,0.07,0x1a1e1a,i*0.95,2.6,3.7);
+ column(zoo,-4.2,2.4,3.9,4.8,0x242824);column(zoo,4.2,2.4,3.9,4.8,0x242824);
+}
+{const st=grp('lm-street',183.2,11.85,0);
+ const shops=[[-2.6,5.2,4.6,0.02,0.34,0x6a3030],[2.7,4.6,5.4,0.36,0.68,0x2a3a48]];
+ for(const [x,w,h,u0,u1,awn] of shops){
+  solid(st,w,h,4.5,0x3e4450,x,h/2,0);
+  solid(st,w+0.25,0.55,4.8,0x2a2824,x,h+0.2,0);
+  facade(st,'street.jpg',u0,0.18,u1,0.86,w*0.94,h*0.9,x,h*0.46,2.28,0);
+  const a=solid(st,w*0.7,0.07,1.15,awn,x,h*0.36,2.75);a.rotation.x=0.32;
+ }
+}
+{const st2=grp('lm-street-e',201.5,11.85,0);
+ solid(st2,6.4,4.2,4.5,0x4a4538,0,2.1,0);
+ solid(st2,6.7,0.5,4.8,0x2c2a26,0,4.4,0);
+ facade(st2,'street.jpg',0.62,0.18,0.98,0.86,6.1,3.8,0,2.15,2.28,0);
+ const a=solid(st2,4.4,0.07,1.15,0x8a4030,0,1.7,2.75);a.rotation.x=0.32;
+}
+{const off=grp('lm-office',204,10.1,0);
+ solid(off,5.4,8.4,5.6,0xd4cfc4,0,4.2,0);
+ gable(off,0,8.4,0,5.9,6.2,2.5,0x5a4038);
+ solid(off,2.3,4.8,1.15,0xe4dfd4,0,3.4,3.15);
+ facade(off,'office.jpg',0.0,0.04,0.58,0.96,5.1,8.0,0,4.3,4.2,0);
+ solid(off,4.6,0.12,1.5,0x4a4038,0,1.15,3.9);
+ column(off,-2.15,1.35,4.45,2.5,0xf4f1ea);column(off,2.15,1.35,4.45,2.5,0xf4f1ea);
+ solid(off,0.55,1.8,0.55,0x6a4038,1.7,9.6,-0.8);
+}
+{const man=grp('lm-mansion',232,9.75,0);
+ solid(man,13.5,7.6,7.4,0xd9c7aa,1.4,3.8,0);
+ gable(man,1.4,7.6,0,14.1,8.2,3.1,0x3a2c32);
+ const cross=solid(man,4.6,0.16,4.4,0x3a2c32,1.6,9.5,2.1);cross.rotation.x=0.62;
+ cylMesh(man,1.7,1.85,11.2,0xd9c7aa,-6.2,5.6,3.5,14);
+ coneMesh(man,2.05,4.2,0x3a2c32,-6.2,13.3,3.5);
+ cylMesh(man,0.06,0.1,2.4,0x2a2428,-6.2,16.5,3.5,6);
+ solid(man,9.2,0.12,1.6,0x4a4038,1.6,2.45,4.35);
+ solid(man,9.6,0.14,1.7,0x3a2c32,1.6,1.15,4.45);
+ for(const x of [-2.2,0.2,2.6,5.0])column(man,x,1.25,5.05,2.4,0xf3ecdf);
+ facade(man,'mansion.jpg',0.12,0.08,0.72,0.9,11.6,7.2,1.8,4.3,4.55,0);
+ solid(man,0.7,2.4,0.7,0x6a4538,5.2,11.0,-1.4);
+ solid(man,0.55,1.7,0.55,0x6a4538,-0.4,11.3,-1.8);
+}
+window.__beasts=beasts;
+}
+function poseCable(){const seat=window.__trolley;if(!seat)return;let u=player.zipU;if(u==null)for(const b of bots)if(b.zipU!=null){u=b.zipU;break;}const t=u==null?0:Math.max(0,Math.min(1,u)),s=Math.sin(t*Math.PI);seat.position.set(ZIP_A.x+(ZIP_B.x-ZIP_A.x)*t,ZIP_A.y+(ZIP_B.y-ZIP_A.y)*t-s*2.8+1.05,ZIP_A.z+(ZIP_B.z-ZIP_A.z)*t);seat.rotation.y=Math.atan2(ZIP_B.x-ZIP_A.x,ZIP_B.z-ZIP_A.z);}
 function tickBeasts(dt){for(const b of beasts){b.ph+=dt;const s=Math.sin(b.ph);if(b.kind==='otter'){b.g.position.y=b.y0+Math.abs(s)*0.18;b.g.rotation.y=s*0.4;}else if(b.kind==='flamingo'){b.g.rotation.x=s*0.08;b.g.position.y=b.y0+(s>0?0:s*0.05);}else if(b.kind==='bear'){b.g.position.x=105*T+s*0.8;b.g.rotation.y=s>0?0.4:-0.4;}else if(b.kind==='monkey'){b.g.rotation.z=s*0.25;}else if(b.kind==='eagle'){b.g.rotation.y=s*0.5;}else if(b.kind==='panda'){b.g.rotation.y=Math.sin(b.ph*0.6)*0.5;}else b.g.position.y=b.y0+Math.abs(Math.sin(b.ph*2))*0.04;}}
 {const br=grp('lm-bridge',0,0,0);const CON=0x8d8982,GIR=0x5e5954,PIER=0x6d6862;
  const zC=17,deckW=10.2;
@@ -954,7 +1151,9 @@ function feed(html,color){feedLines.push({html:(color?`<span style="color:${colo
 function renderFeed(){feedEl.innerHTML=feedLines.map(l=>`<div style="opacity:${Math.min(1,l.t)}">${l.html}</div>`).join('');}
 const barkCd={};
 function bark(bot,text,key,cd=6){if(!bot){bot=bots.find(b=>!b.down);if(!bot)return;}const k=key||text;if(barkCd[k]&&S.t<barkCd[k])return;barkCd[k]=S.t+cd;feed(`<b style="color:${bot.col}">${bot.name}:</b> ${text}`);SFX.bark();}
-const OBJ=['Grab the guns on Trinity Street','Safe room: Redwood Acres','Redwood Sky Walk, then through the zoo','Tree walk to the safe room at 3109 H St','Safe room: Carson Mansion','Zipline to the slough bridge','Force the Samoa bridge gate','Safe room: Samoa Cookhouse','Get to the pulp mill roof','Call the helicopter','Hold the roof until the helicopter lands','Get on the pad','Row the boat to the Samoa shore'];
+const OBJ=LAYOUT==='linear'
+ ?['Grab the guns on Trinity Street','Safe room: Redwood Acres','Through the redwoods to the zoo','Safe room: Rentor, 3109 H St','Safe room: Carson Mansion','Cross the Samoa bridge','Force the Samoa bridge gate','Safe room: Samoa Cookhouse','Get to the pulp mill roof','Call the helicopter','Hold the roof until the helicopter lands','Get on the pad','Row the boat to the Samoa shore']
+ :['Grab the guns on Trinity Street','Safe room: Redwood Acres','Redwood Sky Walk, then through the zoo','Tree walk to the safe room at 3109 H St','Safe room: Carson Mansion','Zipline to the slough bridge','Force the Samoa bridge gate','Safe room: Samoa Cookhouse','Get to the pulp mill roof','Call the helicopter','Hold the roof until the helicopter lands','Get on the pad','Row the boat to the Samoa shore'];
 function setObj(i){if(S.obj===i)return;S.obj=i;$('obj').textContent=OBJ[i];}
 let flashT=0;function hurtFlash(a){flashT=Math.max(flashT,a);}
 
@@ -965,15 +1164,23 @@ function addItem(type,x,y,z){const g=new THREE.Group();g.position.set(x,y,z);sce
  else if(type==='ammo'){for(let i=0;i<5;i++)box(.3,.22,.2,0x4a5a2a,rand(-.25,.25),.11+(i>2?.22:0),rand(-.15,.15),g);box(.5,.04,.4,0x3a2a1a,0,.02,0,g);}
  items.push({type,x,z,y,g,taken:false});}
 addItem('shotgun',5.5*T,0.9,8.5*T);addItem('smg',6.5*T,0.9,8.5*T);addItem('kit',7.5*T,0.9,8.5*T);
-addItem('ammo',28.5*T,0.45,21.5*T);addItem('kit',64.5*T,30.5,33.5*T);
-addItem('ammo',94.5*T,0.45,18.5*T);addItem('kit',113.5*T,0.9,20.5*T);
-addItem('ammo',125.5*T,0.45,7.5*T);addItem('kit',133.5*T,0.45,13.5*T);
+if(LAYOUT==='linear'){
+ addItem('ammo',30.5*T,0.45,8.5*T);addItem('kit',46.5*T,0.45,8.5*T);
+ addItem('ammo',76.5*T,0.45,8.5*T);addItem('kit',100.5*T,0.45,8.5*T);
+ addItem('ammo',120.5*T,0.45,8.5*T);addItem('kit',140.5*T,0.45,8.5*T);
+}else{
+ addItem('ammo',28.5*T,0.45,21.5*T);addItem('kit',64.5*T,30.5,33.5*T);
+ addItem('ammo',94.5*T,0.45,18.5*T);addItem('kit',113.5*T,0.9,20.5*T);
+ addItem('ammo',125.5*T,0.45,7.5*T);addItem('kit',133.5*T,0.45,13.5*T);
+}
 addItem('ammo',152.5*T,bridgeDeckY(152)+0.55,8.5*T);addItem('kit',170.5*T,bridgeDeckY(170)+0.55,8.5*T);
 addItem('ammo',(191.5+EXTRA)*T,0.45,8.5*T);addItem('kit',(200.5+EXTRA)*T,10.5,8.5*T);
 
 /* ---- bots ---- */
 const BOT_SPAWN=[[3.4,7.6],[3.8,9.2],[4.8,7.4]];
-const START_COMMONS=[[16,8],[16,16],[22,21],[26,29],[32,25],[50,33],[64,33],[72,28],[92,18],[100,20],[113,16],[113,24],[126,7],[180+EXTRA,8],[186+EXTRA,8],[191+EXTRA,8]];
+const START_COMMONS=LAYOUT==='linear'
+ ?[[30,8],[32,5],[50,8],[56,6],[66,8],[74,8],[96,8],[118,8],[138,8],[142,8],[180+EXTRA,8],[186+EXTRA,8],[191+EXTRA,8]]
+ :[[16,8],[16,16],[22,21],[26,29],[32,25],[50,33],[64,33],[72,28],[92,18],[100,20],[113,16],[113,24],[126,7],[180+EXTRA,8],[186+EXTRA,8],[191+EXTRA,8]];
 BOTDEF.forEach((d,i)=>{const m=makeHuman(d);const gun=gunModel(d.w,m.b);gun.position.set(.12,1.22,.42);gun.rotation.y=Math.PI;m.armR.rotation.x=-1.35;m.armL.rotation.x=-1.25;m.armL.rotation.z=-.35;
  const tag=nameSprite(d.name,d.col);tag.position.y=2.25;m.g.add(tag);scene.add(m.g);
  const sp=BOT_SPAWN[i];
@@ -981,6 +1188,9 @@ BOTDEF.forEach((d,i)=>{const m=makeHuman(d);const gun=gunModel(d.w,m.b);gun.posi
 
 /* ---- commons ---- */
 function aliveCommons(){let n=0;for(const c of commons)if(!c.dead)n++;return n;}
+function swarmMul(){return clamp(NET.swarm,0,200)/100;}
+function seedCommons(){const scale=swarmMul(),n=Math.round(START_COMMONS.length*scale);
+ for(let i=0;i<n;i++){const [x,z]=START_COMMONS[i%START_COMMONS.length];const lap=(i/START_COMMONS.length)|0;const jx=lap?(((i*17)%7)-3)*0.15:0,jz=lap?(((i*13)%5)-2)*0.12:0;spawnCommon((x+.5)*T+jx,(z+.5)*T+jz,false);}}
 function spawnCommon(x,z,alert,target){if(aliveCommons()>=MAXC)return null;if(!isWalk(Math.floor(x/T),Math.floor(z/T)))return null;
  const c={id:++ENTID,x,z,y:groundAt(x,z),yaw:rand(0,6.28),hp:75,dead:false,deathT:0,fall:0,state:alert?'rush':'wander',target:null,atk:rand(.2,.55),phase:rand(0,6),wt:0,wdx:0,wdz:0,stag:0,pvx:0,pvz:0,shirt:pick(SHIRTS),pants:pick(PANTS),skin:pick(SKINS),speed:rand(5.8,7.2),swipe:0,chk:rand(0,.3),groanT:rand(4,16),hitT:0,mv:0};
  if(alert)c.target=target||chooseTarget(c);commons.push(c);return c;}
@@ -1033,7 +1243,7 @@ function hordeSpots(){const list=spawnTiles.hotel.concat(spawnTiles.lobby),spots
  if(spots.length>=12)return spots;
  for(const t of list){const fd=flow[t.i];if(fd>=INF||fd>60)continue;if(Math.hypot((t.x+.5)*T-player.x,(t.z+.5)*T-player.z)<6)continue;spots.push(t);}
  return spots;}
-function spawnHorde(n,target){SFX.horde();DIR.peakT=S.t;const spots=hordeSpots();const cap=Math.min(n,MAXC-aliveCommons());let made=0,tries=0;
+function spawnHorde(n,target){n=Math.round(n*swarmMul());if(n<=0)return 0;SFX.horde();DIR.peakT=S.t;const spots=hordeSpots();const cap=Math.min(n,MAXC-aliveCommons());let made=0,tries=0;
  while(made<cap&&tries++<cap*8){const sp=spots.length?spots[(Math.random()*spots.length)|0]:(pickSpawn(4,40,false)||pickSpawn(2,70,false));if(!sp)break;
   const ang=rand(0,6.28),rad=rand(0,.95);if(spawnCommon((sp.x+.5)*T+Math.sin(ang)*rad,(sp.z+.5)*T+Math.cos(ang)*rad,true,target))made++;}
  return made;}
@@ -1044,7 +1254,7 @@ function directorUpdate(dt){DIR.intensity=Math.max(0,DIR.intensity-dt*(S.t-DIR.p
  for(const w of DIR.waves)if(!w.done&&S.t>=w.t){w.done=true;if(w.special)spawnSpecial(w.special);else spawnHorde(w.n);}
  if(!S.dirOn||S.riding)return;
  const relax=DIR.mode==='RELAX';
- DIR.spawnT-=dt;const want=S.inLobby?36:46;
+ DIR.spawnT-=dt;const want=Math.round((S.inLobby?36:46)*swarmMul());
  if(!relax&&DIR.spawnT<=0){DIR.spawnT=0.22;let wand=0;for(const c of commons)if(!c.dead&&c.state==='wander')wand++;if(wand<want){const sp=pickSpawn(9,28,true);if(sp)spawnCommon((sp.x+.5)*T+rand(-.6,.6),(sp.z+.5)*T+rand(-.6,.6),false);}}
  const alive=specials.filter(s=>!s.dead).length;
  if(!relax&&S.t>DIR.nextSpecial&&alive<4){const type=DIR.queue.length?DIR.queue.shift():pick(['boomer','hunter','smoker']);if(spawnSpecial(type))DIR.nextSpecial=S.t+rand(14,22);else DIR.queue.unshift(type);}
@@ -1094,17 +1304,17 @@ function releaseTongue(s){const vic=s.vic||player;if(vic&&vic.pulledBy===s)vic.p
 
 /* ---- zipline. Feet ride zipPos. The cable and trolley sit 1.15 above that. ---- */
 function zipPos(u){const t=Math.max(0,Math.min(1,u)),s=Math.sin(t*Math.PI);return {x:ZIP_A.x+(ZIP_B.x-ZIP_A.x)*t,y:ZIP_A.y+(ZIP_B.y-ZIP_A.y)*t-s*2.8,z:ZIP_A.z+(ZIP_B.z-ZIP_A.z)*t};}
-function beginZip(ent){if(!ent||ent.zipU!=null||ent.down)return;ent.zipU=0;ent.vx=0;ent.vz=0;const p=zipPos(0);ent.x=p.x;ent.z=p.z;
+function beginZip(ent){if(LAYOUT!=='town'||!ent||ent.zipU!=null||ent.down)return;ent.zipU=0;ent.vx=0;ent.vz=0;const p=zipPos(0);ent.x=p.x;ent.z=p.z;
  if(ent===player){feed('The cable takes you over the slough.','#fd8');bark(null,'Hold on. The little bridge is at the bottom.','zip',99);}}
 function tickZip(ent,dt){if(ent.zipU==null)return false;ent.zipU=Math.min(1,ent.zipU+dt/5.4);const p=zipPos(ent.zipU);ent.x=p.x;ent.z=p.z;ent.vx=0;ent.vz=0;
  if(ent.zipU>=1){ent.zipU=null;ent.x=ZIP_B.x;ent.z=ZIP_B.z;if(ent===player&&S.obj<6){setObj(6);bark(null,'Slough bridge. The Samoa gate is chained.','landzip',99);}}return true;}
-function shouldZipFollow(b){if(b.net||b.zipU!=null||b.down||!doors.mansionOut)return false;if(!(player.zipU!=null||player.x>ZIP_B.x-2||S.obj>=6))return false;if(Math.floor(b.x/T)>=BR_A)return false;
+function shouldZipFollow(b){if(LAYOUT!=='town'||b.net||b.zipU!=null||b.down||!doors.mansionOut)return false;if(!(player.zipU!=null||player.x>ZIP_B.x-2||S.obj>=6))return false;if(Math.floor(b.x/T)>=BR_A)return false;
  if(groundAt(b.x,b.z)>7&&Math.hypot(b.x-ZIP_A.x,b.z-ZIP_A.z)<16)return true;return flow[tileOf(b)]>=INF;}
 /* ---- use / interact ---- */
 function useTargets(ent){const self=ent||player;const out=[];const yaw=self.yaw||0;const fx=-Math.sin(yaw),fz=-Math.cos(yaw);
  const add=(x,z,range,label,act)=>{const d=Math.hypot(x-self.x,z-self.z);if(d>range)return;const dot=d>0.01?((x-self.x)*fx+(z-self.z)*fz)/d:1;if(d>1.3&&dot<0.2)return;out.push({d:d-dot*.6,label,act});};
  for(const it of items){if(it.taken||Math.abs(it.y-groundAt(self.x,self.z))>2.5)continue;
-  if(it.type==='shotgun'||it.type==='smg'){if(self.inv.primary&&self.inv.primary.type===it.type)add(it.x,it.z,2.6,'Take ammo for '+WEAP[it.type].name,()=>{if(!self.inv.primary.bottomless)self.inv.primary.res=WEAP[it.type].res;SFX.pickup();});else add(it.x,it.z,2.6,'Pick up '+WEAP[it.type].name,()=>{self.inv.primary={type:it.type,mag:WEAP[it.type].mag,res:WEAP[it.type].res};self.reloadT=0;if(self===player)self.slot='primary';else{self.wep='primary';setGun(self,it.type);}SFX.pickup();if(S.obj===0){setObj(1);if(self===player)bark(null,'Good. Redwood Acres, then the Sky Walk and the zoo. The mansion zipline is the only way to the bridge.','go1',99);}});}
+  if(it.type==='shotgun'||it.type==='smg'){if(self.inv.primary&&self.inv.primary.type===it.type)add(it.x,it.z,2.6,'Take ammo for '+WEAP[it.type].name,()=>{if(!self.inv.primary.bottomless)self.inv.primary.res=WEAP[it.type].res;SFX.pickup();});else add(it.x,it.z,2.6,'Pick up '+WEAP[it.type].name,()=>{self.inv.primary={type:it.type,mag:WEAP[it.type].mag,res:WEAP[it.type].res};self.reloadT=0;if(self===player)self.slot='primary';else{self.wep='primary';setGun(self,it.type);}SFX.pickup();if(S.obj===0){setObj(1);if(self===player)bark(null,LAYOUT==='town'?'Good. Redwood Acres, then the Sky Walk and the zoo. The mansion zipline is the only way to the bridge.':'Good. Redwood Acres, then the redwoods, the zoo, and the mansion. The bridge is straight on.','go1',99);}});}
   if(it.type==='kit')add(it.x,it.z,2.4,self.kit?'(Already carrying a first aid kit)':'Pick up First Aid Kit',()=>{if(self.kit)return;self.kit=true;it.taken=true;it.g.visible=false;SFX.pickup();});
   if(it.type==='ammo')add(it.x,it.z,2.4,'Refill ammo',()=>{if(self.inv.primary){self.inv.primary.res=WEAP[self.inv.primary.type].res;SFX.reload();feed('Ammo refilled.');}});}
  for(const id of DOOR_IDS){if(doors[id]||!DOOR_LABEL[id])continue;let sx=0,sz=0,n=0;for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(doorId(x,z)===id){sx+=x;sz+=z;n++;}if(!n)continue;add((sx/n+.5)*T,(sz/n+.5)*T,3.6,DOOR_LABEL[id],()=>tryOpen(id));}
@@ -1112,7 +1322,7 @@ function useTargets(ent){const self=ent||player;const out=[];const yaw=self.yaw|
  if(S.elevT<0)add(FIN.callX,FIN.callZ,3.6,'Call the helicopter',callHeli);
  if(S.elevArrived&&charAt(Math.floor(self.x/T),Math.floor(self.z/T))==='R')out.push({d:0,label:'Board the helicopter',act:boardHeli});
  if(BOAT.show&&!BOAT.beached&&S.bridge!=='up'&&self.boatSeat==null){const d=Math.hypot(BOAT.x-self.x,BOAT.z-self.z);if(d<4.2)out.push({d:d-1.2,label:'Get in the boat',act:()=>boardBoat(self)});}
- if(self.zipU==null&&doors.mansionOut&&groundAt(self.x,self.z)>8){const d=Math.hypot(ZIP_A.x-self.x,ZIP_A.z-self.z);if(d<3.4)out.push({d:d-3,label:'Take the zipline',act:()=>beginZip(self)});}
+ if(LAYOUT==='town'&&self.zipU==null&&doors.mansionOut&&groundAt(self.x,self.z)>8){const d=Math.hypot(ZIP_A.x-self.x,ZIP_A.z-self.z);if(d<3.4)out.push({d:d-3,label:'Take the zipline',act:()=>beginZip(self)});}
  if(self!==player&&player.down){const d=Math.hypot(player.x-self.x,player.z-self.z);if(d<2.2)out.push({d:-1,label:'Hold E to revive '+ (NET.name||'them'),act:null,revive:player});}
  for(const b of bots)if(b!==self&&b.down){const d=Math.hypot(b.x-self.x,b.z-self.z);if(d<2.2)out.push({d:-1,label:'Hold E to revive '+b.name,act:null,revive:b});}
  out.sort((a,b)=>a.d-b.d);return out[0]||null;}
@@ -1332,10 +1542,11 @@ function update(dt){S.t+=dt;
  if(!S.dirOn&&S.t>40&&player.x>16*T)S.dirOn=true;
  if(reg==='sky')bark(null,'Redwood Sky Walk. A hundred feet up, and the deck keeps turning.','sky',99);
  else if(reg==='zoo')bark(null,'Sequoia Park Zoo. Otters, the bear, the aviary. Stay out of the pens.','zoo',99);
- else if(reg==='forest'&&player.x>108*T)bark(null,'Tree walk. The office at 3109 H is ahead.','tree',99);
+ else if(LAYOUT==='town'&&reg==='forest'&&player.x>108*T)bark(null,'Tree walk. The office at 3109 H is ahead.','tree',99);
  else if(reg==='forest')bark(null,'Redwoods. Stay on the path.','trees',99);
- if(reg==='hotel'&&(zoneAt[Math.floor(player.z/T)*W+Math.floor(player.x/T)]===6||zoneAt[Math.floor(player.z/T)*W+Math.floor(player.x/T)]===11))bark(null,'Carson Mansion. Close the parlor, then the tower. The line is the only way across.','man',99);
- if(player.zipU==null&&groundAt(player.x,player.z)<2&&player.x>136*T&&S.obj>=5&&S.obj<6&&!doors.gate){setObj(6);bark(null,'Bridge gate is chained. Forcing it brings the horde.','gatetalk',99);}
+ if(reg==='hotel'&&(zoneAt[Math.floor(player.z/T)*W+Math.floor(player.x/T)]===6||zoneAt[Math.floor(player.z/T)*W+Math.floor(player.x/T)]===11))bark(null,LAYOUT==='town'?'Carson Mansion. Close the parlor, then the tower. The line is the only way across.':'Carson Mansion. Close the door. The Samoa bridge is next.','man',99);
+ if(LAYOUT==='town'){if(player.zipU==null&&groundAt(player.x,player.z)<2&&player.x>136*T&&S.obj>=5&&S.obj<6&&!doors.gate){setObj(6);bark(null,'Bridge gate is chained. Forcing it brings the horde.','gatetalk',99);}}
+ else if(player.x>140*T&&!doors.gate&&S.obj<6){setObj(6);bark(null,'Bridge gate is chained. Forcing it brings the horde.','gatetalk',99);}
  ashore();
  if(player.x>(188+EXTRA)*T&&S.obj<9){setObj(9);bark(null,'Inside the mill. Stairs at the far end. Call the chopper on the roof.','mill',99);}
  if(S.elevT>=0&&!S.elevArrived&&S.t-S.elevT>=30){S.elevArrived=true;doors.roof=true;flowDirty=true;SFX.ding(FIN.padX,FIN.padZ);setObj(11);bark(null,'Skids are down! Everybody on the pad!','land',99);}
@@ -1461,7 +1672,7 @@ function coopPause(){$('pause').classList.remove('hidden');mouseDown=false;mouse
 function toggleFly(){if(NET.role==='client'||S.phase!=='play')return;S.fly=!S.fly;if(S.fly){S.god=true;player.down=false;player.pinnedBy=null;player.pulledBy=null;player.hp=100;feed('<b>God fly on.</b> WASD goes where you look. Space up, Ctrl down, Shift is faster. G lands.','#fd8');}else{if(!COOPTEST)S.god=false;player.y=groundAt(player.x,player.z)+1.62;feed('Landed.','#ccc');}}
 let introGen=0;
 function queueIntro(){const gen=++introGen;feed('<i>Trinity Street is quiet in the wrong way.</i>','#ccc');
- setTimeout(()=>{if(gen!==introGen||S.phase!=='play')return;bark(bots[0],'Guns are in the truck. Redwood Acres, the Sky Walk, the zoo, the tree walk, then the mansion.','plan',99);},900);
+ setTimeout(()=>{if(gen!==introGen||S.phase!=='play')return;bark(bots[0],LAYOUT==='town'?'Guns are in the truck. Redwood Acres, the Sky Walk, the zoo, the tree walk, then the mansion.':'Guns are in the truck. Straight through the acres, the redwoods, the zoo, and the mansion.','plan',99);},900);
  setTimeout(()=>{if(gen!==introGen||S.phase!=='play')return;bark(bots[1],'Chopper is on the pulp mill roof. Nothing else is flying.','plan2',99);},3800);}
 function paintSound(){const play=S.phase==='play'||S.phase==='paused'||S.phase==='dead'||S.phase==='done';$('sound').classList.toggle('hidden',!play);}
 function storedFF(){try{return localStorage.getItem('eureka-ff')!=='0';}catch(e){return true;}}
@@ -1469,7 +1680,22 @@ function paintFF(){const on=!!NET.ff;const label='Friendly fire: '+(on?'On':'Off
  const playing=S.phase==='play'||S.phase==='paused';
  for(const id of ['ffbtn','ffplay','ffpause']){const el=$(id);if(!el)continue;el.textContent=label;el.classList.toggle('off',!on);el.disabled=client;el.title=host?'Shots pass through teammates when this is off.':client?'The host sets this.':'';
   if(id==='ffbtn')el.classList.toggle('hidden',!net);
-  else el.classList.toggle('hidden',!net||(id==='ffplay'&&!playing)||(id==='ffpause'&&S.phase==='title'));}}
+  else el.classList.toggle('hidden',!net||(id==='ffplay'&&!playing)||(id==='ffpause'&&S.phase==='title'));}
+ paintHost();}
+function paintHost(){const client=NET.role==='client';
+ document.querySelectorAll('button.chip[data-layout]').forEach(el=>{el.classList.toggle('on',el.dataset.layout===LAYOUT);el.disabled=client;el.title=client?'The host sets the map.':'';});
+ document.querySelectorAll('input.swarm').forEach(el=>{el.value=String(NET.swarm);el.disabled=client;el.title=client?'The host sets the swarm.':'';});
+ document.querySelectorAll('.swarmlab').forEach(el=>{el.textContent=NET.swarm+'%';});}
+function setSwarm(n){if(NET.role==='client')return;n=clamp(Math.round((+n||0)/10)*10,0,200);NET.swarm=n;writeStored('eureka-swarm',String(n));paintHost();
+ if(!S.started){commons.length=0;seedCommons();}
+ if(NET.role==='host'){const msg={t:'swarm',n};for(const c of NET.conns.values())if(c.open)c.send(msg);}}
+function adoptSwarm(n){n=clamp(Math.round((+n||0)/10)*10,0,200);NET.swarm=n;paintHost();if(!S.started&&NET.role!=='client'){commons.length=0;seedCommons();}}
+function reloadForLayout(layout,room){if(layout!=='town'&&layout!=='linear'||layout===LAYOUT)return;writeStored('eureka-layout',layout);
+ const u=new URL(location.href);['cooptest','autostart','autotest','host'].forEach(k=>u.searchParams.delete(k));u.searchParams.set('layout',layout);if(room)u.searchParams.set('room',room);location.replace(u.pathname+'?'+u.searchParams.toString());}
+function applyLayout(next){if(NET.role==='client'||(next!=='town'&&next!=='linear')||next===LAYOUT)return;writeStored('eureka-layout',next);
+ const u=new URL(location.href);['cooptest','autostart','autotest'].forEach(k=>u.searchParams.delete(k));u.searchParams.set('layout',next);
+ if(NET.role==='host'&&NET.room){const msg={t:'layout',layout:next,room:NET.room};for(const c of NET.conns.values())if(c.open)c.send(msg);u.searchParams.set('room',NET.room);u.searchParams.set('host','1');setTimeout(()=>{location.href=u.pathname+'?'+u.searchParams.toString();},200);return;}
+ u.searchParams.delete('room');u.searchParams.delete('host');location.href=u.pathname+'?'+u.searchParams.toString();}
 function paintRestart(){const host=NET.role==='host',client=NET.role==='client';
  const label=host?'RESTART WITH EVERYONE':client?'WAITING ON THE HOST':'RESTART CHAPTER';
  const again=host?'RESTART WITH EVERYONE':client?'WAITING ON THE HOST':'PLAY AGAIN';
@@ -1490,14 +1716,14 @@ function resetChapter(remote){introGen++;restoreSpan();S.phase='play';S.t=0;S.ob
  player.x=4.5*T;player.z=8.5*T;player.y=groundAt(4.5*T,8.5*T)+1.62;player.yaw=-Math.PI/2;player.pitch=0.04;player.hp=100;player.down=false;player.kit=false;player.zipU=null;player.inv={primary:null,pistol:{type:'pistol',mag:15,res:Infinity}};player.slot='pistol';player.fireCd=0;player.reloadT=0;player.shoveCd=0;player.lastShove=-9;player.trig=false;player.bob=0;player.vx=0;player.vz=0;player.pinnedBy=null;player.pulledBy=null;player.pinShoves=0;player.flash=false;player.spread=0;player.crumbs=[];player.crumbT=0;player.hurtT=0;player.burnT=0;
  for(const id of DOOR_IDS)doors[id]=false;if(doorMeshes.btn)doorMeshes.btn.material=mat(0xff3311,{emissive:0x661100});
  for(const it of items){it.taken=false;it.g.visible=true;}clearSpecials();commons.length=0;
- if(remote){NET.cmap.clear();NET.smap.clear();NET.commonsReady=false;}else{for(const [x,z] of START_COMMONS)spawnCommon((x+.5)*T,(z+.5)*T,false);}
+ if(remote){NET.cmap.clear();NET.smap.clear();NET.commonsReady=false;}else seedCommons();
  bots.forEach(resetBotBody);DIR.intensity=0;DIR.mode='BUILD-UP';DIR.relaxUntil=0;DIR.nextSpecial=0;DIR.nextHorde=0;DIR.spawnT=0;DIR.waves.length=0;DIR.queue=['smoker','boomer','hunter'];DIR.peakT=0;
  safeIndex=0;recomputeRoute();flowDirty=true;flowTile=-1;feedLines.length=0;for(const k in barkCd)delete barkCd[k];renderFeed();
  $('dead').classList.add('hidden');$('done').classList.add('hidden');$('pause').classList.add('hidden');$('hud').classList.remove('hidden');$('title').classList.add('hidden');$('lobby').classList.add('hidden');$('fade').style.opacity='0';$('obj').textContent=OBJ[0];
  NET.paused=false;mouseDown=false;mouseRight=false;keys={};S.started=true;document.body.classList.remove('downed');
  if(remote)feed('The host restarted the chapter.','#fd8');else if(NET.role!=='client')queueIntro();
  syncTouch();paintSound();paintFF();paintRestart();if(!remote)lock();}
-function hostRestart(){if(NET.role!=='host')return;resetChapter(false);NET.round=(NET.round||0)+1;const msg={t:'restart',round:NET.round,ff:NET.ff?1:0};for(const c of NET.conns.values())if(c.open)c.send(msg);NET.lastSnap=0;if(NET.flush)NET.flush();}
+function hostRestart(){if(NET.role!=='host')return;resetChapter(false);NET.round=(NET.round||0)+1;const msg={t:'restart',round:NET.round,ff:NET.ff?1:0,swarm:NET.swarm};for(const c of NET.conns.values())if(c.open)c.send(msg);NET.lastSnap=0;if(NET.flush)NET.flush();}
 function onRestartClick(){if(NET.role==='client')return;if(NET.role==='off'){location.reload();return;}hostRestart();}
 function startGame(){initAudio();if(AU.ctx&&AU.ctx.state==='suspended')AU.ctx.resume();$('title').classList.add('hidden');$('hud').classList.remove('hidden');S.phase='play';S.started=true;if(COOPTEST)S.god=true;setObj(0);$('obj').textContent=OBJ[0];
  if(NET.role!=='client')queueIntro();
@@ -1507,6 +1733,8 @@ $('playbtn').onclick=startGame;
 $('resumebtn').onclick=()=>{$('pause').classList.add('hidden');NET.paused=false;S.phase='play';syncTouch();paintFF();paintSound();lock();};
 $('restartbtn').onclick=$('againbtn').onclick=$('pausereset').onclick=onRestartClick;
 $('ffbtn').onclick=$('ffplay').onclick=$('ffpause').onclick=toggleFF;
+document.querySelectorAll('button.chip[data-layout]').forEach(el=>el.addEventListener('click',()=>applyLayout(el.dataset.layout)));
+document.querySelectorAll('input.swarm').forEach(el=>el.addEventListener('input',()=>setSwarm(Number(el.value))));
 $('bgtoggle').onclick=$('bgtoggle2').onclick=toggleBg;
 $('bgtitle').addEventListener('input',()=>setBg(Number($('bgtitle').value)/100));
 $('bgplay').addEventListener('input',()=>setBg(Number($('bgplay').value)/100));
@@ -1590,7 +1818,7 @@ syncTouch();
 
 /* ================= LOOP ================= */
 // infected already in town, on the bridge, and in the yard. The driveway stays clear.
-for(const [x,z] of START_COMMONS)spawnCommon((x+.5)*T,(z+.5)*T,false);
+seedCommons();
 function render(){renderer.clear();renderer.render(scene,camera);renderer.clearDepth();if(S.phase!=='title')renderer.render(vmScene,vmCam);}
 const clock=new THREE.Clock();
 function frame(){requestAnimationFrame(frame);const dt=Math.min(.05,clock.getDelta());
@@ -1608,7 +1836,7 @@ const ICE={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l
 const nq=v=>Math.round((+v||0)*100)/100;
 function makeCode(){const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',b=new Uint8Array(4);crypto.getRandomValues(b);let s='';for(const n of b)s+=A[n%A.length];return s;}
 function peerIdFor(code){return 'epm1-'+String(code||'').toLowerCase();}
-function linkFor(code){const u=new URL(location.href);['cooptest','autostart','autotest'].forEach(k=>u.searchParams.delete(k));u.searchParams.set('room',code);return u.origin+u.pathname+'?room='+code;}
+function linkFor(code){return location.origin+location.pathname+'?room='+encodeURIComponent(code)+'&layout='+LAYOUT;}
 function rememberName(){const field=$('pname');let n=field&&field.value.trim()?field.value:'Survivor';try{if(!field||!field.value.trim())n=localStorage.getItem('epm-name')||localStorage.getItem('dc-name')||n;}catch(e){}NET.name=cleanName(n);try{localStorage.setItem('epm-name',NET.name);}catch(e){}}
 function setGun(b,type){const w=type==='shotgun'||type==='smg'?type:'pistol';if(!b||b.shownW===w)return;b.shownW=w;if(b.gun&&b.mesh)b.mesh.b.remove(b.gun);const g=gunModel(w,b.mesh.b);g.position.set(.12,1.22,.42);g.rotation.y=Math.PI;b.gun=g;}
 function retag(b,text,color){b.name=text;b.col=color;if(b.tag)b.mesh.g.remove(b.tag);b.tag=nameSprite(text,color);b.tag.position.y=2.25;b.mesh.g.add(b.tag);const el=$('m'+bots.indexOf(b));if(el){const nm=el.querySelector('.nm');if(nm){nm.textContent=text;nm.style.color=color;}}}
@@ -1676,7 +1904,7 @@ function buildSnap(){const slots=[slotPack(player,0)];bots.forEach((b,i)=>slots.
  const s=[];for(const sp of specials){let vs=-1;if(sp.vic===player)vs=0;else if(sp.vic){const i=bots.indexOf(sp.vic);if(i>=0)vs=i+1;}s.push([sp.id,sp.type,nq(sp.x),nq(sp.z),nq(sp.y),nq(sp.yaw),Math.round(sp.hp),sp.dead?1:0,sp.state,vs]);}
  return {t:'snap',seq:++NET.seq,slots,c,s,doors:DOOR_IDS.map(id=>doors[id]?1:0),safe:safeIndex,items:items.map(i=>i.taken?'1':'0').join(''),
   obj:S.obj,objT:$('obj').textContent||'',phase:S.phase,riding:S.riding?1:0,lobby:S.inLobby?1:0,elev:S.elevT<0?-1:Math.max(0,Math.ceil(30-(S.t-S.elevT))),elevA:S.elevArrived?1:0,
-  dir:S.dirOn?DIR.mode:'WAITING',inten:Math.round(DIR.intensity),ev:NET.events.splice(0,NET.events.length),end:S.endPack||null,ff:NET.ff?1:0,round:NET.round||0,
+  dir:S.dirOn?DIR.mode:'WAITING',inten:Math.round(DIR.intensity),ev:NET.events.splice(0,NET.events.length),end:S.endPack||null,ff:NET.ff?1:0,swarm:NET.swarm,round:NET.round||0,
   bridge:S.bridge==='up'?0:S.bridge==='fall'?1:2,bridgeT:nq(S.bridgeT),
   boat:BOAT.show?[nq(BOAT.x),nq(BOAT.z),nq(BOAT.yaw),nq(BOAT.stroke),BOAT.beached?1:0]:null};}
 function syncInvFrom(me){if(me.w==='pistol'||!WEAP[me.w]){player.slot='pistol';player.inv.pistol.mag=me.mag|0;return;}
@@ -1725,6 +1953,7 @@ function applySnap(m){NET.snap=m;NET.snaps++;
  syncCommons(m.c||[]);syncSpecials(m.s||[]);
  for(const e of m.ev||[])playNetEvent(e);
  if(m.ff!=null&&NET.role==='client')adoptFF(!!m.ff);
+ if(m.swarm!=null&&NET.role==='client')adoptSwarm(m.swarm);
  if(m.bridge!=null){const name=m.bridge===0?'up':m.bridge===1?'fall':'swim';if(name==='up'){if(S.bridge!=='up')restoreSpan();}else if(S.bridge==='up')collapseBridge(true);if(S.bridge!=='up'){S.bridge=name;S.bridgeT=+m.bridgeT||0;poseBridge(S.bridgeT);}}
  if(m.boat){BOAT.show=true;BOAT.beached=!!m.boat[4];BOAT.tx=m.boat[0];BOAT.tz=m.boat[1];BOAT.tyaw=m.boat[2];BOAT.stroke=m.boat[3]||0;if(BOAT.x==null||Math.hypot(BOAT.x-BOAT.tx,BOAT.z-BOAT.tz)>40){BOAT.x=BOAT.tx;BOAT.z=BOAT.tz;BOAT.yaw=BOAT.tyaw;}}else if(m.bridge===0)resetBoat();
  if(m.phase==='play'&&(S.phase==='dead'||S.phase==='done')){$('dead').classList.add('hidden');$('done').classList.add('hidden');$('hud').classList.remove('hidden');S.phase='play';S.complete=false;S.endPack=null;NET.paused=false;paintSound();paintFF();}
@@ -1802,22 +2031,26 @@ function startCoopMatch(){if(NET.matchStarted&&S.started)return;$('lobby').class
 function hostLost(){if(NET.role!=='client'||NET.ended)return;if(!S.started){lobbyFail('The host disconnected before the run started.');return;}closeAllVoice();NET.ended=true;S.phase='disco';$('discosub').textContent='THE HOST DROPPED';$('discotxt').textContent='This run lived on the host\'s browser, so it cannot continue. Solo play is still there from the title screen.';$('disco').classList.remove('hidden');$('hud').classList.add('hidden');$('lobby').classList.add('hidden');$('pause').classList.add('hidden');if(document.pointerLockElement)document.exitPointerLock();}
 function onClientMsg(m){if(!m||typeof m!=='object')return;NET.msgAt=performance.now();
  if(m.t==='full'){lobbyFail('That room is full (4 players).');return;}
- if(m.t==='welcome'){NET.slot=m.slot|0;if(m.ff!=null)adoptFF(!!m.ff);if(m.started)startCoopMatch();}
+ if(m.t==='welcome'){NET.slot=m.slot|0;if(m.layout&&m.layout!==LAYOUT){reloadForLayout(m.layout,m.room||NET.room);return;}if(m.ff!=null)adoptFF(!!m.ff);if(m.swarm!=null)adoptSwarm(m.swarm);if(m.started)startCoopMatch();}
  if(m.t==='roster')applyRoster(m);
  if(m.t==='ff')adoptFF(!!m.on);
- if(m.t==='restart'){resetChapter(true);if(m.ff!=null)adoptFF(!!m.ff);}
+ if(m.t==='swarm')adoptSwarm(m.n);
+ if(m.t==='layout'){reloadForLayout(m.layout,m.room||NET.room);return;}
+ if(m.t==='restart'){resetChapter(true);if(m.ff!=null)adoptFF(!!m.ff);if(m.swarm!=null)adoptSwarm(m.swarm);}
  if(m.t==='start')startCoopMatch();
  if(m.t==='snap')applySnap(m);
  if(m.t==='pong'&&NET.pingT)NET.ping=Math.max(0,Math.round(performance.now()-NET.pingT));}
 function peerOpts(){return {debug:0,config:ICE};}
-function hostGame(attempt){if(!window.Peer){lobbyFail('The co-op library did not load. Check your connection — solo play still works.');return;}
- rememberName();NET.role='host';NET.slot=0;NET.ended=false;NET.ff=storedFF();NET.room=makeCode();showLobby(true);paintFF();paintRestart();$('lobbystatus').textContent='Opening room…';
+function hostGame(attempt,reuseCode){if(!window.Peer){lobbyFail('The co-op library did not load. Check your connection — solo play still works.');return;}
+ rememberName();NET.role='host';NET.slot=0;NET.ended=false;NET.ff=storedFF();NET.swarm=storedSwarm();
+ const reuse=reuseCode?String(reuseCode).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6):'';
+ NET.room=reuse||makeCode();showLobby(true);paintFF();paintRestart();$('lobbystatus').textContent='Opening room…';
  const peer=new Peer(peerIdFor(NET.room),peerOpts());NET.peer=peer;peer.on('call',onVoiceCall);
  peer.on('open',()=>{NET.status='open';NET.ready=true;try{history.replaceState(null,'',linkFor(NET.room));}catch(e){}$('roomcode').textContent=NET.room;$('roomlink').textContent=linkFor(NET.room);$('lobbystatus').textContent='Share the link. Empty slots stay bots. You can start alone.';broadcastRoster();if(COOPTEST&&QS.get('autostart')==='1')startCoopMatch();});
- peer.on('connection',conn=>{conn.on('open',()=>{const slot=assignSlot(conn,conn.metadata&&conn.metadata.name);if(slot<0){try{conn.send({t:'full'});}catch(e){}setTimeout(()=>conn.close(),40);return;}NET.conns.set(conn.peer,conn);conn.send({t:'welcome',slot,room:NET.room,started:!!S.started,host:NET.name,ff:NET.ff?1:0});broadcastRoster();if(S.phase==='play'||S.phase==='dead'||S.phase==='done')conn.send(buildSnap());
+ peer.on('connection',conn=>{conn.on('open',()=>{const slot=assignSlot(conn,conn.metadata&&conn.metadata.name);if(slot<0){try{conn.send({t:'full'});}catch(e){}setTimeout(()=>conn.close(),40);return;}NET.conns.set(conn.peer,conn);conn.send({t:'welcome',slot,room:NET.room,started:!!S.started,host:NET.name,ff:NET.ff?1:0,swarm:NET.swarm,layout:LAYOUT});broadcastRoster();if(S.phase==='play'||S.phase==='dead'||S.phase==='done')conn.send(buildSnap());
   conn.on('data',msg=>{if(!msg||typeof msg!=='object')return;const b=bots.find(x=>x.peerId===conn.peer);if(b)b.seenAt=performance.now();if(msg.t==='in')onClientInput(conn.peer,msg);else if(msg.t==='ping')conn.send({t:'pong',n:msg.n});});
   const drop=()=>{if(!NET.conns.has(conn.peer))return;NET.conns.delete(conn.peer);releaseSlot(conn.peer);broadcastRoster();};conn.on('close',drop);conn.on('error',drop);});});
- peer.on('error',err=>{const type=err&&err.type;if(type==='unavailable-id'&&(attempt||0)<5){try{peer.destroy();}catch(e){}hostGame((attempt||0)+1);return;}lobbyFail(type==='network'||type==='server-error'?'The free signaling broker (0.peerjs.com) did not answer. Solo play still works.':'Could not host: '+((err&&err.message)||type||'error'));});
+ peer.on('error',err=>{const type=err&&err.type;if(type==='unavailable-id'&&(attempt||0)<5){try{peer.destroy();}catch(e){}if(reuse){setTimeout(()=>hostGame((attempt||0)+1,reuse),400*((attempt||0)+1));return;}hostGame((attempt||0)+1);return;}lobbyFail(type==='network'||type==='server-error'?'The free signaling broker (0.peerjs.com) did not answer. Solo play still works.':'Could not host: '+((err&&err.message)||type||'error'));});
  peer.on('disconnected',()=>{if(NET.role==='host'&&!NET.ended){try{peer.reconnect();}catch(e){}}});}
 function joinGame(code){if(!window.Peer){lobbyFail('The co-op library did not load. Check your connection — solo play still works.');return;}
  code=String(code||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);if(code.length<4){$('roomhint').textContent='Enter the 4-character room code.';return;}
@@ -1840,6 +2073,7 @@ addEventListener('pagehide',()=>{try{if(NET.peer)NET.peer.destroy();}catch(e){}}
 try{$('pname').value=QS.get('pname')||localStorage.getItem('epm-name')||localStorage.getItem('dc-name')||'Survivor';}catch(e){$('pname').value=QS.get('pname')||'Survivor';}
 $('hostbtn').onclick=()=>{if(NET.role==='off')hostGame(0);};
 const urlRoom=(QS.get('room')||'').replace(/[^a-zA-Z0-9]/g,'').toUpperCase();
+if(QS.get('host')==='1'&&urlRoom&&!COOPTEST)hostGame(0,urlRoom);
 if(urlRoom&&!COOPTEST){$('joinbtn').textContent='JOIN '+urlRoom;$('roomhint').textContent='Room '+urlRoom+' is in this link. Join it, or click play for a solo run.';}
 $('joinbtn').onclick=()=>{if(NET.role!=='off')return;if(urlRoom){joinGame(urlRoom);return;}$('joinbox').classList.remove('hidden');$('joincode').focus();};
 $('joingo').onclick=()=>joinGame($('joincode').value);
@@ -1852,7 +2086,7 @@ $('discobtn').onclick=backToTitle;
 if(COOPTEST==='host')hostGame(0);
 if(COOPTEST==='join')joinGame(QS.get('room')||'');
 window.__net={get ready(){return !!NET.ready;},get room(){return NET.room;},get role(){return NET.role;},get slot(){return NET.slot;},get snaps(){return NET.snaps;},get peers(){return NET.conns.size;},get status(){return NET.status;},
- dump(){return {role:NET.role,phase:S.phase,slot:NET.slot,room:NET.room,snaps:NET.snaps,peers:NET.conns.size,started:!!S.started,status:NET.status,ping:NET.ping,ff:!!NET.ff,bg:AU.bgVol,round:NET.round||0,
+ dump(){return {role:NET.role,phase:S.phase,slot:NET.slot,room:NET.room,snaps:NET.snaps,peers:NET.conns.size,started:!!S.started,status:NET.status,ping:NET.ping,ff:!!NET.ff,swarm:NET.swarm,layout:LAYOUT,bg:AU.bgVol,round:NET.round||0,
   me:{x:+player.x.toFixed(2),z:+player.z.toFixed(2),hp:Math.round(player.hp),down:!!player.down,yaw:+(player.yaw||0).toFixed(3),w:curW()&&curW().type,mag:curW()&&curW().mag},
   bots:bots.map(b=>({name:b.name,net:!!b.net,x:+b.x.toFixed(2),z:+b.z.toFixed(2),hp:Math.round(b.hp),down:!!b.down,w:b.shownW,tx:b.tx!=null?+b.tx.toFixed(2):null,tz:b.tz!=null?+b.tz.toFixed(2):null})),
   commons:commons.filter(c=>!c.dead).map(c=>({id:c.id,x:+c.x.toFixed(2),z:+c.z.toFixed(2),hp:Math.round(c.hp),state:c.state})),
@@ -1882,7 +2116,7 @@ function autopilot(dt){AP.mv=[0,0];AP.fire=false;AP.revive=false;AP.useCd-=dt;AP
  let goal=null;
  if(!player.inv.primary){const it=items[0];goal=[it.x,it.z+1.2];if(Math.hypot(goal[0]-player.x,goal[1]-player.z)<.8){player.yaw=Math.atan2(-(it.x-player.x),-(it.z-player.z));if(AP.useCd<=0){AP.useCd=.5;useAction();}}}
  else if(c==='K'&&SAFES[safeIndex]&&inSafe(player,SAFES[safeIndex])){if(AP.useCd<=0){AP.useCd=.8;useAction();}return;}
- else if(doors.mansionOut&&groundAt(player.x,player.z)>8&&Math.hypot(player.x-ZIP_A.x,player.z-ZIP_A.z)<3.2){player.yaw=Math.atan2(-(ZIP_B.x-player.x),-(ZIP_B.z-player.z));if(AP.useCd<=0){AP.useCd=1;useAction();}return;}
+ else if(LAYOUT==='town'&&doors.mansionOut&&groundAt(player.x,player.z)>8&&Math.hypot(player.x-ZIP_A.x,player.z-ZIP_A.z)<3.2){player.yaw=Math.atan2(-(ZIP_B.x-player.x),-(ZIP_B.z-player.z));if(AP.useCd<=0){AP.useCd=1;useAction();}return;}
  else if(c==='R'){if(S.elevArrived&&AP.useCd<=0){AP.useCd=1;useAction();}return;}
  else{let best=route[tz*W+tx],bx=0,bz=0;for(const [ax,az] of [[1,0],[-1,0],[0,1],[0,-1]]){const n=charAt(tx+ax,tz+az);if(!(WALK.has(n)||n==='D'))continue;const v=route[(tz+az)*W+tx+ax];if(v<best){best=v;bx=ax;bz=az;}}
   const nx=tx+bx,nz=tz+bz,nc=charAt(nx,nz),nid=doorId(nx,nz);
@@ -1901,6 +2135,7 @@ window.__game={autopilot,update,updateCamera,fire,AP,useTargets,moveEnt,collide,
  masterGain(){return AU.master?AU.master.gain.value:null;},
  muted(){return !!AU.muted;},
  setFF,ff(){return !!NET.ff;},
+ layout:LAYOUT,H,setSwarm,swarm(){return NET.swarm;},linkFor,applyLayout,
  restart(){onRestartClick();},
  reload(){startReload();},
  fakeRoom(){NET.role='host';NET.room='TEST';NET.ff=storedFF();NET._sent=[];NET.conns.set('fake',{open:true,send(m){NET._sent.push(m);}});paintFF();paintRestart();return NET.room;},
