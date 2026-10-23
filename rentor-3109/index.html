@@ -29,6 +29,11 @@ canvas{display:block}
 #track.ahead #trackfill{background:#8fce6a}
 #track.ahead #tracknote{color:#d5ecc4}
 #track.done #tracknote{color:#ffe7b8}
+#ffplay{position:fixed;left:16px;top:160px;z-index:7;pointer-events:auto;font:inherit;font-size:14px;font-weight:700;letter-spacing:.3px;color:#f4efe6;background:rgba(8,10,14,.88);border:1px solid rgba(228,177,90,.75);border-radius:8px;padding:8px 12px;cursor:pointer}
+#ffplay.off{color:#ffb0a6;border-color:#ff7a66}
+#ffplay:disabled{cursor:default;opacity:.85}
+#ffbtn.off{background:#5c2a24}
+#ffbtn:disabled{cursor:default;opacity:.75}
 #obj{display:none}
 #feed{position:absolute;left:16px;bottom:112px;max-width:min(520px,46vw);font-size:18px;line-height:1.35;background:rgba(8,10,14,.9);border:1px solid rgba(228,177,90,.55);border-radius:8px;padding:12px 14px;pointer-events:auto;cursor:pointer}
 #feed:empty{display:none!important}
@@ -148,6 +153,7 @@ body.touching #hint{font-size:16px;padding:6px 10px 8px}
 body.touching #track{top:70px;left:8px;width:min(42vw,180px);padding:8px}
 body.touching #trackcount{font-size:22px}
 body.touching #tracknote{font-size:15px}
+body.touching #ffplay{top:auto;left:8px;bottom:calc(330px + env(safe-area-inset-bottom));font-size:13px;padding:6px 8px}
 body.touching #compass{display:none}
 body.touching #mapwrap{top:calc(6px + env(safe-area-inset-top));right:8px;width:108px;padding:4px}
 body.touching #minimap{width:100px;height:100px}
@@ -184,6 +190,7 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
  <div id="prompt" class="hidden"></div>
  <div id="downmsg" class="hidden">OUT COLD</div>
 </div>
+<button type="button" id="ffplay" class="hidden">Friendly fire: On</button>
 <div id="sound">
  <button type="button" id="bgbtnplay">STREET</button>
  <input id="bgsoundplay" type="range" min="0" max="100" step="1" value="100" aria-label="Street noise volume">
@@ -245,6 +252,7 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
  <div class="cooprow">
   <input id="pname" maxlength="16" placeholder="Your name" aria-label="Your name" autocomplete="off">
   <button class="big alt" id="hostbtn" type="button">HOST STREET</button>
+  <button class="big alt" id="ffbtn" type="button">Friendly fire: On</button>
   <button class="big alt" id="joinbtn" type="button">JOIN</button>
  </div>
  <div class="cooprow hidden" id="joinbox">
@@ -2357,6 +2365,18 @@ function rayZombie(origin, dir, maxD){
   }
   return best ? {z:best, t:bestT} : null;
 }
+function rayMate(origin, dir, maxD){
+  let best = null, bestT = maxD;
+  for (const r of remotes.values()){
+    if (!r.mesh.visible) continue;
+    const ox = r.x - origin.x, oy = 1.25 - origin.y, oz = r.z - origin.z;
+    const t = ox * dir.x + oy * dir.y + oz * dir.z;
+    if (t < 0 || t > bestT) continue;
+    const d2 = ox * ox + oy * oy + oz * oz - t * t;
+    if (d2 < 0.55 * 0.55){ best = r; bestT = t; }
+  }
+  return best ? {mate:best, t:bestT} : null;
+}
 function canAim(){
   return S.phase === 'night' && !S.panel && (TOUCH || AUTOTEST || document.pointerLockElement === renderer.domElement);
 }
@@ -2375,14 +2395,21 @@ function fire(){
   S.muzzle = 1;
   sfx('shot');
   const origin = new THREE.Vector3(player.x, player.down ? 0.7 : 1.5, player.z);
+  const friends = new Map();
   for (let i = 0; i < def.pellets; i++){
     const dir = aimDir(def.spread);
     const hit = rayZombie(origin, dir, 70);
-    if (!hit) continue;
+    const mate = net.ff ? rayMate(origin, dir, 70) : null;
+    const zT = hit ? hit.t : Infinity;
+    const mT = mate ? mate.t : Infinity;
+    const t = Math.min(zT, mT);
+    if (t === Infinity) continue;
     const wall = raySolidDist(origin.x, origin.z, dir.x, dir.z, 70);
-    if (wall < hit.t) continue;
-    damageZombie(hit.z, def.dmg);
+    if (wall < t) continue;
+    if (mT < zT) friends.set(mate.mate.id, (friends.get(mate.mate.id) || 0) + def.dmg);
+    else damageZombie(hit.z, def.dmg);
   }
+  for (const [id, dmg] of friends) reportFriendly(id, dmg);
   if (w.mag <= 0) startReload();
 }
 function startReload(){
@@ -2452,6 +2479,34 @@ function hurt(n){
   player.hp = Math.max(0, player.hp - n);
   S.hurt = 0.75;
   if (player.hp <= 0) die();
+}
+function takeFriendly(n, by){
+  if (!net.ff || player.down || inOffice() || S.phase !== 'night') return false;
+  const dmg = Number(n);
+  if (!Number.isFinite(dmg) || dmg <= 0) return false;
+  hurt(Math.min(120, dmg));
+  toast((by || 'A friend') + ' shot you.');
+  return true;
+}
+function resolveFriendly(id, dmg, by){
+  if (!net.ff || S.phase !== 'night') return false;
+  const n = Number(dmg);
+  if (!id || !Number.isFinite(n) || n <= 0) return false;
+  const hit = Math.min(120, n);
+  const who = by || 'A friend';
+  net.ffHits.push({id, dmg:hit, by:who});
+  if (id === net.id) return takeFriendly(hit, who);
+  const conn = net.conns.find(c => c.peer === id && c.open);
+  if (conn) conn.send({t:'hurt', n:hit, by:who});
+  return true;
+}
+function reportFriendly(id, dmg){
+  if (!net.ff) return;
+  if (net.role === 'client' && net.link && net.link.open){
+    net.link.send({t:'hit', id, dmg, by:net.name});
+    return;
+  }
+  resolveFriendly(id, dmg, net.name);
 }
 function die(){
   if (player.down) return;
@@ -4219,6 +4274,7 @@ function setOverlays(){
     document.body.classList.remove('afterdark');
     document.body.classList.remove('downed');
   }
+  paintFF();
 }
 function openGuide(){
   S.mode = 'guide';
@@ -4762,7 +4818,42 @@ const net = {
   role:'solo', id:'local', name:'Walker', code:'', round:1,
   peer:null, link:null, conns:[], poses:new Map(),
   acc:0, silence:0, latest:null, warned:false,
+  ff:true, ffHits:[],
 };
+function readFF(){
+  try {
+    if (localStorage.getItem('rentor-ff') === '0') net.ff = false;
+  } catch (err) { /* keep friendly fire on when storage is blocked */ }
+}
+readFF();
+function paintFF(){
+  const word = net.ff ? 'Friendly fire: On' : 'Friendly fire: Off';
+  const locked = net.role === 'client';
+  const titleBtn = $('ffbtn');
+  if (titleBtn){
+    titleBtn.textContent = word;
+    titleBtn.classList.toggle('off', !net.ff);
+    titleBtn.disabled = locked;
+    titleBtn.title = locked ? 'The host sets this.' : 'Host switch for shots between people on this street.';
+  }
+  const playBtn = $('ffplay');
+  if (playBtn){
+    playBtn.textContent = word;
+    playBtn.classList.toggle('off', !net.ff);
+    playBtn.disabled = locked;
+    playBtn.title = locked ? 'The host sets this.' : 'Host switch for shots between people on this street.';
+    playBtn.classList.toggle('hidden', S.mode !== 'play' || net.role === 'solo');
+  }
+}
+function setFF(on){
+  if (net.role === 'client') return net.ff;
+  net.ff = !!on;
+  try { localStorage.setItem('rentor-ff', net.ff ? '1' : '0'); } catch (err) { /* the switch still works this visit */ }
+  paintFF();
+  if (net.role === 'host') sendWorld();
+  return net.ff;
+}
+function toggleFF(){ return setFF(!net.ff); }
 const remotes = new Map();
 function cleanName(){
   const raw = ($('pname').value || '').replace(/[^\w .'-]/g, '').trim().slice(0, 16);
@@ -4834,6 +4925,8 @@ function applyNetWorld(msg){
   syncRemotes(msg.people);
   applyCars(msg.cars);
   if (net.role !== 'client') return;
+  if (typeof msg.ff === 'boolean') net.ff = msg.ff;
+  paintFF();
   const nextRound = typeof msg.round === 'number' ? msg.round : net.round;
   if (nextRound !== net.round){
     net.round = nextRound;
@@ -4861,12 +4954,22 @@ function applyNetWorld(msg){
 function onData(conn, msg){
   if (!msg || typeof msg.t !== 'string') return;
   if (msg.t === 'hello'){
-    conn.send({t:'welcome', left:S.left, phase:S.phase, month:S.month, playing:S.mode === 'play'});
+    conn.send({t:'welcome', left:S.left, phase:S.phase, month:S.month, playing:S.mode === 'play', ff:net.ff});
     return;
   }
   if (msg.t === 'welcome'){
     net.role = 'client';
+    if (typeof msg.ff === 'boolean') net.ff = msg.ff;
+    paintFF();
     setRoomHint('Joined. The host owns the clock. Up to 24 people.');
+    return;
+  }
+  if (msg.t === 'hit'){
+    if (net.role === 'host') resolveFriendly(msg.id, msg.dmg, msg.by);
+    return;
+  }
+  if (msg.t === 'hurt'){
+    if (net.role === 'client') takeFriendly(msg.n, msg.by);
     return;
   }
   if (msg.t === 'full'){
@@ -4907,7 +5010,7 @@ function sendWorld(){
   for (const c of net.conns){
     if (!c.open) continue;
     c.send({
-      t:'world', round:net.round, left:S.left, phase:S.phase, month:S.month, playing:S.mode === 'play',
+      t:'world', round:net.round, left:S.left, phase:S.phase, month:S.month, playing:S.mode === 'play', ff:net.ff,
       people:people.filter(p => p.id !== c.peer), cars,
     });
   }
@@ -4925,6 +5028,7 @@ function tickNet(dt){
   if (net.silence > 8 && S.mode === 'play' && !net.warned){
     net.warned = true;
     net.role = 'solo';
+    paintFF();
     toast('Lost the street link. Your clock is local now.');
   }
   net.acc += dt;
@@ -4939,11 +5043,13 @@ function startHost(){
   const code = makeCode();
   net.code = code;
   net.role = 'host';
+  paintFF();
   try {
     net.peer = new window.Peer('rentor3109-' + code, {config:ICE});
   } catch (err) {
     errors.push(String(err));
     net.role = 'solo';
+    paintFF();
     setRoomHint('Could not open a room. Solo still works.');
     return;
   }
@@ -4953,6 +5059,7 @@ function startHost(){
     setRoomHint('Could not open a room. Solo still works.');
     errors.push(String(err && err.type || err));
     net.role = 'solo';
+    paintFF();
   });
 }
 function startJoin(code){
@@ -4961,11 +5068,13 @@ function startJoin(code){
   if (!window.Peer){ setRoomHint('No street link in this browser. You can still work the route alone.'); return; }
   if (!/^[A-Z0-9]{4}$/.test(room)){ setRoomHint('Enter the four-character room code.'); return; }
   net.role = 'client';
+  paintFF();
   try {
     net.peer = new window.Peer(undefined, {config:ICE});
   } catch (err) {
     errors.push(String(err));
     net.role = 'solo';
+    paintFF();
     setRoomHint('Could not join that room. Solo still works.');
     return;
   }
@@ -4975,12 +5084,13 @@ function startJoin(code){
     net.link = conn;
     conn.on('open', () => conn.send({t:'hello', name:net.name}));
     conn.on('data', data => onData(conn, data));
-    conn.on('error', () => { setRoomHint('Could not join that room. Solo still works.'); net.role = 'solo'; });
+    conn.on('error', () => { setRoomHint('Could not join that room. Solo still works.'); net.role = 'solo'; paintFF(); });
   });
   net.peer.on('error', err => {
     setRoomHint('Could not join that room. Solo still works.');
     errors.push(String(err && err.type || err));
     net.role = 'solo';
+    paintFF();
   });
 }
 function debugPeer(n){
@@ -5018,6 +5128,7 @@ function snapshot(){
     zombies:pool.filter(z => !z.dead).length,
     slot:player.slot, x:player.x, z:player.z,
     mag:w ? w.mag : 0, res:w ? w.res : 0,
+    ff:net.ff,
   };
 }
 function setPhase(p){
@@ -5042,7 +5153,20 @@ window.__rentor = {
   errors, DAY_LEN, NIGHT_LEN, FAST, MAX:MAX_PLAYERS,
   urgentAt, start:fresh, setPhase, setTime(s){ S.left = s; },
   room(){ return {role:net.role, round:net.round, code:net.code, people:streetCount(), conns:net.conns.length}; },
-  fakeRoom(role){ net.role = role; },
+  fakeRoom(role){ net.role = role; paintFF(); },
+  ff(){ return net.ff; },
+  setFF(v){ return setFF(v); },
+  hits(){ return net.ffHits.slice(); },
+  clearHits(){ net.ffHits = []; },
+  pushNet(msg){
+    const box = {sent:[], open:true, peer:'host', send(m){ this.sent.push(m); }};
+    onData(box, msg);
+    return box.sent;
+  },
+  fakeLink(){
+    net.link = {open:true, sent:[], send(msg){ this.sent.push(msg); }};
+  },
+  lastLink(){ return net.link && net.link.sent ? net.link.sent.slice() : []; },
   addFake(id){
     const conn = {open:true, peer:id, sent:[], send(msg){ this.sent.push(msg); }};
     net.conns.push(conn);
@@ -5127,6 +5251,9 @@ buildPhoneKeys();
 $('playbtn').addEventListener('click', () => { openGuide(); });
 $('guidebtn').addEventListener('click', () => { fresh(); wantLock(); });
 $('hostbtn').addEventListener('click', startHost);
+$('ffbtn').addEventListener('click', toggleFF);
+$('ffplay').addEventListener('click', toggleFF);
+paintFF();
 $('joinbtn').addEventListener('click', () => $('joinbox').classList.remove('hidden'));
 $('joingo').addEventListener('click', () => startJoin($('joincode').value));
 $('againbtn').addEventListener('click', () => {
