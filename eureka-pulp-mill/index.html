@@ -168,7 +168,7 @@ body.touching #ffplay{left:8px;bottom:auto;top:calc(330px + env(safe-area-inset-
  <div class="controls">
   <div><b>WASD</b>Move</div><div><b>MOUSE</b>Look</div><div><b>L-CLICK</b>Shoot</div>
   <div><b>R-CLICK</b>Shove (hold)</div><div><b>R</b>Reload</div><div><b>1 / 2</b>Primary / Pistol</div>
-  <div id="eline"><b>E</b>Use / Zipline / Revive</div><div><b>W / A D</b>Row / turn the skiff</div><div><b>H</b>Heal (first aid)</div><div><b>F</b>Flashlight</div>
+  <div id="eline"><b>E</b>Use / Zipline / Revive</div><div id="sline"><b>W / A D</b>Row / turn the skiff</div><div><b>H</b>Heal (first aid)</div><div><b>F</b>Flashlight</div>
   <div><b>SHIFT</b>Sprint</div><div><b>ESC / P</b>Pause</div><div><b>M</b>Mute</div>
   <div><b>V</b>Talk (hold)</div><div><b>G</b>God fly</div>
  </div>
@@ -274,16 +274,17 @@ writeStored('eureka-layout',LAYOUT);
 function storedSwarm(){const raw=readStored('eureka-swarm');if(raw==null||raw==='')return 100;const n=Number(raw);return Number.isFinite(n)?clamp(Math.round(n/10)*10,0,200):100;}
 NET.swarm=storedSwarm();
 if(LAYOUT==='linear'){
- $('blurb').innerHTML='Start on Trinity Street. The road runs straight through Redwood Acres, the redwoods, Sequoia Park Zoo, 3109 H Street, and the Carson Mansion.<br>Safe rooms at the fair hall, the zoo, the office, the mansion, and the Samoa Cookhouse. The channel span is long and high. If it goes, row the skiff — four oars, W rows, A and D turn.';
+ $('blurb').innerHTML='Start on Trinity Street. The road runs straight through Redwood Acres, the redwoods, Sequoia Park Zoo, 3109 H Street, and the Carson Mansion.<br>Safe rooms at the fair hall, the zoo, the office, the mansion, and the Samoa Cookhouse. The Samoa bridge is the short span. Walk across it to the cookhouse.';
  $('eline').innerHTML='<b>E</b>Use / Revive';
+ $('sline').style.display='none';
 }
 
 /* ================= LEVEL MAP (2m tiles) =================
    Town: Trinity turns south through Redwood Acres, the Sky Walk, the zoo,
    the tree walk, and the Carson Mansion. A zipline is the only way from
-   the tower to the slough bridge. Linear: the straight z=7..9 road.
-   Both keep the long channel span. Progress is +x. Safe rooms are K. */
-const EXTRA=366;
+   the tower to the slough bridge, then the long channel span. Linear: the
+   straight z=7..9 road and the original short Samoa bridge. Progress is +x. */
+const EXTRA=LAYOUT==='linear'?0:366;
 const T=2,W=206+EXTRA,H=LAYOUT==='linear'?16:42,N=W*H,INF=1e9;
 const G=[];for(let z=0;z<H;z++)G.push(new Array(W).fill(LAYOUT==='linear'?'#':' '));
 const zoneAt=new Uint8Array(N);
@@ -431,21 +432,26 @@ fill(203,6,204,10,'R',9);
 for(let z=4;z<=13;z++)if(z<7||z>9)put(202,z,'#',9);
 for(let z=4;z<=13;z++)put(205,z,',',9);
 for(let x=203;x<=204;x++)for(let z=11;z<=12;z++)if(G[z][x]!=='R')put(x,z,',',9);
-/* Samoa Channel (SR 255): 764 m of deck, navigation clearance 13.7 m.
-   Cookhouse, mill, and roof slide east so the channel can open between the gate and Samoa. */
-for(let x=205;x>=161;x--)for(let z=0;z<H;z++){G[z][x+EXTRA]=G[z][x];zoneAt[z*W+x+EXTRA]=zoneAt[z*W+x];doorOf[z*W+x+EXTRA]=doorOf[z*W+x];}
+/* Town keeps the 764 m Samoa Channel span at 13.7 m clearance, and slides
+   the cookhouse, mill, and roof east. Linear keeps the original short bridge. */
 const BR_A=145,BR_B=145+382-1,HIGH_A=175,HIGH_B=496;
 const DECK_Y=13.7;
-for(let x=161;x<=BR_B;x++)for(let z=0;z<H;z++){G[z][x]='#';zoneAt[z*W+x]=0;doorOf[z*W+x]=-1;}
-for(let x=BR_A;x<=BR_B;x++)for(let z=0;z<H;z++){
- if(z>=6&&z<=10)put(x,z,'.',7);
- else if(z===5||z===11)put(x,z,'=',7);
- else put(x,z,'~',7);
+if(LAYOUT==='linear'){
+ fill(145,7,160,9,'.',7);
+ for(let x=145;x<=160;x++){for(let z=1;z<=5;z++)put(x,z,'~',7);for(let z=11;z<=14;z++)put(x,z,'~',7);put(x,6,'=',7);put(x,10,'=',7);}
+}else{
+ for(let x=205;x>=161;x--)for(let z=0;z<H;z++){G[z][x+EXTRA]=G[z][x];zoneAt[z*W+x+EXTRA]=zoneAt[z*W+x];doorOf[z*W+x+EXTRA]=doorOf[z*W+x];}
+ for(let x=161;x<=BR_B;x++)for(let z=0;z<H;z++){G[z][x]='#';zoneAt[z*W+x]=0;doorOf[z*W+x]=-1;}
+ for(let x=BR_A;x<=BR_B;x++)for(let z=0;z<H;z++){
+  if(z>=6&&z<=10)put(x,z,'.',7);
+  else if(z===5||z===11)put(x,z,'=',7);
+  else put(x,z,'~',7);
+ }
+ FIN.stx+=EXTRA;FIN.callX+=EXTRA*T;FIN.padX+=EXTRA*T;
+ SAFES[SAFES.length-1].x0+=EXTRA;SAFES[SAFES.length-1].x1+=EXTRA;
+ for(let x=BR_B+1;x<W;x++)for(let z=0;z<H;z++)if(G[z][x]===' ')put(x,z,'~',8);
 }
-FIN.stx+=EXTRA;FIN.callX+=EXTRA*T;FIN.padX+=EXTRA*T;
-SAFES[SAFES.length-1].x0+=EXTRA;SAFES[SAFES.length-1].x1+=EXTRA;
-for(let x=BR_B+1;x<W;x++)for(let z=0;z<H;z++)if(G[z][x]===' ')put(x,z,'~',8);
-const SPAN=[];for(let x=HIGH_A;x<=HIGH_B;x++)for(let z=6;z<=10;z++)SPAN.push([x,z,G[z][x]]);
+const SPAN=[];if(LAYOUT!=='linear')for(let x=HIGH_A;x<=HIGH_B;x++)for(let z=6;z<=10;z++)SPAN.push([x,z,G[z][x]]);
 const BRIDGE_MID=((HIGH_A+HIGH_B)*0.5+0.5)*T;
 const FALL_CRACK=0.4,FALL_DROP=1.65,FALL_END=2.15;
 
@@ -457,11 +463,25 @@ const DOOR_LABEL={acresIn:'Open the Redwood Acres door',zooIn:'Open the zoo door
 function doorId(tx,tz){const i=(tz>=0&&tz<H&&tx>=0&&tx<W)?doorOf[tz*W+tx]:-1;return i>=0?DOOR_IDS[i]:'';}
 const WATER=-0.65;
 function bridgeDeckY(tx){const u=tx+0.5;if(u<=HIGH_A)return DECK_Y*clamp((u-BR_A)/(HIGH_A-BR_A),0,1);if(u>=HIGH_B)return DECK_Y*clamp((BR_B+1-u)/(BR_B+1-HIGH_B),0,1);return DECK_Y;}
-function onBridgeDeck(tx,tz){return tx>=BR_A&&tx<=BR_B&&tz>=6&&tz<=10;}
+function onBridgeDeck(tx,tz){return LAYOUT!=='linear'&&tx>=BR_A&&tx<=BR_B&&tz>=6&&tz<=10;}
 function tileBase(c,tx,tz){if(ROOF.has(c))return 10;if(c==='U')return WATER;if(c==='D'&&doorId(tx,tz)==='roof')return 10;return 0;}
 function ceilOf(c,tx,tz){if(c!=='m'&&c!=='K')return null;const zn=zoneAt[tz*W+tx];if(zn===6)return 5.4;if(zn===11)return 3.1;if(zn===8)return 3.6;if(zn===1)return 4.6;return 4.2;}
 const charAt=(tx,tz)=>(tz>=0&&tz<H&&tx>=0&&tx<W)?G[tz][tx]:' ';
-function groundAt(x,z){const tx=Math.floor(x/T),tz=Math.floor(z/T);const c=charAt(tx,tz);if(c==='S')return 10*clamp((x-FIN.stx*T)/(FIN.stn*T),0,1);if(tz>=0&&tz<H&&tx>=0&&tx<W){const dy=deckY[tz*W+tx];if(dy===dy)return dy;}if(c==='.'&&onBridgeDeck(tx,tz))return bridgeDeckY(tx);return tileBase(c,tx,tz);}
+function slopeAcross(x,z){const y=deckY[z*W+x];if(y!==y)return null;
+ const at=(xx,zz)=>(xx>=0&&zz>=0&&xx<W&&zz<H)?deckY[zz*W+xx]:NaN;
+ const e=at(x+1,z),n=at(x,z+1);
+ const ex=e===e&&Math.abs(e-y)>0.04,nz=n===n&&Math.abs(n-y)>0.04;
+ const xRise=ex?Math.abs(e-y):0,zRise=nz?Math.abs(n-y):0;
+ if(ex&&xRise>=zRise)return {axis:'x',y0:y,y1:e};
+ if(nz)return {axis:'z',y0:y,y1:n};
+ return null;}
+const STEP_RISE=0.32;
+function stairCount(y0,y1){return Math.max(1,Math.round(Math.abs(y1-y0)/STEP_RISE));}
+function groundAt(x,z){const tx=Math.floor(x/T),tz=Math.floor(z/T);const c=charAt(tx,tz);if(c==='S')return 10*clamp((x-FIN.stx*T)/(FIN.stn*T),0,1);
+ if(tz>=0&&tz<H&&tx>=0&&tx<W){const sl=slopeAcross(tx,tz);
+  if(sl){const n=stairCount(sl.y0,sl.y1),f=sl.axis==='x'?(x/T-tx):(z/T-tz),s=clamp(Math.floor(clamp(f,0,0.9999)*n),0,n-1);return sl.y0+(sl.y1-sl.y0)*((s+1)/n);}
+  const dy=deckY[tz*W+tx];if(dy===dy)return dy;}
+ if(c==='.'&&onBridgeDeck(tx,tz))return bridgeDeckY(tx);return tileBase(c,tx,tz);}
 const tileH=(tx,tz)=>groundAt((tx+.5)*T,(tz+.5)*T);
 function ceilAt(x,z){const tx=Math.floor(x/T),tz=Math.floor(z/T);const c=charAt(tx,tz);if(c===' '||WALLC.has(c))return null;const ch=ceilOf(c,tx,tz);return ch===null?null:groundAt(x,z)+ch;}
 function isWalk(tx,tz){const c=charAt(tx,tz);if(WALK.has(c))return true;if(c==='D')return !!doors[doorId(tx,tz)];return false;}
@@ -504,7 +524,7 @@ function bodyY(x,z){const tx=Math.floor(x/T),tz=Math.floor(z/T);if(charAt(tx,tz)
 function rememberBridge(m){if(!m.isMesh)return;const keep=!!m.userData.keep,deck=!!(m.userData.deck||m.userData.rail||m.userData.skin),pier=!!m.userData.pier;bridgeParts.push({m,x:m.position.x,y:m.position.y,z:m.position.z,qx:m.quaternion.x,qy:m.quaternion.y,qz:m.quaternion.z,qw:m.quaternion.w,deck,pier,keep,delay:keep?0:spanDelay(m.position.x)});}
 function poseBridge(t){for(const p of bridgeParts){if(p.keep)continue;const e=fallEase(t,p.delay);const drop=e*(p.pier?DECK_Y-1.5:DECK_Y+1.2);const lean=p.x>=BRIDGE_MID?1:-1;p.m.position.set(p.x+Math.sin(e*2.1)*0.35,p.y-drop,p.z+Math.sin(e*1.4)*0.12);p.m.quaternion.set(p.qx,p.qy,p.qz,p.qw);p.m.rotateZ(lean*e*(p.pier?0.4:0.16));p.m.visible=!(p.deck&&e>0.94);}}
 function restoreBridge(){for(const p of bridgeParts){p.m.visible=true;p.m.position.set(p.x,p.y,p.z);p.m.quaternion.set(p.qx,p.qy,p.qz,p.qw);}}
-function collapseBridge(quiet){if(S.bridge!=='up')return;for(const [x,z] of SPAN)G[z][x]='U';S.bridge='fall';S.bridgeT=0;S.bridgeSplash=false;flowDirty=true;recomputeRoute();player.vx=0;player.vz=0;for(const b of bots){b.vx=0;b.vz=0;}if(quiet)return;setObj(12);S.shake=.85;feed('<b>The span is going.</b> A skiff is in the channel. Get in and row.','#f66');bark(null,'The bridge is in the bay! Boat — row for Samoa!','collapse',99);const py=bridgeDeckY(Math.floor(player.x/T));if(AU.ctx){nz({dur:1.8,f:48,f2:24,vol:.95});tn({f:36,f2:20,dur:1.4,vol:.5,lp:160});SFX.splat(player.x,player.z);}for(let i=0;i<30;i++)PSmoke.emit(player.x+rand(-6,6),py+rand(0,2),player.z+rand(-2,2),rand(-4,4),rand(1,4),rand(-2,2),rand(.5,.9),.35,.06,.62,.6,.58,.65,6);}
+function collapseBridge(quiet){if(LAYOUT==='linear'||S.bridge!=='up')return;for(const [x,z] of SPAN)G[z][x]='U';S.bridge='fall';S.bridgeT=0;S.bridgeSplash=false;flowDirty=true;recomputeRoute();player.vx=0;player.vz=0;for(const b of bots){b.vx=0;b.vz=0;}if(quiet)return;setObj(12);S.shake=.85;feed('<b>The span is going.</b> A skiff is in the channel. Get in and row.','#f66');bark(null,'The bridge is in the bay! Boat — row for Samoa!','collapse',99);const py=bridgeDeckY(Math.floor(player.x/T));if(AU.ctx){nz({dur:1.8,f:48,f2:24,vol:.95});tn({f:36,f2:20,dur:1.4,vol:.5,lp:160});SFX.splat(player.x,player.z);}for(let i=0;i<30;i++)PSmoke.emit(player.x+rand(-6,6),py+rand(0,2),player.z+rand(-2,2),rand(-4,4),rand(1,4),rand(-2,2),rand(.5,.9),.35,.06,.62,.6,.58,.65,6);}
 function restoreSpan(){for(const [x,z,c] of SPAN)G[z][x]=c;S.bridge='up';S.bridgeT=0;S.bridgeSplash=false;restoreBridge();resetBoat();}
 function tickBridge(dt){if(S.bridge==='up')return;S.bridgeT+=dt;if(S.bridge==='fall'&&S.bridgeT>=FALL_END)S.bridge='swim';poseBridge(S.bridgeT);if(S.bridge==='fall')S.shake=Math.max(S.shake,.28*(1-clamp(S.bridgeT/FALL_END,0,1)));if(!S.bridgeSplash&&S.bridgeT>1.9){S.bridgeSplash=true;launchBoat();const x=clamp(player.x,(HIGH_A+2)*T,(HIGH_B-2)*T),z=clamp(player.z,12,22);for(let i=0;i<36;i++)PSmoke.emit(x+rand(-8,8),WATER+0.15,z+rand(-3,3),rand(-3,3),rand(1.2,4.5),rand(-2,2),rand(.45,.8),.28,.05,.75,.84,.9,.62,5);if(AU.ctx)nz({dur:.55,f:520,f2:140,type:'bandpass',vol:.45,x,z});}}
 function ashore(){if(S.obj!==12||S.bridge==='up'||player.boatSeat!=null)return;const tx=Math.floor(player.x/T);if(tx>=HIGH_B&&chAt(player)!=='U'){setObj(7);feed('Feet on the Samoa side. The cookhouse is ahead.','#9f9');bark(null,'Out of the water. Cookhouse.','ashore',99);}}
@@ -544,8 +564,16 @@ const redwoodSpots=[];
 {const walls=[],trims=[],floors=[],ceils=[],obst=[],lamps=[],flick=[];
  for(let z=0;z<H;z++)for(let x=0;x<W;x++){const c=G[z][x],cx=(x+.5)*T,cz=(z+.5)*T;if(c===' '){if(x<BR_A)floors.push({x:cx,y:-0.42,z:cz,sx:T,sy:0.1,sz:T,c:x<20?0x3a4032:x<48?0x2c3a24:0x1c3018});continue;}
   if(c==='t'){const red=LAYOUT==='town'&&zoneAt[z*W+x]===2;if(red){redwoodSpots.push([cx,cz,(28+((x*5+z*3)%14))*1,0.85+((x+z)%5)*0.12]);continue;}floors.push({x:cx,y:-0.12,z:cz,sx:T,sy:0.24,sz:T,c:0x3a4a32});const th=4.4;obst.push({x:cx,y:th/2,z:cz,sx:.35,sy:th,sz:.35,c:0x3a2a1c});obst.push({x:cx,y:th,z:cz,sx:2.4,sy:2.2,sz:2.4,c:pick([0x1d3a28,0x244432,0x163022])});continue;}
-  if(c==='~'){if(x<BR_A||x>BR_B)floors.push({x:cx,y:-0.95,z:cz,sx:T,sy:0.1,sz:T,c:0x1a3e3c});continue;}
-  if(c==='='){if(x>=BR_A&&x<=BR_B)continue;const base=deckY[z*W+x],by=base===base?base:0;obst.push({x:cx,y:by+0.62,z:cz,sx:T*0.96,sy:0.1,sz:0.1,c:0xcbb892});obst.push({x:cx,y:by+0.32,z:cz,sx:0.08,sy:0.64,sz:0.08,c:0x3a3028});continue;}
+  if(c==='~'){if(LAYOUT==='linear'||x<BR_A||x>BR_B)floors.push({x:cx,y:-0.95,z:cz,sx:T,sy:0.1,sz:T,c:0x1a3e3c});continue;}
+  if(c==='='){if(LAYOUT!=='linear'&&x>=BR_A&&x<=BR_B)continue;
+   const slr=slopeAcross(x,z);
+   if(slr){const n=stairCount(slr.y0,slr.y1),rise=(slr.y1-slr.y0)/n;
+    for(let s=0;s<n;s++){const stand=slr.y0+rise*(s+1),along=slr.axis==='x',len=T/n;
+     const px=along?x*T+(s+0.5)*len:cx,pz=along?cz:z*T+(s+0.5)*len;
+     obst.push({x:px,y:stand+0.55,z:pz,sx:along?len*0.98:0.08,sy:0.08,sz:along?0.08:len*0.98,c:0xcbb892});
+     if((s&1)===0)obst.push({x:px,y:stand+0.28,z:pz,sx:0.08,sy:0.56,sz:0.08,c:0x3a3028});}
+    continue;}
+   const base=deckY[z*W+x],by=base===base?base:0;obst.push({x:cx,y:by+0.62,z:cz,sx:T*0.96,sy:0.1,sz:0.1,c:0xcbb892});obst.push({x:cx,y:by+0.32,z:cz,sx:0.08,sy:0.64,sz:0.08,c:0x3a3028});continue;}
   if(c==='#'||c==='b'){let lo=1e9,hi=-1e9,mill=false,high=false;const zn=zoneAt[z*W+x];
    for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const n=charAt(x+b,z+a);if(n===' '||WALLC.has(n)||n==='D')continue;const bh=tileH(x+b,z+a);const lip=(MILL.has(n)||zn===9)?6.4:(ROOF.has(n)||n==='S')?1.5:zn===6?10:zn===1?5.2:zn===8?4.2:3.2;lo=Math.min(lo,bh);hi=Math.max(hi,bh+lip);if(MILL.has(n)||zn===9)mill=true;if(ROOF.has(n)||n==='S')high=true;}
    if(lo>hi){lo=0;hi=zn===6?10:3;}lo-=0.15;const v=0.88+Math.random()*0.16;
@@ -556,6 +584,7 @@ const redwoodSpots=[];
   const b=tileH(x,z);const zn=zoneAt[z*W+x];
   let fc=0x3e4246;
   const dy=deckY[z*W+x],lifted=dy===dy;
+  const sl=slopeAcross(x,z);
   if(c==='n'||c==='w')fc=zn===2?shade(0x243628,0.85+Math.random()*.2):shade(0x3d4a34,0.88+Math.random()*.22);
   else if(c==='a')fc=0x4a5a38;
   else if(c==='.'||c==='D')fc=lifted&&dy>8&&zn===2?0x7a6248:lifted&&dy>1&&dy<8?0x6a5038:lifted&&zn===2?0x6e5a3e:(zn===7)?(((x+z)&1)?0x4a4638:0x3a362c):(zn===2)?0x2a3824:(((x+z)&1)?0x3c4044:0x34383c);
@@ -565,8 +594,14 @@ const redwoodSpots=[];
   else if(c==='R')fc=0x6a7268;
   else if(ROOF.has(c))fc=shade(0x5c584e,0.9+Math.random()*.15);
   else if(c==='c')fc=0x3a3028;
+  if(sl&&zn===2)fc=0x7a6248;else if(sl)fc=0x6a5038;
   if(c==='S'){for(let s=0;s<2;s++){const sx=(x+.25+.5*s)*T,top=groundAt(sx,cz);floors.push({x:sx,y:top-0.08,z:cz,sx:T/2-0.02,sy:0.16,sz:T,c:s?0x6e7270:0x5c605e});}}
   else if(onBridgeDeck(x,z)){/* deck slabs are the bridge group */}
+  else if(sl){const n=stairCount(sl.y0,sl.y1),rise=(sl.y1-sl.y0)/n;
+   for(let s=0;s<n;s++){const stand=sl.y0+rise*(s+1),prev=sl.y0+rise*s,along=sl.axis==='x',len=T/n-0.02;
+    const px=along?x*T+(s+0.5)*(T/n):cx,pz=along?cz:z*T+(s+0.5)*(T/n);
+    floors.push({x:px,y:stand-0.06,z:pz,sx:along?len:T*0.98,sy:0.12,sz:along?T*0.98:len,c:fc});
+    floors.push({x:along?x*T+(s+1)*(T/n)-0.03:cx,y:(stand+prev)*0.5,z:along?cz:z*T+(s+1)*(T/n)-0.03,sx:along?0.08:T*0.98,sy:Math.max(0.08,Math.abs(rise)),sz:along?T*0.98:0.08,c:fc});}}
   else floors.push({x:cx,y:b-0.12,z:cz,sx:T,sy:0.24,sz:T,c:fc});
   const ch=ceilOf(c,x,z);
   if(ch!==null){ceils.push({x:cx,y:b+ch+0.12,z:cz,sx:T,sy:0.24,sz:T,c:zn===6?0x4a4030:0x3a342c});
@@ -865,6 +900,7 @@ window.__beasts=beasts;
 }
 function poseCable(){const seat=window.__trolley;if(!seat)return;let u=player.zipU;if(u==null)for(const b of bots)if(b.zipU!=null){u=b.zipU;break;}const t=u==null?0:Math.max(0,Math.min(1,u)),s=Math.sin(t*Math.PI);seat.position.set(ZIP_A.x+(ZIP_B.x-ZIP_A.x)*t,ZIP_A.y+(ZIP_B.y-ZIP_A.y)*t-s*2.8+1.05,ZIP_A.z+(ZIP_B.z-ZIP_A.z)*t);seat.rotation.y=Math.atan2(ZIP_B.x-ZIP_A.x,ZIP_B.z-ZIP_A.z);}
 function tickBeasts(dt){for(const b of beasts){b.ph+=dt;const s=Math.sin(b.ph);if(b.kind==='otter'){b.g.position.y=b.y0+Math.abs(s)*0.18;b.g.rotation.y=s*0.4;}else if(b.kind==='flamingo'){b.g.rotation.x=s*0.08;b.g.position.y=b.y0+(s>0?0:s*0.05);}else if(b.kind==='bear'){b.g.position.x=105*T+s*0.8;b.g.rotation.y=s>0?0.4:-0.4;}else if(b.kind==='monkey'){b.g.rotation.z=s*0.25;}else if(b.kind==='eagle'){b.g.rotation.y=s*0.5;}else if(b.kind==='panda'){b.g.rotation.y=Math.sin(b.ph*0.6)*0.5;}else b.g.position.y=b.y0+Math.abs(Math.sin(b.ph*2))*0.04;}}
+if(LAYOUT!=='linear'){
 {const br=grp('lm-bridge',0,0,0);const CON=0x8d8982,GIR=0x5e5954,PIER=0x6d6862;
  const zC=17,deckW=10.2;
  function spanBox(len,y0,y1,x0,x1,keep){
@@ -889,6 +925,19 @@ function tickBeasts(dt){for(const b of beasts){b.ph+=dt;const s=Math.sin(b.ph);i
  const pierE=solid(br,2.6,DECK_Y+0.5,3.4,PIER,xH1,(DECK_Y-0.5)/2,zC);pierE.userData.pier=1;
  br.traverse(o=>{if(o.isMesh)rememberBridge(o);});
  window.__bridgeParts=bridgeParts;
+}
+}else{
+{const br=grp('lm-bridge',0,0,0);const STEEL=0x3d6844;const x0=146*T,x1=159*T,zN=12.25,zS=20.55;
+ for(let x=x0;x<=x1+0.01;x+=4){
+  solid(br,0.32,6.5,0.32,STEEL,x,3.25,zN);solid(br,0.32,6.5,0.32,STEEL,x,3.25,zS);
+  solid(br,0.22,0.24,zS-zN,STEEL,x,6.35,(zN+zS)/2);
+  if(x+4<=x1+0.2){strut(br,x,0.45,zN,x+4,6.15,zN,0.12,STEEL);strut(br,x,6.15,zN,x+4,0.45,zN,0.12,STEEL);strut(br,x,0.45,zS,x+4,6.15,zS,0.12,STEEL);strut(br,x,6.15,zS,x+4,0.45,zS,0.12,STEEL);}
+ }
+ solid(br,x1-x0+0.6,0.32,0.36,STEEL,(x0+x1)/2,6.55,zN);solid(br,x1-x0+0.6,0.32,0.36,STEEL,(x0+x1)/2,6.55,zS);
+ solid(br,x1-x0+0.6,0.22,0.28,STEEL,(x0+x1)/2,0.4,zN);solid(br,x1-x0+0.6,0.22,0.28,STEEL,(x0+x1)/2,0.4,zS);
+ facade(br,'bridge.jpg',0.08,0.2,0.92,0.78,x1-x0,5.5,(x0+x1)/2,3.35,zN-0.35,Math.PI);
+ facade(br,'bridge.jpg',0.08,0.2,0.92,0.78,x1-x0,5.5,(x0+x1)/2,3.35,zS+0.35,0);
+}
 }
 const BOAT={show:false,beached:false,x:0,z:17,yaw:0,vx:0,stroke:0,seats:[-1,-1,-1,-1],seatX:[-2.15,-0.65,0.85,2.25],seatZ:[0.18,-0.18,0.18,-0.18],oars:[],tx:null,tz:null,tyaw:0};
 BOAT.g=new THREE.Group();BOAT.g.name='skiff';BOAT.g.visible=false;scene.add(BOAT.g);
@@ -1152,7 +1201,7 @@ function renderFeed(){feedEl.innerHTML=feedLines.map(l=>`<div style="opacity:${M
 const barkCd={};
 function bark(bot,text,key,cd=6){if(!bot){bot=bots.find(b=>!b.down);if(!bot)return;}const k=key||text;if(barkCd[k]&&S.t<barkCd[k])return;barkCd[k]=S.t+cd;feed(`<b style="color:${bot.col}">${bot.name}:</b> ${text}`);SFX.bark();}
 const OBJ=LAYOUT==='linear'
- ?['Grab the guns on Trinity Street','Safe room: Redwood Acres','Through the redwoods to the zoo','Safe room: Rentor, 3109 H St','Safe room: Carson Mansion','Cross the Samoa bridge','Force the Samoa bridge gate','Safe room: Samoa Cookhouse','Get to the pulp mill roof','Call the helicopter','Hold the roof until the helicopter lands','Get on the pad','Row the boat to the Samoa shore']
+ ?['Grab the guns on Trinity Street','Safe room: Redwood Acres','Through the redwoods to the zoo','Safe room: Rentor, 3109 H St','Safe room: Carson Mansion','Cross the Samoa bridge','Force the Samoa bridge gate','Safe room: Samoa Cookhouse','Get to the pulp mill roof','Call the helicopter','Hold the roof until the helicopter lands','Get on the pad']
  :['Grab the guns on Trinity Street','Safe room: Redwood Acres','Redwood Sky Walk, then through the zoo','Tree walk to the safe room at 3109 H St','Safe room: Carson Mansion','Zipline to the slough bridge','Force the Samoa bridge gate','Safe room: Samoa Cookhouse','Get to the pulp mill roof','Call the helicopter','Hold the roof until the helicopter lands','Get on the pad','Row the boat to the Samoa shore'];
 function setObj(i){if(S.obj===i)return;S.obj=i;$('obj').textContent=OBJ[i];}
 let flashT=0;function hurtFlash(a){flashT=Math.max(flashT,a);}
@@ -1168,18 +1217,20 @@ if(LAYOUT==='linear'){
  addItem('ammo',30.5*T,0.45,8.5*T);addItem('kit',46.5*T,0.45,8.5*T);
  addItem('ammo',76.5*T,0.45,8.5*T);addItem('kit',100.5*T,0.45,8.5*T);
  addItem('ammo',120.5*T,0.45,8.5*T);addItem('kit',140.5*T,0.45,8.5*T);
+ addItem('ammo',152.5*T,0.45,8.5*T);addItem('kit',178.5*T,0.45,8.5*T);
+ addItem('ammo',191.5*T,0.45,8.5*T);addItem('kit',200.5*T,10.5,8.5*T);
 }else{
  addItem('ammo',28.5*T,0.45,21.5*T);addItem('kit',64.5*T,30.5,33.5*T);
  addItem('ammo',94.5*T,0.45,18.5*T);addItem('kit',113.5*T,0.9,20.5*T);
  addItem('ammo',125.5*T,0.45,7.5*T);addItem('kit',133.5*T,0.45,13.5*T);
+ addItem('ammo',152.5*T,bridgeDeckY(152)+0.55,8.5*T);addItem('kit',170.5*T,bridgeDeckY(170)+0.55,8.5*T);
+ addItem('ammo',(191.5+EXTRA)*T,0.45,8.5*T);addItem('kit',(200.5+EXTRA)*T,10.5,8.5*T);
 }
-addItem('ammo',152.5*T,bridgeDeckY(152)+0.55,8.5*T);addItem('kit',170.5*T,bridgeDeckY(170)+0.55,8.5*T);
-addItem('ammo',(191.5+EXTRA)*T,0.45,8.5*T);addItem('kit',(200.5+EXTRA)*T,10.5,8.5*T);
 
 /* ---- bots ---- */
 const BOT_SPAWN=[[3.4,7.6],[3.8,9.2],[4.8,7.4]];
 const START_COMMONS=LAYOUT==='linear'
- ?[[30,8],[32,5],[50,8],[56,6],[66,8],[74,8],[96,8],[118,8],[138,8],[142,8],[180+EXTRA,8],[186+EXTRA,8],[191+EXTRA,8]]
+ ?[[30,8],[32,5],[50,8],[56,6],[66,8],[74,8],[96,8],[118,8],[150,8],[156,8],[180,8],[186,8],[191,8]]
  :[[16,8],[16,16],[22,21],[26,29],[32,25],[50,33],[64,33],[72,28],[92,18],[100,20],[113,16],[113,24],[126,7],[180+EXTRA,8],[186+EXTRA,8],[191+EXTRA,8]];
 BOTDEF.forEach((d,i)=>{const m=makeHuman(d);const gun=gunModel(d.w,m.b);gun.position.set(.12,1.22,.42);gun.rotation.y=Math.PI;m.armR.rotation.x=-1.35;m.armL.rotation.x=-1.25;m.armL.rotation.z=-.35;
  const tag=nameSprite(d.name,d.col);tag.position.y=2.25;m.g.add(tag);scene.add(m.g);
@@ -2123,7 +2174,7 @@ function autopilot(dt){AP.mv=[0,0];AP.fire=false;AP.revive=false;AP.useCd-=dt;AP
   if(nc==='D'&&nid&&!doors[nid]){goal=[(tx+.5+bx*.35)*T,(tz+.5+bz*.35)*T];if(nid==='roof'&&S.elevT<0)goal=[FIN.callX,FIN.callZ];if(Math.hypot(goal[0]-player.x,goal[1]-player.z)<1.5&&AP.useCd<=0){AP.useCd=.8;player.yaw=Math.atan2(-(nx+.5)*T+player.x,-(nz+.5)*T+player.z);useAction();}}
   else{goal=[(nx+.5)*T,(nz+.5)*T];}}
  if(goal){const dx=goal[0]-player.x,dz=goal[1]-player.z,d=Math.hypot(dx,dz);if(d>.15)AP.mv=[dx/d,dz/d];if(!tgt&&d>.3){player.yaw=Math.atan2(-dx,-dz);player.pitch=0;}}}
-window.__game={autopilot,update,updateCamera,fire,AP,useTargets,moveEnt,collide,isWalk,flowStep,S,player,bots,commons,specials,doors,items,route,G,T,W,applySnap,
+window.__game={autopilot,update,updateCamera,fire,AP,useTargets,moveEnt,collide,isWalk,flowStep,groundAt,S,player,bots,commons,specials,doors,items,route,G,T,W,applySnap,
  start(){startGame();},
  setAuto(on,god){AP.on=on;S.god=!!god;},
  holdFire(on){mouseDown=!!on;},
