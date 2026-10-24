@@ -1594,13 +1594,34 @@ function updateCommon(c,dt){c.hitT=Math.max(0,c.hitT-dt);
    if(dir){const sp=c.speed*(S.biledT>0?1.12:1)*(chAt(c)==='U'?0.45:1);moveEnt(c,dir[0]*sp*dt,dir[1]*sp*dt,.3);c.yaw=lerpAng(c.yaw,Math.atan2(dir[0],dir[1]),dt*10);}}
   c.groanT-=dt;if(c.groanT<=0){c.groanT=rand(10,22);if(Math.random()<.06)SFX.scream(c.x,c.z);else if(Math.random()<.12)SFX.groan(c.x,c.z);}}
  c.mv=Math.hypot(c.x-ox,c.z-oz)/Math.max(dt,1e-4);c.phase+=dt*(1.5+c.mv*1.6);c.swipe=Math.max(0,c.swipe-dt);c.y=bodyY(c.x,c.z);}
-function separateCommons(){const a=[];for(const c of commons)if(!c.dead)a.push(c);const cell=1.2,buckets=new Map();
- for(let i=0;i<a.length;i++){const p=a[i];const key=((p.x/cell)|0)+','+((p.z/cell)|0);let bucket=buckets.get(key);if(!bucket)buckets.set(key,bucket=[]);bucket.push(i);}
- for(let i=0;i<a.length;i++){const p=a[i];const kx=(p.x/cell)|0,kz=(p.z/cell)|0;
-  for(let gz=-1;gz<=1;gz++)for(let gx=-1;gx<=1;gx++){const bucket=buckets.get((kx+gx)+','+(kz+gz));if(!bucket)continue;for(const j of bucket){if(j<=i)continue;const q=a[j];const dx=q.x-p.x,dz=q.z-p.z,d2=dx*dx+dz*dz;if(d2<.36&&d2>1e-6){const d=Math.sqrt(d2),k=(.6-d)/2/d;p.x-=dx*k;p.z-=dz*k;q.x+=dx*k;q.z+=dz*k;}}}
+function zBodyR(e){return e.type?SPEC[e.type].r:.36;}
+function zAnchored(e){return (e.type==='hunter'&&e.state==='pin')||(e.type==='smoker'&&e.state==='pull');}
+function separateCommons(){const a=[];for(const c of commons)if(!c.dead)a.push(c);for(const s of specials)if(!s.dead)a.push(s);
+ const n=a.length;if(!n)return;const cell=2,blocked=new Uint8Array(n);
+ const relax=()=>{const buckets=new Map();
+  for(let i=0;i<n;i++){const p=a[i];const key=((p.x/cell)|0)+','+((p.z/cell)|0);let bucket=buckets.get(key);if(!bucket)buckets.set(key,bucket=[]);bucket.push(i);}
+  const sx=new Float64Array(n),sz=new Float64Array(n);
+  for(let i=0;i<n;i++){sx[i]=a[i].x;sz[i]=a[i].z;}
+  for(let i=0;i<n;i++){const p=a[i],kx=(p.x/cell)|0,kz=(p.z/cell)|0,pr=zBodyR(p);
+   for(let gz=-1;gz<=1;gz++)for(let gx=-1;gx<=1;gx++){const bucket=buckets.get((kx+gx)+','+(kz+gz));if(!bucket)continue;
+    for(const j of bucket){if(j<=i)continue;const q=a[j],need=pr+zBodyR(q);let dx=q.x-p.x,dz=q.z-p.z,d2=dx*dx+dz*dz;if(d2>=need*need)continue;
+     const ai=zAnchored(p),aj=zAnchored(q);if(ai&&aj)continue;let ux,uz,overlap;
+     if(d2<1e-8){const ang=((i*13+j*7)&15)*(Math.PI/8);ux=Math.cos(ang);uz=Math.sin(ang);overlap=need;}
+     else{const d=Math.sqrt(d2);ux=dx/d;uz=dz/d;overlap=need-d;}
+     let sp,sq;if(ai||blocked[i]){sp=0;sq=1;}else if(aj||blocked[j]){sp=1;sq=0;}else sp=sq=.5;
+     if(ai)sp=0;if(aj)sq=0;if(!sp&&!sq)continue;
+     p.x-=ux*overlap*sp;p.z-=uz*overlap*sp;q.x+=ux*overlap*sq;q.z+=uz*overlap*sq;}}}
+  for(let i=0;i<n;i++){const e=a[i];if(zAnchored(e)){blocked[i]=1;continue;}
+   const mx=e.x,mz=e.z;collide(e,e.type?.35:.3);const undone=Math.hypot(e.x-mx,e.z-mz),kept=Math.hypot(e.x-sx[i],e.z-sz[i]);
+   blocked[i]=undone>.02&&kept<undone*.45?1:0;
+   if(e.type){if(e.state!=='leap')e.y=groundAt(e.x,e.z);}else e.y=bodyY(e.x,e.z);}};
+ for(let pass=0;pass<2;pass++)relax();
+ for(let i=0;i<n;i++){const p=a[i];if(p.type)continue;
   const dx=p.x-player.x,dz=p.z-player.z,d=Math.hypot(dx,dz);if(d<.75&&d>1e-4){p.x+=dx/d*(.75-d);p.z+=dz/d*(.75-d);}
   if(NET.role==='host'){for(const b of bots){if(!b.net||b.down)continue;const bx=p.x-b.x,bz=p.z-b.z,bd=Math.hypot(bx,bz);if(bd<.75&&bd>1e-4){p.x+=bx/bd*(.75-bd);p.z+=bz/bd*(.75-bd);}}}
-  collide(p,.3);}}
+  collide(p,.3);p.y=bodyY(p.x,p.z);}
+ for(let pass=0;pass<6;pass++)relax();
+ for(const s of specials){if(s.dead||!s.mesh)continue;s.mesh.g.position.set(s.x,s.y,s.z);}}
 const _root=new THREE.Matrix4(),_R=new THREE.Matrix4(),_P=new THREE.Matrix4(),_M=new THREE.Matrix4(),_c=new THREE.Color();
 function drawCommons(){let n=0;const list=[];for(const c of commons)if(!c.dead)list.push(c);for(const c of commons)if(c.dead)list.push(c);for(const c of list){if(n>=MAXI)break;const rush=!c.dead&&c.state==='rush'&&c.stag<=0;
  _root.makeRotationY(c.yaw);if(c.dead){_R.makeRotationX(-c.fall*1.48);_root.multiply(_R);}else if(rush&&c.mv>1){_R.makeRotationX(.2);_root.multiply(_R);}else if(c.stag>0){_R.makeRotationX(-.35);_root.multiply(_R);}
@@ -1719,9 +1740,10 @@ function update(dt){S.t+=dt;
  const pt=tileOf(player);if(pt!==flowTile||flowDirty){flowTile=pt;flowDirty=false;flow=dijkstra([pt]);}
  // ----- AI -----
  directorUpdate(dt);
- for(const c of commons)updateCommon(c,dt);separateCommons();
+ for(const c of commons)updateCommon(c,dt);
  for(let i=commons.length-1;i>=0;i--){const c=commons[i];if(c.dead&&c.deathT>7)commons.splice(i,1);else if(!c.dead&&flow[tileOf(c)]>=INF&&!S.riding&&Math.hypot(c.x-player.x,c.z-player.z)>60)commons.splice(i,1);}
  for(const s of specials)updateSpecial(s,dt);
+ separateCommons();
  for(let i=specials.length-1;i>=0;i--){const s=specials[i];if(s.dead&&s.deathT>6){scene.remove(s.mesh.g);if(s.mesh.tongue)scene.remove(s.mesh.tongue);specials.splice(i,1);}}
  if(!S.riding)for(const b of bots)updateBot(b,dt);
  if(NET.role!=='client'){tryDeliver(player);for(const b of bots)if(!b.down)tryDeliver(b);}
