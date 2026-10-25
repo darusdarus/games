@@ -1235,12 +1235,12 @@ function launchBoat(){if(BOAT.show)return;BOAT.show=true;BOAT.beached=false;BOAT
 function resetBoat(){BOAT.show=false;BOAT.beached=false;BOAT.vx=0;BOAT.stroke=0;BOAT.seats=[-1,-1,-1,-1];BOAT.tx=null;if(BOAT.g)BOAT.g.visible=false;player.boatSeat=null;for(const b of bots)b.boatSeat=null;}
 function poseBoat(dt){if(!BOAT.g)return;BOAT.g.visible=!!BOAT.show;if(!BOAT.show)return;const bob=Math.sin(S.t*1.25)*0.05+Math.sin(S.t*0.7+1.2)*0.035;BOAT.g.position.set(BOAT.x,WATER+0.08+bob,BOAT.z);BOAT.g.rotation.set(Math.sin(S.t*1.05)*0.025,BOAT.yaw,Math.sin(S.t*0.8)*0.03);const pulling=Math.abs(BOAT.vx)>0.4;const prev=BOAT.stroke;BOAT.stroke=pulling?(BOAT.stroke+dt*1.45)%1:lerp(BOAT.stroke,0,1-Math.exp(-dt*3));if(pulling&&prev>0.85&&BOAT.stroke<0.2&&AU.ctx)nz({dur:.08,f:900,f2:240,type:'bandpass',vol:.12,x:BOAT.x,z:BOAT.z});BOAT.oars.forEach((o,i)=>{const ph=(BOAT.stroke+i*0.07)%1,dip=Math.sin(ph*Math.PI),side=o.userData.side;o.rotation.x=side*(0.18+dip*0.95);o.rotation.y=Math.sin(ph*6.283)*0.28;});}
 function steerBoat(dt){let row=0,turn=0;if(player.boatSeat!=null&&!paddleLocked()){row+=(actionDown('forward')?1:0)-(actionDown('back')?1:0);turn+=(actionDown('right')?1:0)-(actionDown('left')?1:0);}if(NET.role==='host')for(const b of bots)if(b.net&&b.boatSeat!=null&&b.inp){if(!(swimFight()&&b.inp.fire)){row+=(+b.inp.row)||0;turn+=(+b.inp.turn)||0;}}row=clamp(row,-1,1);turn=clamp(turn,-1,1);BOAT.yaw+=turn*0.85*dt;BOAT.vx=lerp(BOAT.vx,row*8,1-Math.exp(-dt*2.4));const c=Math.cos(BOAT.yaw),s=Math.sin(BOAT.yaw);BOAT.x+=c*BOAT.vx*dt;BOAT.z+=-s*BOAT.vx*dt;BOAT.z=clamp(BOAT.z,13.2,20.6);BOAT.x=clamp(BOAT.x,(HIGH_A+4)*T,(BR_B-1)*T);if(bridgeDeckY(Math.floor(BOAT.x/T))<1.15&&BOAT.x>(HIGH_B+8)*T)disembark();}
-function disembark(){if(BOAT.beached)return;BOAT.beached=true;BOAT.vx=0;const landX=(BR_B+1.5)*T;const zs=[0,0.7,-0.7,1.3];if(player.boatSeat!=null){player.x=landX;player.z=8.5*T;player.vx=0;player.vz=0;player.boatSeat=null;}bots.forEach((b,i)=>{if(b.boatSeat==null)return;b.x=landX+1.2;b.z=8.5*T+zs[i%4];b.vx=0;b.vz=0;b.boatSeat=null;});BOAT.seats=[-1,-1,-1,-1];BOAT.x=(BR_B-0.4)*T;BOAT.z=14.5;setObj(7);feed('<b>The skiff is on the Samoa side.</b> Cookhouse ahead.','#9f9');bark(null,'Out of the boat. Cookhouse.','ashore',99);}
+function disembark(){if(BOAT.beached)return;BOAT.beached=true;BOAT.vx=0;clearSwimmers();const landX=(BR_B+1.5)*T;const zs=[0,0.7,-0.7,1.3];if(player.boatSeat!=null){player.x=landX;player.z=8.5*T;player.vx=0;player.vz=0;player.boatSeat=null;}bots.forEach((b,i)=>{if(b.boatSeat==null)return;b.x=landX+1.2;b.z=8.5*T+zs[i%4];b.vx=0;b.vz=0;b.boatSeat=null;});BOAT.seats=[-1,-1,-1,-1];BOAT.x=(BR_B-0.4)*T;BOAT.z=14.5;setObj(7);feed('<b>The skiff is on the Samoa side.</b> Cookhouse ahead.','#9f9');bark(null,'Out of the boat. Cookhouse.','ashore',99);}
 function tickBoat(dt){if(!BOAT.show){if(BOAT.g)BOAT.g.visible=false;return;}if(NET.role==='client'){if(BOAT.tx!=null){const k=1-Math.exp(-dt*8);BOAT.x=lerp(BOAT.x,BOAT.tx,k);BOAT.z=lerp(BOAT.z,BOAT.tz,k);BOAT.yaw=lerpAng(BOAT.yaw,BOAT.tyaw,k);}poseBoat(dt);if(player.boatSeat!=null)seatEnt(player);return;}if(!BOAT.beached)steerBoat(dt);poseBoat(dt);if(player.boatSeat!=null)seatEnt(player);for(const b of bots)if(b.boatSeat!=null)seatEnt(b);}
 
 /* ---- nuns, bikes, the auto-shop parts, and the swimmers on the skiff ---- */
 const bikes=[],nuns=[];
-const BIKE_TOP=16,SWIM_MAX=16,SWIM_ALIVE=6;
+const BIKE_TOP=16,SWIM_MAX=3600,SWIM_ALIVE=2000,GRAB_HOLD=3;
 function bikeSpots(){return [7.25,7.85,8.45,9.05].map(z=>({x:143.15*T,z:z*T}));}
 function nunQuiet(){return S.nuns==='meet'||S.nuns==='need'||S.nuns==='shop'||S.nuns==='parts'||S.nuns==='flee'||S.nuns==='ride';}
 function nunCalm(){return S.nuns==='meet'||S.nuns==='need'||S.nuns==='shop'||S.nuns==='parts';}
@@ -1296,7 +1296,7 @@ function tickNuns(dt){if(!nuns.length||S.phase==='title')return;stepNunFate(dt||
  if(giant){for(const n of nuns){const dx=player.x-n.x,dz=player.z-n.z,d=Math.hypot(dx,dz)||1;const sp=S.nunFate==='chase'?48:6+n.g.scale.x;if(d>4.8)moveEnt(n,dx/d*sp*(dt||0),dz/d*sp*(dt||0),.9);n.yaw=Math.atan2(dx,dz);if(S.nunFate==='chase')nunSmash(n);}
   for(let i=0;i<nuns.length;i++)for(let j=i+1;j<nuns.length;j++){const a=nuns[i],c=nuns[j];let dx=c.x-a.x,dz=c.z-a.z,d=Math.hypot(dx,dz);if(d>=2.8||d<1e-4)continue;dx/=d;dz/=d;const p=(2.8-d)*Math.min((dt||0)*6,.45);a.x-=dx*p;a.z-=dz*p;c.x+=dx*p;c.z+=dz*p;collide(a,.9);collide(c,.9);}}
  nuns.forEach(poseNun);}
-function resetNuns(){S.nuns='wait';S.nunFate='';S.nunT=0;S.nunYell=-1;S.parts=0;S.fixT=0;S.fixBike=-1;S.toldPart=false;S.partNag=0;S.shopUp=false;S.swimOn=false;S.swimMade=0;S.swimT=0;S.swimTold=false;player.bike=null;player.air=false;player.avy=0;player.avx=0;player.avz=0;
+function resetNuns(){clearGrabSlots();S.nuns='wait';S.nunFate='';S.nunT=0;S.nunYell=-1;S.parts=0;S.fixT=0;S.fixBike=-1;S.toldPart=false;S.partNag=0;S.shopUp=false;S.swimOn=false;S.swimMade=0;S.swimT=0;S.swimTold=false;player.bike=null;player.air=false;player.avy=0;player.avx=0;player.avz=0;
  for(const b of bots){b.bike=null;b.fixT=0;}
  const spots=bikeSpots();bikes.forEach((b,i)=>{b.x=spots[i].x;b.z=spots[i].z;b.yaw=-Math.PI/2;b.spd=0;b.fixed=false;b.sunk=false;b.sinking=false;b.sink=0;b.rider=-1;b.spin=0;poseBike(b);});
  nuns.forEach((n,i)=>{n.x=spots[i].x-1.15;n.z=spots[i].z;n.yaw=Math.PI/2;n.smashT=0;n.g.visible=true;n.g.scale.set(1,1,1);clearHulk(n);});}
@@ -1345,16 +1345,35 @@ function swimFight(){return !!S.swimOn&&!BOAT.beached&&(swimAlive()>0||S.swimMad
 function paddleLocked(){return swimFight()&&(firing()||player.trig||player.fireCd>0.02);}
 function nearWaterTile(x,z){const tx=Math.floor(x/T),tz=Math.floor(z/T);if(charAt(tx,tz)==='U')return {x:(tx+.5)*T,z:(tz+.5)*T};
  for(let r=1;r<=8;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)if(Math.abs(dx)===r||Math.abs(dz)===r){if(charAt(tx+dx,tz+dz)==='U')return {x:(tx+dx+.5)*T,z:(tz+dz+.5)*T};}return null;}
-function spawnSwimmer(){if(swimAlive()>=SWIM_ALIVE||S.swimMade>=SWIM_MAX)return false;const ang=rand(0,6.28),rad=rand(7,12);const spot=nearWaterTile(BOAT.x+Math.cos(ang)*rad,BOAT.z+Math.sin(ang)*rad);if(!spot)return false;
- const c=spawnCommon(spot.x,spot.z,true,player);if(!c)return false;c.swim=1;c.state='swim';c.calm=0;c.hp=60;c.y=WATER+0.05;S.swimMade++;return true;}
-function wakeSwimmers(){if(LAYOUT==='linear'||S.swimOn||NET.role==='client')return;S.swimOn=true;S.swimT=.4;for(let i=0;i<5;i++)spawnSwimmer();
- if(!S.swimTold){S.swimTold=true;feed('<b>They are in the water.</b> Shoot them off the skiff. You cannot row while you are shooting.','#f66',10);}}
-function tickSwimSpawn(dt){if(!S.swimOn||NET.role==='client'||BOAT.beached||player.boatSeat==null)return;S.swimT-=dt;if(S.swimT<=0){S.swimT=3.4;spawnSwimmer();}}
-function tickSwim(c,dt){if(BOAT.beached||!BOAT.show){c.dead=true;c.hp=0;c.swim=0;c.deathT=0;return;}const tx=BOAT.x,tz=BOAT.z;let dx=tx-c.x,dz=tz-c.z,d=Math.hypot(dx,dz)||1;dx/=d;dz/=d;
- const climb=d<2.35&&player.boatSeat!=null;if(climb)c.state='climb';else c.state='swim';
- const sp=climb?1.35:2.5;moveEnt(c,dx*sp*dt,dz*sp*dt,.34);c.yaw=Math.atan2(dx,dz);c.mv=sp;c.phase+=dt*6;
- const surface=WATER+0.02,deck=WATER+0.95;if(c.state==='climb'){c.climb=(c.climb||0)+dt;c.y=lerp(surface,deck,clamp(c.climb/1.15,0,1));if(d<1.35&&c.climb>.7){if(player.boatSeat!=null)hurtPlayer(12*dt);for(const b of bots)if(b.boatSeat!=null)hurtSurvivor(b,8*dt);}}
- else{c.climb=0;c.y=surface;}}
+const GRAB_LX=[],GRAB_LZ=[],GRAB_WHO=[];
+for(let i=0;i<14;i++){const lx=-2.7+i*(5.4/13);GRAB_LX.push(lx,lx);GRAB_LZ.push(1.02,-1.02);GRAB_WHO.push(null,null);}
+function boatLocal(x,z){const dx=x-BOAT.x,dz=z-BOAT.z,c=Math.cos(BOAT.yaw),s=Math.sin(BOAT.yaw);return {lx:dx*c-dz*s,lz:dx*s+dz*c};}
+function boatWorld(lx,lz){const c=Math.cos(BOAT.yaw),s=Math.sin(BOAT.yaw);return {x:BOAT.x+lx*c+lz*s,z:BOAT.z-lx*s+lz*c};}
+function releaseGrab(c){if(!c||c.gslot==null)return;if(GRAB_WHO[c.gslot]===c)GRAB_WHO[c.gslot]=null;c.gslot=null;}
+function clearGrabSlots(){for(let i=0;i<GRAB_WHO.length;i++)GRAB_WHO[i]=null;}
+function clearSwimmers(){clearGrabSlots();for(let i=commons.length-1;i>=0;i--)if(commons[i].swim)commons.splice(i,1);}
+function shoveOffBoat(c){releaseGrab(c);const loc=boatLocal(c.x,c.z);const w=boatWorld(clamp(loc.lx,-3,3),loc.lz>=0?1.9:-1.9);c.x=w.x;c.z=w.z;c.y=WATER+0.35;c.state='swim';}
+function takeGrab(c){const loc=boatLocal(c.x,c.z);let best=-1,bd=1e9;for(let i=0;i<GRAB_LX.length;i++){if(GRAB_WHO[i])continue;const d=(GRAB_LX[i]-loc.lx)**2+(GRAB_LZ[i]-loc.lz)**2;if(d<bd){bd=d;best=i;}}
+ if(best<0)return false;GRAB_WHO[best]=c;c.gslot=best;c.jx=c.x;c.jz=c.z;c.jy=c.y;c.jumpT=0;c.state='jump';return true;}
+function spawnSwimmer(){if(swimAlive()>=SWIM_ALIVE||S.swimMade>=SWIM_MAX||aliveCommons()>=MAXC-2)return false;const roll=Math.random();const ahead=roll<0.62;const dist=roll<0.28?rand(2.4,8):ahead?rand(8,52):rand(4,16);const side=rand(-3.5,3.5);const yaw=BOAT.yaw||0;
+ const x=BOAT.x+Math.cos(yaw)*dist+Math.sin(yaw)*side,z=BOAT.z-Math.sin(yaw)*dist+Math.cos(yaw)*side;const spot=nearWaterTile(x,z);if(!spot)return false;
+ const c=spawnCommon(spot.x,spot.z,false);if(!c)return false;c.swim=1;c.state='swim';c.calm=0;c.hp=55;c.speed=4.2;c.y=WATER+0.02;c.target=player;S.swimMade++;return true;}
+function wakeSwimmers(){if(LAYOUT==='linear'||S.swimOn||NET.role==='client')return;S.swimOn=true;S.swimT=0;clearGrabSlots();for(let i=0;i<80;i++)spawnSwimmer();
+ if(!S.swimTold){S.swimTold=true;feed('<b>Thousands of them are in the water.</b> They jump the skiff and grab the edges. Shoot them off. After 3 seconds they climb in.','#f66',12);}}
+function tickSwimSpawn(dt){if(!S.swimOn||NET.role==='client'||BOAT.beached||player.boatSeat==null)return;const need=Math.min(SWIM_ALIVE-swimAlive(),SWIM_MAX-S.swimMade);if(need<=0)return;const batch=Math.min(need,S.swimMade<400?28:10);for(let i=0;i<batch;i++)if(!spawnSwimmer())break;}
+function tickSwim(c,dt){if(BOAT.beached||!BOAT.show){releaseGrab(c);c.dead=true;c.hp=0;c.deathT=2;return;}
+ if(c.state==='jump'&&c.gslot!=null){c.jumpT+=dt/0.42;const u=clamp(c.jumpT,0,1);const w=boatWorld(GRAB_LX[c.gslot],GRAB_LZ[c.gslot]);c.x=lerp(c.jx,w.x,u);c.z=lerp(c.jz,w.z,u);c.y=lerp(c.jy,WATER-0.05,u)+Math.sin(u*Math.PI)*1.45;c.yaw=Math.atan2(BOAT.x-c.x,BOAT.z-c.z);c.mv=6;c.phase+=dt*8;if(u>=1){c.state='grab';c.grabT=0;c.y=WATER-0.05;}return;}
+ if(c.state==='grab'&&c.gslot!=null){const w=boatWorld(GRAB_LX[c.gslot],GRAB_LZ[c.gslot]);c.x=w.x;c.z=w.z;c.y=WATER-0.06;c.yaw=Math.atan2(BOAT.x-c.x,BOAT.z-c.z);c.grabT=(c.grabT||0)+dt;c.mv=.3;c.phase+=dt*11;
+  if(c.grabT>=GRAB_HOLD){c.clx=GRAB_LX[c.gslot];c.clz=GRAB_LZ[c.gslot];releaseGrab(c);c.state='climb';c.climb=0;}return;}
+ if(c.state==='climb'){c.climb=(c.climb||0)+dt;const u=clamp(c.climb/1.15,0,1);const w=boatWorld(lerp(c.clx||0,(c.clx||0)*.12,u),lerp(c.clz||0,(c.clz||0)*.2,u));c.x=w.x;c.z=w.z;c.y=lerp(WATER-0.05,WATER+0.95,u);c.yaw=Math.atan2(BOAT.x-c.x,BOAT.z-c.z);c.mv=1;c.phase+=dt*7;
+  if(u>0.62){if(player.boatSeat!=null)hurtPlayer(16*dt);for(const b of bots)if(b.boatSeat!=null)hurtSurvivor(b,10*dt);}return;}
+ const tx=BOAT.x,tz=BOAT.z;let dx=tx-c.x,dz=tz-c.z,d=Math.hypot(dx,dz)||1;dx/=d;dz/=d;const sp=c.speed||4.2;c.x+=dx*sp*dt;c.z+=dz*sp*dt;c.z=clamp(c.z,13.35,20.55);c.yaw=Math.atan2(dx,dz);c.mv=sp;c.phase+=dt*6;c.y=WATER+0.02+Math.sin(S.t*3+c.phase)*.04;
+ const loc=boatLocal(c.x,c.z);const touch=Math.abs(loc.lx)<3.7&&Math.abs(loc.lz)<1.85;if(touch){if(!takeGrab(c)){const w=boatWorld(clamp(loc.lx,-3.05,3.05),loc.lz>=0?1.85:-1.85);c.x=lerp(c.x,w.x,.4);c.z=lerp(c.z,w.z,.4);}}}
+function swimObjective(){if(LAYOUT==='linear'||!S.swimOn||BOAT.beached||player.boatSeat==null){S.grabN=0;S.climbN=0;return;}let grab=0,climb=0,soon=99;for(const c of commons){if(!c.swim||c.dead)continue;if(c.state==='grab'){grab++;const left=GRAB_HOLD-(c.grabT||0);if(left<soon)soon=left;}else if(c.state==='climb')climb++;}
+ S.grabN=grab;S.climbN=climb;S.grabSoon=soon>90?GRAB_HOLD:soon;
+ if(climb)$('obj').textContent='They are climbing into the skiff. Shoot them off.';
+ else if(grab)$('obj').textContent='Shoot them off the rail. They climb in after '+Math.max(1,Math.ceil(soon))+'s.';
+ else $('obj').textContent='Thousands are swimming for the skiff. Shoot them off.';}
 function applyBikeSnap(rows){if(!rows)return;for(let i=0;i<bikes.length&&i<rows.length;i++){const r=rows[i],b=bikes[i],flags=r[3]|0;b.fixed=!!(flags&1);b.sunk=!!(flags&2);b.sinking=!!(flags&4);b.rider=r[4]|0;b.tx=+r[0];b.tz=+r[1];b.tyaw=+r[2];b.tspd=+r[5]||0;b.sink=b.sinking?Math.max(b.sink||0,0.2):0;
  const mine=player.bike===i&&NET.role==='client',err=Math.hypot(b.x-b.tx,b.z-b.tz);
  if(!mine||err>6){b.x=b.tx;b.z=b.tz;b.yaw=b.tyaw;b.spd=b.tspd;}poseBike(b);}}
@@ -1608,7 +1627,7 @@ const S={phase:'title',t:0,obj:0,kills:0,skills:0,heads:0,dmg:0,ff:0,shots:0,hit
 const player={x:4.5*T,z:8.5*T,y:1.6,yaw:-Math.PI/2,pitch:0.02,hp:100,down:false,lost:[],bite:null,headless:false,cargo:null,credits:[],loose:false,dropX:0,dropZ:0,kit:false,boatSeat:null,zipU:null,bike:null,inv:{primary:null,pistol:{type:'pistol',mag:15,res:Infinity}},slot:'pistol',fireCd:0,reloadT:0,shoveCd:0,lastShove:-9,kickCd:0,trig:false,bob:0,vx:0,vz:0,pinnedBy:null,pulledBy:null,pinShoves:0,flash:false,spread:0,crumbs:[],crumbT:0,hurtT:0,burnT:0};
 const commons=[],specials=[],bots=[],items=[];
 let ENTID=0;
-const MAXC=420,MAXI=520;
+const MAXC=2300,MAXI=2100;
 const SHIRTS=[0x6b5a3a,0x3a4a6b,0x7a2a2a,0x8e8a7c,0x2a2a2a,0x4a6a4a,0x7a5a7a,0x9a7a4a,0x5a3a2a,0xb8b0a0],PANTS=[0x2a2a35,0x3a3228,0x1f2a3a,0x4a4038,0x262626],SKINS=[0x8a9a7a,0x9a9282,0x7a8670,0xa09080];
 const PARTS=[{s:[.5,.62,.28],p:[0,.86,0],o:[0,.31,0]},{s:[.25,.28,.26],p:[0,1.48,0],o:[0,.14,0]},{s:[.12,.6,.12],p:[-.33,1.42,0],o:[0,-.29,0]},{s:[.12,.6,.12],p:[.33,1.42,0],o:[0,-.29,0]},{s:[.17,.84,.18],p:[-.13,.86,0],o:[0,-.42,0]},{s:[.17,.84,.18],p:[.13,.86,0],o:[0,-.42,0]}];
 const partMeshes=PARTS.map(()=>{const m=new THREE.InstancedMesh(boxGeo,new THREE.MeshLambertMaterial({color:0xffffff}),MAXI);m.frustumCulled=false;const c=new THREE.Color(1,1,1);for(let i=0;i<MAXI;i++)m.setColorAt(i,c);m.count=0;scene.add(m);return m;});
@@ -1673,9 +1692,9 @@ function spawnCommon(x,z,alert,target){if(aliveCommons()>=MAXC)return null;if(!i
  if(alert)c.target=target||chooseTarget(c);commons.push(c);return c;}
 function chooseTarget(c){const alive=bots.filter(b=>!b.down);if(alive.length&&Math.random()<0.3){const b=pick(alive);return b;}return player;}
 function alertCommon(c,target){if(c.dead||c.state==='rush')return;c.state='rush';c.target=target||chooseTarget(c);if(Math.random()<.35)SFX.scream(c.x,c.z);}
-function killCommon(c,byPlayer,head,dir){if(c.dead)return;c.dead=true;c.deathT=0;c.fall=0;if(byPlayer){S.kills++;if(head)S.heads++;}DIR.intensity+=1.2;
+function killCommon(c,byPlayer,head,dir){if(c.dead)return;releaseGrab(c);c.dead=true;c.deathT=0;c.fall=0;if(byPlayer){S.kills++;if(head)S.heads++;}DIR.intensity+=1.2;
  for(let i=0;i<(head?14:8);i++)PBlood.emit(c.x,c.y+(head?1.6:1.1),c.z,rand(-1.5,1.5)+(dir?dir.x*2:0),rand(0,2.5),rand(-1.5,1.5)+(dir?dir.z*2:0),rand(.4,.8),.25,.12,.45,.03,.02,.95,9);}
-function damageCommon(c,dmg,head,byPlayer,dir,aggro){if(c.dead)return;c.hp-=head?dmg*4:dmg;c.hitT=.08;
+function damageCommon(c,dmg,head,byPlayer,dir,aggro){if(c.dead)return;if(c.swim&&(c.state==='grab'||c.state==='climb'||c.state==='jump')){shoveOffBoat(c);c.hp=0;killCommon(c,byPlayer,false,dir);for(let i=0;i<8;i++)PBlood.emit(c.x,WATER+0.4,c.z,rand(-2,2),rand(.4,2.2),rand(-2,2),rand(.4,.8),.25,.12,.45,.03,.02,.95,8);SFX.splat(c.x,c.z);return;}c.hp-=head?dmg*4:dmg;c.hitT=.08;
  for(let i=0;i<3;i++)PBlood.emit(c.x,c.y+(head?1.6:1.1),c.z,rand(-1,1),rand(0,1.5),rand(-1,1),rand(.3,.6),.2,.1,.5,.04,.02,.9,8);
  if(dir&&byPlayer){c.x+=dir.x*0.08;c.z+=dir.z*0.08;}
  if(c.hp<=0)killCommon(c,byPlayer,head,dir);else alertCommon(c,aggro||(byPlayer?player:null));}
@@ -1857,10 +1876,11 @@ function rayCyl(o,d,cx,cz,r,y0,y1){const ox=o.x-cx,oz=o.z-cz,a=d.x*d.x+d.z*d.z;i
  for(const t of [(-b-s)/(2*a),(-b+s)/(2*a)]){if(t<0)continue;const y=o.y+d.y*t;if(y>=y0&&y<=y1)return t;}return Infinity;}
 function raySph(o,d,cx,cy,cz,r){const ox=o.x-cx,oy=o.y-cy,oz=o.z-cz,b=ox*d.x+oy*d.y+oz*d.z,c=ox*ox+oy*oy+oz*oz-r*r,disc=b*b-c;if(disc<0)return Infinity;const t=-b-Math.sqrt(disc);return t>=0?t:Infinity;}
 function specY(s){return s.state==='pin'?s.y-.6:s.y;}
+function commonHit(c){if(c.state==='swim')return {hy:c.y+.32,hr:.22,y0:c.y-.02,y1:c.y+.4,r:.5};if(c.state==='grab')return {hy:c.y+1.05,hr:.24,y0:c.y+.15,y1:c.y+1.4,r:.42};if(c.state==='jump')return {hy:c.y+1.25,hr:.22,y0:c.y+.2,y1:c.y+1.55,r:.38};if(c.state==='climb')return {hy:c.y+1.4,hr:.24,y0:c.y+.25,y1:c.y+1.7,r:.4};return {hy:c.y+1.62,hr:.2,y0:c.y,y1:c.y+1.48,r:.34};}
 function traceShot(o,d,dmg,muzzle,owner,dry){owner=owner||player;const maxT=70;let best=shotHitT(o.x,o.y,o.z,d.x,d.y,d.z,maxT);
  let hit=null,head=false,kind=null;
- for(const c of commons){if(c.dead)continue;const dx=c.x-o.x,dz=c.z-o.z;if(dx*d.x+dz*d.z<0)continue;
-  let t=raySph(o,d,c.x,c.y+1.62,c.z,.2);if(t<best){best=t;hit=c;head=true;kind='c';}t=rayCyl(o,d,c.x,c.z,.34,c.y,c.y+1.48);if(t<best){best=t;hit=c;head=false;kind='c';}}
+ for(const c of commons){if(c.dead)continue;const dx=c.x-o.x,dz=c.z-o.z;if(dx*d.x+dz*d.z<0)continue;const h=commonHit(c);
+  let t=raySph(o,d,c.x,h.hy,c.z,h.hr);if(t<best){best=t;hit=c;head=true;kind='c';}t=rayCyl(o,d,c.x,c.z,h.r,h.y0,h.y1);if(t<best){best=t;hit=c;head=false;kind='c';}}
  for(const s of specials){if(s.dead)continue;const sp=SPEC[s.type],y=specY(s);let t=raySph(o,d,s.x,y+sp.hh,s.z,.24);if(t<best){best=t;hit=s;head=true;kind='s';}t=rayCyl(o,d,s.x,s.z,sp.r,y,y+sp.h);if(t<best){best=t;hit=s;head=false;kind='s';}}
  if(NET.ff){for(const b of bots){if(b===owner)continue;const t=rayCyl(o,d,b.x,b.z,.28,b.y+(b.down?0:.2),b.y+(b.down?.5:1.75));if(t<best){best=t;hit=b;kind='b';head=false;}}
   if(owner!==player&&!player.down){const t=rayCyl(o,d,player.x,player.z,.28,player.y+(player.down?0:.2),player.y+1.75);if(t<best){best=t;hit=player;kind='p';}}}
@@ -1874,8 +1894,8 @@ function traceShot(o,d,dmg,muzzle,owner,dry){owner=owner||player;const maxT=70;l
 function beamReach(o,d){return shotHitT(o.x,o.y,o.z,d.x,d.y,d.z,70);}
 function traceLaser(o,d,muzzle,owner,dry){owner=owner||player;const reach=beamReach(o,d);const hits=[];
  const add=(ent,t,head,kind)=>{if(!(t>=0&&t<reach))return;const rec=hits.find(h=>h.ent===ent);if(rec){if(head)rec.head=true;if(t<rec.t)rec.t=t;return;}hits.push({ent,t,head,kind});};
- for(const c of commons){if(c.dead)continue;const dx=c.x-o.x,dz=c.z-o.z;if(dx*d.x+dz*d.z<0)continue;
-  add(c,raySph(o,d,c.x,c.y+1.62,c.z,.2),true,'c');add(c,rayCyl(o,d,c.x,c.z,.34,c.y,c.y+1.48),false,'c');}
+ for(const c of commons){if(c.dead)continue;const dx=c.x-o.x,dz=c.z-o.z;if(dx*d.x+dz*d.z<0)continue;const h=commonHit(c);
+  add(c,raySph(o,d,c.x,h.hy,c.z,h.hr),true,'c');add(c,rayCyl(o,d,c.x,c.z,h.r,h.y0,h.y1),false,'c');}
  for(const s of specials){if(s.dead)continue;const sp=SPEC[s.type],y=specY(s);
   add(s,raySph(o,d,s.x,y+sp.hh,s.z,.24),true,'s');add(s,rayCyl(o,d,s.x,s.z,sp.r,y,y+sp.h),false,'s');}
  if(NET.ff){for(const b of bots){if(b===owner||b.down)continue;add(b,rayCyl(o,d,b.x,b.z,.28,b.y+.2,b.y+1.75),false,'b');}
@@ -2107,7 +2127,7 @@ function placeBot(b){const m=b.mesh;if(b.zipU!=null){const p=zipPos(b.zipU);b.x=
 /* ---- commons update ---- */
 function updateCommon(c,dt){c.hitT=Math.max(0,c.hitT-dt);
  if(c.feast&&!c.dead){c.y=standY(c.x,c.z);c.phase+=dt*9;c.mv=1.5;c.swipe=.25;c.yaw+=dt*2.4;return;}
- if(c.dead){c.deathT+=dt;c.fall=Math.min(1,c.fall+dt*2.6);c.flying=false;const gnd=corpseRestY(c);
+ if(c.dead){if(c.swim){c.deathT+=dt;c.y-=dt*.9;return;}c.deathT+=dt;c.fall=Math.min(1,c.fall+dt*2.6);c.flying=false;const gnd=corpseRestY(c);
   if(c.y>gnd+0.04){c.fvy=(c.fvy||0)-KICK_G*dt;c.y+=c.fvy*dt;if(c.deathT<3)moveEnt(c,(c.fvx||0)*dt,(c.fvz||0)*dt,.3);if(c.y<=gnd){c.y=gnd;c.fvy=0;c.fvx=0;c.fvz=0;}}
   else{c.y=gnd;c.fvy=0;}return;}
  if(c.flying){const phase=tickFlight(c,dt,.3,bodyY);if(phase==='land'){c.state='rush';c.target=c.target||player;c.stag=.35;c.pvx=0;c.pvz=0;}c.mv=Math.hypot(c.fvx||0,c.fvz||0);c.phase+=dt*8;c.swipe=Math.max(0,c.swipe-dt);return;}
@@ -2173,14 +2193,16 @@ function separateCommons(){const a=[];for(const c of commons)if(!c.dead&&!c.flyi
  for(let pass=0;pass<6;pass++)relax();
  for(const s of specials){if(s.dead||s.flying||!s.mesh)continue;s.mesh.g.position.set(s.x,s.y,s.z);}}
 const _root=new THREE.Matrix4(),_R=new THREE.Matrix4(),_P=new THREE.Matrix4(),_M=new THREE.Matrix4(),_c=new THREE.Color();
-function drawCommons(){let n=0;const list=[];for(const c of commons)if(!c.dead)list.push(c);for(const c of commons)if(c.dead)list.push(c);for(const c of list){if(n>=MAXI)break;const rush=!c.dead&&c.state==='rush'&&c.stag<=0;
- _root.makeRotationY(c.yaw);if(c.dead){_R.makeRotationX(-c.fall*1.48);_root.multiply(_R);}else if(c.state==='sob'){_R.makeRotationX(-1.35);_root.multiply(_R);}else if(c.state==='swim'){_R.makeRotationX(1.05);_root.multiply(_R);}else if(c.state==='climb'){_R.makeRotationX(-.35);_root.multiply(_R);}else if(c.flying){_R.makeRotationX(-1.1);_root.multiply(_R);}else if(rush&&c.mv>1){_R.makeRotationX(.2);_root.multiply(_R);}else if(c.stag>0){_R.makeRotationX(-.35);_root.multiply(_R);}
+function drawCommons(){let n=0;const list=[];for(const c of commons)list.push(c);list.sort((a,b)=>{const p=c=>c.dead?4:(c.state==='grab'||c.state==='climb')?0:c.state==='jump'?1:c.swim?2:3;return p(a)-p(b);});for(const c of list){if(n>=MAXI)break;const rush=!c.dead&&c.state==='rush'&&c.stag<=0;
+ _root.makeRotationY(c.yaw);if(c.dead){_R.makeRotationX(-c.fall*1.48);_root.multiply(_R);}else if(c.state==='sob'){_R.makeRotationX(-1.35);_root.multiply(_R);}else if(c.state==='grab'){_R.makeRotationX(.95);_root.multiply(_R);}else if(c.state==='jump'){_R.makeRotationX(-.55);_root.multiply(_R);}else if(c.state==='swim'){_R.makeRotationX(1.05);_root.multiply(_R);}else if(c.state==='climb'){_R.makeRotationX(-.2-Math.min(1,c.climb||0)*.4);_root.multiply(_R);}else if(c.flying){_R.makeRotationX(-1.1);_root.multiply(_R);}else if(rush&&c.mv>1){_R.makeRotationX(.2);_root.multiply(_R);}else if(c.stag>0){_R.makeRotationX(-.35);_root.multiply(_R);}
  _root.setPosition(c.x,c.y+(c.dead?c.fall*.12:0)+(!c.dead&&c.state==='sob'?-.22:0)+(c.state==='swim'?-.2:0),c.z);const sw=Math.sin(c.phase),mvk=Math.min(1,c.mv/2.5);
  for(let k=0;k<6;k++){const p=PARTS[k];let rot=0;
   if(k===2)rot=c.dead?-.4:rush?-1.35+sw*.2-c.swipe*2:-.1+sw*.3*mvk;
   if(k===3)rot=c.dead?-.2:rush?-1.45-sw*.2-c.swipe*1.5:-.1-sw*.3*mvk;
   if(k===4)rot=c.dead?0:sw*.65*mvk;if(k===5)rot=c.dead?0:-sw*.65*mvk;if(k===1)rot=c.dead?0:.15+Math.sin(c.phase*.5)*.1;
   if(!c.dead&&c.state==='sob'){if(k===1)rot=.9;if(k===2||k===3)rot=1.3;if(k===4||k===5)rot=1.55;}
+  if(!c.dead&&c.state==='grab'){if(k===2||k===3)rot=-2.35;if(k===4||k===5)rot=.35;}
+  if(!c.dead&&c.state==='jump'){if(k===2||k===3)rot=-1.7;if(k===4||k===5)rot=.85+sw*.2;}
   if(!c.dead&&(c.state==='swim'||c.state==='climb')){if(k===2)rot=-.7+sw*.9;if(k===3)rot=-.7-sw*.9;if(k===4||k===5)rot=.55;}
   _P.makeTranslation(p.p[0],p.p[1],p.p[2]);_R.makeRotationX(rot);_P.multiply(_R);_R.makeTranslation(p.o[0],p.o[1],p.o[2]);_P.multiply(_R);_R.makeScale(p.s[0],p.s[1],p.s[2]);_P.multiply(_R);
   _M.multiplyMatrices(_root,_P);if(k===1&&c.noHead){_R.makeScale(.001,.001,.001);_M.multiply(_R);}partMeshes[k].setMatrixAt(n,_M);
@@ -2301,12 +2323,12 @@ function update(dt){S.t+=dt;
  // ----- AI -----
  directorUpdate(dt);
  for(const c of commons)updateCommon(c,dt);
- for(let i=commons.length-1;i>=0;i--){const c=commons[i];const far=Math.hypot(c.x-player.x,c.z-player.z);if(c.dead&&(c.deathT>48||(c.deathT>8&&far>68)))commons.splice(i,1);else if(!c.dead&&!c.feast&&flow[tileOf(c)]>=INF&&!S.riding&&far>60)commons.splice(i,1);}
+ for(let i=commons.length-1;i>=0;i--){const c=commons[i];const far=Math.hypot(c.x-player.x,c.z-player.z);if(c.dead&&c.swim&&c.deathT>1.5)commons.splice(i,1);else if(c.dead&&(c.deathT>48||(c.deathT>8&&far>68)))commons.splice(i,1);else if(!c.dead&&!c.feast&&!c.swim&&flow[tileOf(c)]>=INF&&!S.riding&&far>60)commons.splice(i,1);}
  {const dead=commons.filter(c=>c.dead);if(dead.length>100){dead.sort((a,b)=>(Math.hypot(b.x-player.x,b.z-player.z)+b.deathT*2)-(Math.hypot(a.x-player.x,a.z-player.z)+a.deathT*2));for(let k=0;k<dead.length-100;k++){const i=commons.indexOf(dead[k]);if(i>=0)commons.splice(i,1);}}}
  for(const s of specials)updateSpecial(s,dt);
  separateCommons();
  for(let i=specials.length-1;i>=0;i--){const s=specials[i];const far=Math.hypot(s.x-player.x,s.z-player.z);if(s.dead&&(s.deathT>48||(s.deathT>8&&far>68))){scene.remove(s.mesh.g);if(s.mesh.tongue)scene.remove(s.mesh.tongue);specials.splice(i,1);}}
- beginNuns();tickNuns(dt);tickBikes(dt);tickSwimSpawn(dt);nunObjective();
+ beginNuns();tickNuns(dt);tickBikes(dt);tickSwimSpawn(dt);nunObjective();swimObjective();
  if(!S.riding)for(const b of bots)updateBot(b,dt);
  if(NET.role!=='client'){tryDeliver(player);for(const b of bots)if(!b.down)tryDeliver(b);}
  // ----- triggers / objectives -----
@@ -2335,7 +2357,7 @@ function startRide(){S.riding=true;S.rideT=0;doors.d=false;flowDirty=true;setObj
  if(AU.ctx)tn({type:'sawtooth',f:55,dur:5,vol:.15,lp:200,att:.5});}
 function endRide(){S.riding=false;S.inLobby=true;S.shake=0;
  player.z+=5*T;for(const b of bots){b.z+=5*T;placeBot(b);}player.crumbs=[];
- for(const s of specials){scene.remove(s.mesh.g);if(s.mesh.tongue)scene.remove(s.mesh.tongue);}specials.length=0;commons.length=0;DIR.waves.length=0;
+ for(const s of specials){scene.remove(s.mesh.g);if(s.mesh.tongue)scene.remove(s.mesh.tongue);}specials.length=0;commons.length=0;clearGrabSlots();DIR.waves.length=0;
  doors.g=true;flowDirty=true;flow=dijkstra([tileOf(player)]);flowTile=tileOf(player);setObj(9);SFX.ding(36*T,33*T);
  setTimeout(()=>$('fade').style.opacity=0,AUTOTEST?0:300);
  for(let i=0;i<9;i++){const sp=pickSpawn(6,40,false);if(sp)spawnCommon(sp.x,sp.z,false);}
@@ -2447,7 +2469,8 @@ function updateHud(dt){flashT=Math.max(0,flashT-dt*1.6);if(goreT>0){goreT-=dt;if
   let act='Healing...';if(S.fixT>0&&!(S.healT>0)&&!(S.revT>0))act='Fixing the bike...';else if(!(S.healT>0)){const vic=S.revBot;if(vic&&!limbsLeft(vic).length)act=S.cut==='head'?'Cutting off the head...':'Bringing them back with one limb...';else act='Cutting off the bitten '+(vic&&vic.bite?LIMB_NAME[vic.bite]:'limb')+'...';}
   $('bartxt').textContent=act;}else bar.classList.add('hidden');
  document.body.classList.toggle('downed',!!player.down&&S.phase==='play');
- const bayMsg=player.air?'THROWN':player.bike!=null?'W DRIVES · A/D TURNS':player.boatSeat!=null?(paddleLocked()?'SHOOTING — OARS ARE UP':'W ROWS · A/D TURNS — FOUR OARS'):(chAt(player)==='U'?(S.bridge==='fall'?'THE SPAN IS GOING':(BOAT.show?'GET IN THE BOAT — E':'SWIM — SAMOA SHORE')):'');
+ const bayBoat=paddleLocked()?'SHOOTING — OARS ARE UP':(S.swimOn&&S.climbN)?'THEY ARE CLIMBING IN':(S.swimOn&&S.grabN)?('SHOOT THE RAIL · '+Math.max(0,S.grabSoon||0).toFixed(1)+'s'):S.swimOn?'SHOOT THEM OFF THE SKIFF':'W ROWS · A/D TURNS — FOUR OARS';
+ const bayMsg=player.air?'THROWN':player.bike!=null?'W DRIVES · A/D TURNS':player.boatSeat!=null?bayBoat:(chAt(player)==='U'?(S.bridge==='fall'?'THE SPAN IS GOING':(BOAT.show?'GET IN THE BOAT — E':'SWIM — SAMOA SHORE')):'');
  const downRoom=SAFES[safeIndex]&&SAFES[safeIndex].name;
  const downMsg=player.down?(player.headless?('HEADLESS — get the head to '+(downRoom||'the safe room')):(limbsLeft(player).length?('DOWN — bite on the '+(LIMB_NAME[player.bite]||'limb')+'. You can still shoot'):(downRoom?('DOWN — cut off the head for '+downRoom+', or bring you back with one limb. You can still shoot'):'DOWN — a teammate can bring you back with one limb. You can still shoot'))):'';
  $('pinmsg').innerHTML=player.pinnedBy?(document.body.classList.contains('touching')?'HUNTER! MASH SHOVE (':'HUNTER! MASH '+keyLabel(bindCode('shove'))+' TO SHOVE (')+player.pinShoves+'/5)':player.pulledBy?'SMOKER TONGUE! SHOOT IT!':downMsg||bayMsg||(S.biledT>0?'<span style="color:#cf6">BILED — THE HORDE CAN SMELL YOU</span>':'');}
@@ -2502,7 +2525,7 @@ function resetBotBody(b,i){freshBody(b);const sp=BOT_SPAWN[i];b.x=sp[0]*T;b.z=sp
 function resetChapter(remote){introGen++;restoreSpan();S.phase='play';S.t=0;S.obj=0;S.kills=0;S.skills=0;S.heads=0;S.dmg=0;S.ff=0;S.shots=0;S.hits=0;S.alarmT=-1;S.elevT=-1;S.elevArrived=false;S.inElevT=0;S.riding=false;S.rideT=0;S.inLobby=false;S.lobbyHorde=false;S.biledT=0;S.healT=0;S.revT=0;S.revBot=null;S.cut=null;S.shake=0;S.fade=0;S.dirOn=false;S.complete=false;S.lowHpT=0;S.fly=false;S.endPack=null;S.spotted={};if(COOPTEST)S.god=true;else if(!remote)S.god=false;
  player.x=4.5*T;player.z=8.5*T;player.y=groundAt(4.5*T,8.5*T)+1.62;player.yaw=-Math.PI/2;player.pitch=0.04;player.hp=100;player.down=false;freshBody(player);player.lost=[];player.bite=null;player.kit=false;player.zipU=null;player.inv={primary:null,pistol:{type:'pistol',mag:15,res:Infinity}};player.slot='pistol';player.fireCd=0;player.reloadT=0;player.shoveCd=0;player.lastShove=-9;player.kickCd=0;player.trig=false;player.bob=0;player.vx=0;player.vz=0;player.pinnedBy=null;player.pulledBy=null;player.pinShoves=0;player.flash=false;player.spread=0;player.crumbs=[];player.crumbT=0;player.hurtT=0;player.burnT=0;poseOwnArms();
  for(const id of DOOR_IDS)doors[id]=false;if(doorMeshes.btn)doorMeshes.btn.material=mat(0xff3311,{emissive:0x661100});
- for(const it of items){it.taken=false;it.g.visible=true;}clearSpecials();commons.length=0;
+ for(const it of items){it.taken=false;it.g.visible=true;}clearSpecials();commons.length=0;clearGrabSlots();
  if(remote){NET.cmap.clear();NET.smap.clear();NET.commonsReady=false;}else seedCommons();
  bots.forEach(resetBotBody);resetNuns();DIR.intensity=0;DIR.mode='BUILD-UP';DIR.relaxUntil=0;DIR.nextSpecial=0;DIR.nextHorde=0;DIR.spawnT=0;DIR.waves.length=0;DIR.queue=['smoker','boomer','hunter'];DIR.peakT=0;
  safeIndex=0;recomputeRoute();flowDirty=true;flowTile=-1;feedLines.length=0;for(const k in barkCd)delete barkCd[k];renderFeed();
@@ -2740,7 +2763,7 @@ function applyHead(ent,s){if(!ent||!s)return;ent.headless=!!s.head;const mask=s.
 function bindAllCargo(){const all=[player,...bots];for(const ent of all){const slot=ent._cg;ent.cargo=(typeof slot==='number'&&slot>=0)?entBySlot(slot):null;}
  for(const ent of all)ent.loose=!!(ent.headless&&!holderOf(ent));poseCargo();}
 function buildSnap(){const slots=[slotPack(player,0)];bots.forEach((b,i)=>slots.push(slotPack(b,i+1)));
- const c=[];for(const z of commons){if(z.dead&&Math.hypot(z.x-player.x,z.z-player.z)>36)continue;const pose=z.state==='sob'?1:z.state==='headwait'?2:z.state==='headwalk'?3:z.state==='swim'?4:z.state==='climb'?5:0;c.push([z.id,nq(z.x),nq(z.z),nq(z.yaw),Math.round(z.hp),z.dead?1:0,z.state==='rush'?1:0,nq(z.fall||0),z.shirt,z.pants,z.skin,nq(z.y),pose]);}
+ const c=[];let nearSwim=0;for(const z of commons){if(z.swim&&z.dead)continue;const pose=z.state==='sob'?1:z.state==='headwait'?2:z.state==='headwalk'?3:z.state==='swim'?4:z.state==='climb'?5:z.state==='jump'?6:z.state==='grab'?7:0;if(pose===4){if(Math.hypot(z.x-player.x,z.z-player.z)>18||nearSwim>=100)continue;nearSwim++;}else if(z.dead&&Math.hypot(z.x-player.x,z.z-player.z)>36)continue;c.push([z.id,nq(z.x),nq(z.z),nq(z.yaw),Math.round(z.hp),z.dead?1:0,z.state==='rush'?1:0,nq(z.fall||0),z.shirt,z.pants,z.skin,nq(z.y),pose]);}
  const s=[];for(const sp of specials){let vs=-1;if(sp.vic===player)vs=0;else if(sp.vic){const i=bots.indexOf(sp.vic);if(i>=0)vs=i+1;}s.push([sp.id,sp.type,nq(sp.x),nq(sp.z),nq(sp.y),nq(sp.yaw),Math.round(sp.hp),sp.dead?1:0,sp.state,vs]);}
  return {t:'snap',seq:++NET.seq,slots,c,s,doors:DOOR_IDS.map(id=>doors[id]?1:0),safe:safeIndex,items:items.map(i=>i.taken?'1':'0').join(''),
   obj:S.obj,objT:$('obj').textContent||'',phase:S.phase,riding:S.riding?1:0,lobby:S.inLobby?1:0,elev:S.elevT<0?-1:Math.max(0,Math.ceil(30-(S.t-S.elevT))),elevA:S.elevArrived?1:0,
@@ -2758,9 +2781,9 @@ function syncInvFrom(me){const pose=NET.poseUntil>S.t;const keepMag=player.reloa
  if(player.inv.primary&&player.inv.primary.bottomless){player.inv.primary.mag=WEAP.shotgun.mag;player.inv.primary.res=Infinity;}}
 function syncCommons(list){if(!NET.commonsReady){commons.length=0;NET.cmap.clear();NET.commonsReady=true;}
  const seen=new Set();
- for(const row of list){const [id,x,z,yaw,hp,dead,rush,fall,shirt,pants,skin,y]=row;const hasY=row.length>11&&Number.isFinite(+y);const pose=row.length>12?row[12]|0:0;const posed=pose===1?'sob':pose===2?'headwait':pose===3?'headwalk':pose===4?'swim':pose===5?'climb':'';seen.add(id);let c=NET.cmap.get(id);
-  if(!c){c={id,x,z,y:hasY?+y:groundAt(x,z),yaw,hp,dead:!!dead,deathT:0,fall:fall||0,state:posed||(rush?'rush':'wander'),shirt,pants,skin,phase:Math.random()*6,mv:0,swipe:0,stag:0,hitT:0,noHead:pose>=2&&pose<=3,swim:pose===4||pose===5?1:0,tx:x,tz:z,ty:hasY?+y:null,tyaw:yaw};commons.push(c);NET.cmap.set(id,c);}
-  c.tx=x;c.tz=z;c.ty=hasY?+y:null;c.tyaw=yaw;c.hp=hp;if(dead&&!c.dead)c.deathT=0;c.dead=!!dead;c.swim=pose===4||pose===5?1:0;if(posed){c.state=posed;c.noHead=pose>=2&&pose<=3;}else{c.state=rush?'rush':'wander';if(!dead)c.noHead=false;}c.fall=fall||0;if(Math.hypot(c.x-x,c.z-z)>4){c.x=x;c.z=z;if(hasY)c.y=+y;}}
+ for(const row of list){const [id,x,z,yaw,hp,dead,rush,fall,shirt,pants,skin,y]=row;const hasY=row.length>11&&Number.isFinite(+y);const pose=row.length>12?row[12]|0:0;const posed=pose===1?'sob':pose===2?'headwait':pose===3?'headwalk':pose===4?'swim':pose===5?'climb':pose===6?'jump':pose===7?'grab':'';const inWater=pose>=4&&pose<=7;seen.add(id);let c=NET.cmap.get(id);
+  if(!c){c={id,x,z,y:hasY?+y:groundAt(x,z),yaw,hp,dead:!!dead,deathT:0,fall:fall||0,state:posed||(rush?'rush':'wander'),shirt,pants,skin,phase:Math.random()*6,mv:0,swipe:0,stag:0,hitT:0,noHead:pose>=2&&pose<=3,swim:inWater?1:0,tx:x,tz:z,ty:hasY?+y:null,tyaw:yaw};commons.push(c);NET.cmap.set(id,c);}
+  c.tx=x;c.tz=z;c.ty=hasY?+y:null;c.tyaw=yaw;c.hp=hp;if(dead&&!c.dead)c.deathT=0;c.dead=!!dead;c.swim=inWater?1:0;if(posed){c.state=posed;c.noHead=pose>=2&&pose<=3;}else{c.state=rush?'rush':'wander';if(!dead)c.noHead=false;}c.fall=fall||0;if(Math.hypot(c.x-x,c.z-z)>4){c.x=x;c.z=z;if(hasY)c.y=+y;}}
  for(const [id,c] of [...NET.cmap])if(!seen.has(id)){NET.cmap.delete(id);const i=commons.indexOf(c);if(i>=0)commons.splice(i,1);}}
 function syncSpecials(list){const seen=new Set();
  for(const row of list){const [id,type,x,z,y,yaw,hp,dead,state,vicSlot]=row;seen.add(id);let s=NET.smap.get(id);
@@ -2820,7 +2843,7 @@ function applySnap(m){NET.snap=m;NET.snaps++;
 function smoothRemote(dt){const k=1-Math.exp(-dt*14);
  for(const b of bots){if(b.tx==null)continue;const ox=b.x,oz=b.z;b.x=lerp(b.x,b.tx,k);b.z=lerp(b.z,b.tz,k);b.yaw=lerpAng(b.yaw,b.tyaw||b.yaw,k);b.moveSpd=Math.hypot(b.x-ox,b.z-oz)/Math.max(dt,1e-4);b.phase+=dt*8*Math.min(1,b.moveSpd/3);
   if(b.down){b.mesh.b.rotation.x=lerp(b.mesh.b.rotation.x,-1.45,dt*5);if(b.tag)b.tag.material.color.setHex(0xff4444);}else{b.mesh.b.rotation.x=lerp(b.mesh.b.rotation.x,0,dt*5);if(b.tag)b.tag.material.color.setHex(0xffffff);}placeBot(b);}
- for(const c of commons){if(c.tx==null)continue;const ox=c.x,oz=c.z;c.x=lerp(c.x,c.tx,k);c.z=lerp(c.z,c.tz,k);c.yaw=lerpAng(c.yaw,c.tyaw||c.yaw,k);c.mv=Math.hypot(c.x-ox,c.z-oz)/Math.max(dt,1e-4);c.phase+=dt*(1.5+c.mv*1.6);c.y=c.ty!=null?lerp(c.y,c.ty,k):bodyY(c.x,c.z);c.flying=!c.dead&&!kickPosed(c)&&c.state!=='swim'&&c.state!=='climb'&&c.y>bodyY(c.x,c.z)+1.2;if(c.state==='sob'&&(c.sobSnd||0)<=S.t){c.sobSnd=S.t+rand(1.2,1.8);SFX.sob(c.x,c.z);}if(c.dead)c.deathT+=dt;}
+ for(const c of commons){if(c.tx==null)continue;const ox=c.x,oz=c.z;c.x=lerp(c.x,c.tx,k);c.z=lerp(c.z,c.tz,k);c.yaw=lerpAng(c.yaw,c.tyaw||c.yaw,k);c.mv=Math.hypot(c.x-ox,c.z-oz)/Math.max(dt,1e-4);c.phase+=dt*(1.5+c.mv*1.6);c.y=c.ty!=null?lerp(c.y,c.ty,k):bodyY(c.x,c.z);c.flying=!c.dead&&!kickPosed(c)&&c.state!=='swim'&&c.state!=='climb'&&c.state!=='jump'&&c.state!=='grab'&&c.y>bodyY(c.x,c.z)+1.2;if(c.state==='sob'&&(c.sobSnd||0)<=S.t){c.sobSnd=S.t+rand(1.2,1.8);SFX.sob(c.x,c.z);}if(c.dead)c.deathT+=dt;}
  for(const s of specials){if(s.tx==null||!s.mesh)continue;s.x=lerp(s.x,s.tx,k);s.z=lerp(s.z,s.tz,k);if(s.ty!=null)s.y=lerp(s.y,s.ty,k);s.yaw=lerpAng(s.yaw,s.tyaw||s.yaw,k);
   if(s.dead){s.deathT=(s.deathT||0)+dt;s.mesh.b.rotation.x=lerp(s.mesh.b.rotation.x,-1.5,dt*5);s.mesh.g.visible=true;s.mesh.g.rotation.x=0;s.mesh.g.rotation.z=0;s.mesh.g.position.set(s.x,s.y,s.z);continue;}
   if(kickPosed(s)){poseKickSpecial(s);if(s.state==='sob'&&(s.sobSnd||0)<=S.t){s.sobSnd=S.t+rand(1.2,1.8);SFX.sob(s.x,s.z);}if(s.mesh.tongue)s.mesh.tongue.visible=false;continue;}
@@ -2842,7 +2865,7 @@ function clientUpdate(dt){S.t+=dt;player.fireCd=Math.max(0,player.fireCd-dt);pla
  const rowing=player.boatSeat!=null&&BOAT.show,biking=player.bike!=null,drive=biking||(rowing&&!paddleLocked());
  const back=biking?(actionDown('back')?.4:0):(actionDown('back')?1:0);
  sendInput(dt,{mx,mz,sprint,fire:wantFire,use:actionDown('use')&&!NET.paused&&!player.down,row:drive?((actionDown('forward')?1:0)-back):0,turn:drive?((actionDown('right')?1:0)-(actionDown('left')?1:0)):0});
- tickNuns(dt);tickBikes(dt);nunObjective();smoothRemote(dt);updateFx(dt,region());}
+ tickNuns(dt);tickBikes(dt);nunObjective();swimObjective();smoothRemote(dt);updateFx(dt,region());}
 function sendInput(dt,st){NET.acc=(NET.acc||0)+dt;if(NET.acc<1/20&&!NET.edges.length)return;NET.acc=0;
  const msg={t:'in',seq:++NET.iseq,y:player.yaw,p:player.pitch,mx:+st.mx||0,mz:+st.mz||0,sprint:st.sprint?1:0,fire:st.fire?1:0,use:st.use?1:0,row:+st.row||0,turn:+st.turn||0,cut:cutOk(S.cut)?S.cut:'',edges:NET.edges.splice(0,NET.edges.length)};
  if(NET.conn&&NET.conn.open)NET.conn.send(msg);}
@@ -3020,8 +3043,10 @@ window.__game={autopilot,update,updateCamera,fire,AP,useTargets,moveEnt,collide,
  asClient(){NET.role='client';paintFF();paintRestart();},
  sent(){return NET._sent||[];},
  simulate(sec){const dt=1/30,n=Math.round(sec*30);for(let i=0;i<n&&S.phase==='play';i++){if(NET.role==='client'){clientUpdate(dt);updateCamera(dt);}else{if(AP.on)autopilot(dt);updateCamera(dt);update(dt);}}updateCamera(1/30);updateHud(1);
-  return {t:+S.t.toFixed(1),phase:S.phase,obj:S.obj,objText:OBJ[S.obj],safe:safeIndex,hp:Math.round(player.hp),pos:[+(player.x/T).toFixed(1),+(player.z/T).toFixed(1)],tile:chAt(player),kills:S.kills,skills:S.skills,commons:aliveCommons(),specials:specials.filter(s=>!s.dead).map(s=>s.type+':'+s.state),bots:bots.map(b=>b.name+':'+Math.round(b.hp)+(b.down?'D':'')+(b.boatSeat!=null?'B':'')+(b.zipU!=null?'Z':'')),dmg:Math.round(S.dmg),ff:S.ff,dir:DIR.mode,bridge:S.bridge,bridgeT:+S.bridgeT.toFixed(2),y:+player.y.toFixed(2),seat:player.boatSeat,zip:player.zipU==null?-1:+player.zipU.toFixed(2),boat:BOAT.show?[+BOAT.x.toFixed(1),+BOAT.z.toFixed(1),+BOAT.yaw.toFixed(2),BOAT.oars.length,BOAT.beached?1:0]:null,nuns:S.nuns,parts:S.parts|0,bike:player.bike,swim:swimAlive(),fixed:bikes.filter(b=>b.fixed).length,nunFate:S.nunFate||'',nunScale:nuns[0]?+nuns[0].g.scale.x.toFixed(2):0,air:!!player.air,ay:+(player.ay||0).toFixed(2),yaw:+player.yaw.toFixed(3),byaw:player.bike!=null&&bikes[player.bike]?+bikes[player.bike].yaw.toFixed(3):null,feast:commons.filter(c=>c.feast&&!c.dead).length,objNow:$('obj').textContent};},
+  return {t:+S.t.toFixed(1),phase:S.phase,obj:S.obj,objText:OBJ[S.obj],safe:safeIndex,hp:Math.round(player.hp),pos:[+(player.x/T).toFixed(1),+(player.z/T).toFixed(1)],tile:chAt(player),kills:S.kills,skills:S.skills,commons:aliveCommons(),specials:specials.filter(s=>!s.dead).map(s=>s.type+':'+s.state),bots:bots.map(b=>b.name+':'+Math.round(b.hp)+(b.down?'D':'')+(b.boatSeat!=null?'B':'')+(b.zipU!=null?'Z':'')),dmg:Math.round(S.dmg),ff:S.ff,dir:DIR.mode,bridge:S.bridge,bridgeT:+S.bridgeT.toFixed(2),y:+player.y.toFixed(2),seat:player.boatSeat,zip:player.zipU==null?-1:+player.zipU.toFixed(2),boat:BOAT.show?[+BOAT.x.toFixed(1),+BOAT.z.toFixed(1),+BOAT.yaw.toFixed(2),BOAT.oars.length,BOAT.beached?1:0]:null,nuns:S.nuns,parts:S.parts|0,bike:player.bike,swim:swimAlive(),fixed:bikes.filter(b=>b.fixed).length,nunFate:S.nunFate||'',nunScale:nuns[0]?+nuns[0].g.scale.x.toFixed(2):0,air:!!player.air,ay:+(player.ay||0).toFixed(2),yaw:+player.yaw.toFixed(3),byaw:player.bike!=null&&bikes[player.bike]?+bikes[player.bike].yaw.toFixed(3):null,feast:commons.filter(c=>c.feast&&!c.dead).length,swims:commons.filter(c=>c.swim&&!c.dead&&c.state==='swim').length,grabs:commons.filter(c=>c.state==='grab'&&!c.dead).length,climbs:commons.filter(c=>c.state==='climb'&&!c.dead).length,jumps:commons.filter(c=>c.state==='jump'&&!c.dead).length,pin:$('pinmsg').textContent,objNow:$('obj').textContent};},
  armBikes(){if(!bikes.length)return null;S.nuns='ride';openGate(true);bikes.forEach(b=>{b.fixed=true;b.sunk=false;b.sinking=false;b.rider=-1;});player.bike=null;mountBike(player,0);return {nuns:S.nuns,bike:player.bike,yaw:+player.yaw.toFixed(3),gate:!!doors.gate};},
+ armBoat(){if(player.bike!=null)leaveBike(player);player.x=(220.5)*T;player.z=(8.5)*T;if(S.bridge==='up')collapseBridge(true);S.bridge='swim';S.bridgeT=4;poseBridge(4);if(!BOAT.show)launchBoat();BOAT.beached=false;BOAT.x=player.x;BOAT.z=17;BOAT.yaw=0;BOAT.vx=0;if(player.boatSeat==null)boardBoat(player);return {seat:player.boatSeat,on:!!S.swimOn,alive:swimAlive(),bridge:S.bridge,made:S.swimMade|0};},
+ frame(px,py,pz,lx,ly,lz){camera.position.set(px,py,pz);camera.lookAt(lx,ly,lz);camera.updateMatrixWorld();poseBoat(0);drawCommons();render();},
  lookAt(x,y,z){const dx=x-player.x,dz=z-player.z;player.yaw=Math.atan2(-dx,-dz);player.pitch=Math.atan2(y-player.y,Math.hypot(dx,dz));updateCamera(1);},
  teleport(tx,tz){player.zipU=null;player.x=(tx+.5)*T;player.z=(tz+.5)*T;player.y=groundAt(player.x,player.z)+1.6;updateCamera(1);},
  ride(){beginZip(player);},
