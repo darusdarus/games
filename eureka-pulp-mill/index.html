@@ -1441,7 +1441,7 @@ function rayCyl(o,d,cx,cz,r,y0,y1){const ox=o.x-cx,oz=o.z-cz,a=d.x*d.x+d.z*d.z;i
  for(const t of [(-b-s)/(2*a),(-b+s)/(2*a)]){if(t<0)continue;const y=o.y+d.y*t;if(y>=y0&&y<=y1)return t;}return Infinity;}
 function raySph(o,d,cx,cy,cz,r){const ox=o.x-cx,oy=o.y-cy,oz=o.z-cz,b=ox*d.x+oy*d.y+oz*d.z,c=ox*ox+oy*oy+oz*oz-r*r,disc=b*b-c;if(disc<0)return Infinity;const t=-b-Math.sqrt(disc);return t>=0?t:Infinity;}
 function specY(s){return s.state==='pin'?s.y-.6:s.y;}
-function traceShot(o,d,dmg,muzzle,owner){owner=owner||player;const maxT=70;let best=wallHitT(o.x,o.z,d.x,d.z,maxT);const gy=groundAt(o.x,o.z);if(d.y<-1e-4)best=Math.min(best,(o.y-gy)/(-d.y));const ch=ceilAt(o.x,o.z);if(ch!==null&&d.y>1e-4)best=Math.min(best,(ch-o.y)/d.y);
+function traceShot(o,d,dmg,muzzle,owner,dry){owner=owner||player;const maxT=70;let best=wallHitT(o.x,o.z,d.x,d.z,maxT);const gy=groundAt(o.x,o.z);if(d.y<-1e-4)best=Math.min(best,(o.y-gy)/(-d.y));const ch=ceilAt(o.x,o.z);if(ch!==null&&d.y>1e-4)best=Math.min(best,(ch-o.y)/d.y);
  let hit=null,head=false,kind=null;
  for(const c of commons){if(c.dead)continue;const dx=c.x-o.x,dz=c.z-o.z;if(dx*d.x+dz*d.z<0)continue;
   let t=raySph(o,d,c.x,c.y+1.62,c.z,.2);if(t<best){best=t;hit=c;head=true;kind='c';}t=rayCyl(o,d,c.x,c.z,.34,c.y,c.y+1.48);if(t<best){best=t;hit=c;head=false;kind='c';}}
@@ -1449,14 +1449,14 @@ function traceShot(o,d,dmg,muzzle,owner){owner=owner||player;const maxT=70;let b
  if(NET.ff){for(const b of bots){if(b===owner)continue;const t=rayCyl(o,d,b.x,b.z,.28,b.y+(b.down?0:.2),b.y+(b.down?.5:1.75));if(t<best){best=t;hit=b;kind='b';head=false;}}
   if(owner!==player&&!player.down){const t=rayCyl(o,d,player.x,player.z,.28,player.y+(player.down?0:.2),player.y+1.75);if(t<best){best=t;hit=player;kind='p';}}}
  _e.copy(d).multiplyScalar(best).add(o);
- if(kind==='c'){damageCommon(hit,dmg,head,true,d,owner===player?undefined:owner);S.hits++;if(head)SFX.head(hit.x,hit.z);else SFX.flesh(hit.x,hit.z);if(owner===player)hitMark();}
- else if(kind==='s'){damageSpecial(hit,dmg,head,true);S.hits++;SFX.flesh(hit.x,hit.z);if(owner===player)hitMark();}
- else if(kind==='b'){if(!hit.down){const f=Math.max(1,Math.round(dmg*.1));hit.hp=Math.max(1,hit.hp-f);S.ff+=f;bark(hit,pick(['Hey! Watch your fire!','Ow! Friendly fire!','Quit shooting me!']),'ff',4);}}
- else if(kind==='p'){const f=Math.max(1,Math.round(dmg*.1));S.ff+=f;hurtPlayer(f);}
+ if(kind==='c'){if(!dry){damageCommon(hit,dmg,head,true,d,owner===player?undefined:owner);S.hits++;}else for(let i=0;i<3;i++)PBlood.emit(hit.x,hit.y+(head?1.6:1.1),hit.z,rand(-1,1),rand(0,1.5),rand(-1,1),rand(.3,.6),.2,.1,.5,.04,.02,.9,8);if(head)SFX.head(hit.x,hit.z);else SFX.flesh(hit.x,hit.z);if(owner===player)hitMark();}
+ else if(kind==='s'){if(!dry){damageSpecial(hit,dmg,head,true);S.hits++;}else for(let i=0;i<3;i++)PBlood.emit(hit.x,hit.y+1,hit.z,rand(-1,1),rand(0,1.5),rand(-1,1),rand(.3,.6),.2,.1,.5,.04,.02,.9,8);SFX.flesh(hit.x,hit.z);if(owner===player)hitMark();}
+ else if(kind==='b'){if(!dry&&!hit.down){const f=Math.max(1,Math.round(dmg*.1));hit.hp=Math.max(1,hit.hp-f);S.ff+=f;bark(hit,pick(['Hey! Watch your fire!','Ow! Friendly fire!','Quit shooting me!']),'ff',4);}}
+ else if(kind==='p'){if(!dry){const f=Math.max(1,Math.round(dmg*.1));S.ff+=f;hurtPlayer(f);}}
  else{for(let i=0;i<3;i++)PSpark.emit(_e.x,_e.y,_e.z,rand(-2,2),rand(0,2.5),rand(-2,2),rand(.15,.3),.12,.02,1,.75,.4,1,9);PSmoke.emit(_e.x,_e.y,_e.z,0,.3,0,.8,.15,.6,.5,.48,.44,.4,0);}
  tracer(muzzle,_e);return _e.clone();}
 function beamReach(o,d){const maxT=70;let best=wallHitT(o.x,o.z,d.x,d.z,maxT);const gy=groundAt(o.x,o.z);if(d.y<-1e-4)best=Math.min(best,(o.y-gy)/(-d.y));const ch=ceilAt(o.x,o.z);if(ch!==null&&d.y>1e-4)best=Math.min(best,(ch-o.y)/d.y);return best;}
-function traceLaser(o,d,muzzle,owner){owner=owner||player;const reach=beamReach(o,d);const hits=[];
+function traceLaser(o,d,muzzle,owner,dry){owner=owner||player;const reach=beamReach(o,d);const hits=[];
  const add=(ent,t,head,kind)=>{if(!(t>=0&&t<reach))return;const rec=hits.find(h=>h.ent===ent);if(rec){if(head)rec.head=true;if(t<rec.t)rec.t=t;return;}hits.push({ent,t,head,kind});};
  for(const c of commons){if(c.dead)continue;const dx=c.x-o.x,dz=c.z-o.z;if(dx*d.x+dz*d.z<0)continue;
   add(c,raySph(o,d,c.x,c.y+1.62,c.z,.2),true,'c');add(c,rayCyl(o,d,c.x,c.z,.34,c.y,c.y+1.48),false,'c');}
@@ -1465,7 +1465,8 @@ function traceLaser(o,d,muzzle,owner){owner=owner||player;const reach=beamReach(
  if(NET.ff){for(const b of bots){if(b===owner||b.down)continue;add(b,rayCyl(o,d,b.x,b.z,.28,b.y+.2,b.y+1.75),false,'b');}
   if(owner!==player&&!player.down)add(player,rayCyl(o,d,player.x,player.z,.28,player.y+.2,player.y+1.75),false,'p');}
  hits.sort((a,b)=>a.t-b.t);let any=false;
- for(const h of hits){if(h.kind==='c'){if(h.ent.dead)continue;killCommon(h.ent,true,h.head,d);S.hits++;any=true;}
+ for(const h of hits){if(dry){if(h.kind==='c'||h.kind==='s')any=true;continue;}
+  if(h.kind==='c'){if(h.ent.dead)continue;killCommon(h.ent,true,h.head,d);S.hits++;any=true;}
   else if(h.kind==='s'){if(h.ent.dead)continue;killSpecial(h.ent,true);S.hits++;any=true;}
   else if(h.kind==='b'){h.ent.hp=Math.max(1,h.ent.hp-2);S.ff+=2;bark(h.ent,pick(['Hey! Watch your fire!','Ow! Friendly fire!','Quit shooting me!']),'ff',4);}
   else if(h.kind==='p'){S.ff+=2;hurtPlayer(2);}}
@@ -1473,15 +1474,16 @@ function traceLaser(o,d,muzzle,owner){owner=owner||player;const reach=beamReach(
  if(owner===player&&any)hitMark();return _e.clone();}
 let hitMarkT=0;function hitMark(){hitMarkT=.12;}
 function curW(){return player.slot==='primary'?player.inv.primary:player.inv.pistol;}
-function fire(){const w=curW();const def=WEAP[w.type];if(!w.bottomless)w.mag--;S.shots+=w.laser?1:def.pellets;player.fireCd=w.bottomless?0.2:def.rate;
+function fire(dry){const w=curW();const def=WEAP[w.type];if(!dry){if(!w.bottomless)w.mag--;S.shots+=w.laser?1:def.pellets;}player.fireCd=w.bottomless?0.2:def.rate;
  camera.getWorldDirection(_d);_r.set(1,0,0).applyQuaternion(camera.quaternion);_u.set(0,1,0).applyQuaternion(camera.quaternion);
  _o.copy(camera.position);const muzzle=_o.clone().addScaledVector(_d,.6).addScaledVector(_r,.18).addScaledVector(_u,-.15);
- if(w.laser){traceLaser(_o,_d,muzzle);SFX.laser();vmKick+=.15;muzzleLight.color.setHex(0xff2244);vmFlashSprite.material.color.setHex(0xff3355);}
+ if(w.laser){traceLaser(_o,_d,muzzle,player,dry);SFX.laser();vmKick+=.15;muzzleLight.color.setHex(0xff2244);vmFlashSprite.material.color.setHex(0xff3355);}
  else{const mvSpd=Math.hypot(player.vx,player.vz);const spread=def.spread+player.spread+(mvSpd>1?.012:0);
-  for(let p=0;p<def.pellets;p++){const a=rand(0,Math.PI*2),r=Math.sqrt(Math.random())*spread;const d=_d.clone().addScaledVector(_r,Math.cos(a)*r).addScaledVector(_u,Math.sin(a)*r).normalize();traceShot(_o,d,def.dmg,muzzle);}
+  for(let p=0;p<def.pellets;p++){const a=rand(0,Math.PI*2),r=Math.sqrt(Math.random())*spread;const d=_d.clone().addScaledVector(_r,Math.cos(a)*r).addScaledVector(_u,Math.sin(a)*r).normalize();traceShot(_o,d,def.dmg,muzzle,player,dry);}
   player.spread=Math.min(.06,player.spread+(w.type==='shotgun'?.03:w.type==='smg'?.006:.012));
   SFX[w.type](undefined,undefined,1);vmKick+=w.type==='shotgun'?1:w.type==='smg'?.25:.5;muzzleLight.color.setHex(0xffb060);vmFlashSprite.material.color.setHex(0xffc070);}
  muzzleT=.05;muzzleLight.position.copy(muzzle);
+ if(dry)return;
  for(const c of commons)if(!c.dead&&c.state==='wander'&&Math.hypot(c.x-player.x,c.z-player.z)<22&&Math.random()<.7)alertCommon(c,player);
  NET.ev({t:'shot',slot:0,w:w.type,beam:w.laser?1:0,ax:Math.round(_o.x*100)/100,ay:Math.round(_o.y*100)/100,az:Math.round(_o.z*100)/100,dx:Math.round(_d.x*100)/100,dy:Math.round(_d.y*100)/100,dz:Math.round(_d.z*100)/100});}
 function startReload(){const w=curW();const def=WEAP[w.type];if(w.bottomless||player.reloadT>0||w.mag>=def.mag||w.res<=0)return;player.reloadT=def.reload;SFX.reload();}
@@ -1624,9 +1626,12 @@ function updateBot(b,dt){if(b.net){updateNetSurvivor(b,dt);return;}
    if(b.mag<=0){b.reloadT=2;if(Math.random()<.5)bark(b,'Reloading!','rl'+b.name,8);}
    const isSpec=specials.includes(t);const hitP=dd<6?.92:dd<14?.78:.6;let dmg=b.w==='shotgun'?(dd<8?65:30):18;if(isSpec&&t===pin)dmg*=1.6;
    const muzzle=new THREE.Vector3(b.x+Math.sin(b.yaw)*.6,b.y+1.25,b.z+Math.cos(b.yaw)*.6);const ty2=isSpec?specY(t)+1:t.y+1.2;
-   if(Math.random()<hitP){if(isSpec)damageSpecial(t,dmg,false,false);else damageCommon(t,dmg,Math.random()<.15,false,null);tracer(muzzle,new THREE.Vector3(t.x,ty2,t.z));}
-   else tracer(muzzle,new THREE.Vector3(t.x+rand(-1,1),ty2+rand(-.5,.8),t.z+rand(-1,1)));
-   SFX[b.w==='shotgun'?'shotgun':'smg'](b.x,b.z,.55);}}
+   let hx=t.x,hy=ty2,hz=t.z;
+   if(Math.random()<hitP){if(isSpec)damageSpecial(t,dmg,false,false);else damageCommon(t,dmg,Math.random()<.15,false,null);tracer(muzzle,new THREE.Vector3(hx,hy,hz));}
+   else{hx=t.x+rand(-1,1);hy=ty2+rand(-.5,.8);hz=t.z+rand(-1,1);tracer(muzzle,new THREE.Vector3(hx,hy,hz));}
+   const gw=b.w==='shotgun'?'shotgun':'smg';SFX[gw](b.x,b.z,.55);
+   const adx=hx-muzzle.x,ady=hy-muzzle.y,adz=hz-muzzle.z,alen=Math.hypot(adx,ady,adz)||1;
+   NET.ev({t:'shot',slot:bots.indexOf(b)+1,w:gw,beam:0,ax:nq(muzzle.x),ay:nq(muzzle.y),az:nq(muzzle.z),dx:nq(adx/alen),dy:nq(ady/alen),dz:nq(adz/alen)});}}
  else if(b.moveSpd>.5)b.yaw=lerpAng(b.yaw,Math.atan2(b.x-ox,b.z-oz),dt*8);
  else b.yaw=lerpAng(b.yaw,Math.atan2(player.x-b.x,player.z-b.z)+Math.PI*0.6*(b.slot-1),dt*2);
  // catch-up teleport
@@ -2279,16 +2284,19 @@ function smoothRemote(dt){const k=1-Math.exp(-dt*14);
   poseSpecial(s,dt,s.state==='approach'?3:0);
   if(s.y>groundAt(s.x,s.z)+1.2){s.mesh.g.rotation.x=Math.sin(S.t*7)*.8;s.mesh.g.rotation.z=Math.cos(S.t*5)*.35;}else{s.mesh.g.rotation.x=0;s.mesh.g.rotation.z=0;}
   if(s.type==='smoker'&&s.mesh.tongue){if(s.state==='tongue'||s.state==='pull'){const vic=s.vicSlot===NET.slot?player:NET.puppetBySlot[s.vicSlot];if(vic){const mouth=new THREE.Vector3(s.x+Math.sin(s.yaw)*.15,s.y+2,s.z+Math.cos(s.yaw)*.15),tgt=new THREE.Vector3(vic.x,groundAt(vic.x,vic.z)+1.2,vic.z),len=Math.max(.01,mouth.distanceTo(tgt)),dirv=tgt.clone().sub(mouth).normalize();s.mesh.tongue.visible=true;s.mesh.tongue.position.copy(mouth).addScaledVector(dirv,len/2);s.mesh.tongue.scale.set(.06,.06,len);s.mesh.tongue.lookAt(tgt);}}else s.mesh.tongue.visible=false;}}}
-function clientUpdate(dt){S.t+=dt;if(mouseRight&&!NET.paused&&!player.down&&S.t-player.lastShove>=.05){player.lastShove=S.t;NET.edges.push('shove');}
- const pinned=!!player.pinnedBy,pulled=!!player.pulledBy;const zipping=player.zipU!=null;const moveLocked=NET.paused||player.down||S.riding||pinned||pulled||zipping;let mx=0,mz=0,sprint=false,fire=false;
+function clientUpdate(dt){S.t+=dt;player.fireCd=Math.max(0,player.fireCd-dt);player.spread=Math.max(0,player.spread-dt*.08);if(mouseRight&&!NET.paused&&!player.down&&S.t-player.lastShove>=.05){player.lastShove=S.t;NET.edges.push('shove');}
+ const pinned=!!player.pinnedBy,pulled=!!player.pulledBy;const zipping=player.zipU!=null;const moveLocked=NET.paused||player.down||S.riding||pinned||pulled||zipping;let mx=0,mz=0,sprint=false,wantFire=false;
  const aimOk=!NET.paused&&!S.riding&&!pinned&&!(pulled&&player.pulledBy&&Math.hypot(player.x-player.pulledBy.x,player.z-player.pulledBy.z)<1.6);
- if(NET.force){if(NET.force.yaw!=null)player.yaw=NET.force.yaw;if(NET.force.pitch!=null)player.pitch=NET.force.pitch;fire=aimOk&&!!NET.forceFire;if(!moveLocked){mx=+NET.force.mx||0;mz=+NET.force.mz||0;sprint=NET.force.sprint!==0;}}
- else if(aimOk||!moveLocked){fire=aimOk&&!!mouseDown;if(!moveLocked){const f=(keys.KeyW?1:0)-(keys.KeyS?1:0),s=(keys.KeyD?1:0)-(keys.KeyA?1:0);const fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw),rx=Math.cos(player.yaw),rz=-Math.sin(player.yaw);mx=f*fx+s*rx;mz=f*fz+s*rz;const L=Math.hypot(mx,mz);if(L>0){mx/=L;mz/=L;}sprint=!!(keys.ShiftLeft||keys.ShiftRight);}}
+ if(NET.force){if(NET.force.yaw!=null)player.yaw=NET.force.yaw;if(NET.force.pitch!=null)player.pitch=NET.force.pitch;wantFire=aimOk&&!!NET.forceFire;if(!moveLocked){mx=+NET.force.mx||0;mz=+NET.force.mz||0;sprint=NET.force.sprint!==0;}}
+ else if(aimOk||!moveLocked){wantFire=aimOk&&!!mouseDown;if(!moveLocked){const f=(keys.KeyW?1:0)-(keys.KeyS?1:0),s=(keys.KeyD?1:0)-(keys.KeyA?1:0);const fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw),rx=Math.cos(player.yaw),rz=-Math.sin(player.yaw);mx=f*fx+s*rx;mz=f*fz+s*rz;const L=Math.hypot(mx,mz);if(L>0){mx/=L;mz/=L;}sprint=!!(keys.ShiftLeft||keys.ShiftRight);}}
  if(moveLocked){player.vx=lerp(player.vx,0,1-Math.exp(-dt*12));player.vz=lerp(player.vz,0,1-Math.exp(-dt*12));}
  else{const seated=player.boatSeat!=null&&BOAT.show;let spd=sprint?6.3:4.3;if(player.hp<30)spd*=.75;if(S.healT>0||S.revT>0)spd*=.35;if(seated)spd=0;else if(S.bridge==='fall'&&chAt(player)==='U')spd=0;else if(chAt(player)==='U')spd=Math.min(spd,2.2);player.vx=lerp(player.vx,mx*spd,1-Math.exp(-dt*12));player.vz=lerp(player.vz,mz*spd,1-Math.exp(-dt*12));if(!seated)moveEnt(player,player.vx*dt,player.vz*dt,.35);}
  const tc=chAt(player);if(tc==='F'||tc==='x')player.burnT=.3;player.burnT-=dt;player.bob+=dt*Math.hypot(player.vx,player.vz)*1.9;
+ const cw=curW();
+ if(cw&&wantFire&&S.healT<=0&&vmShove<=0&&player.fireCd<=0&&!(player.reloadT>0)){const def=WEAP[cw.type];if(def.auto||!player.trig){if(cw.mag>0)fire(true);else if(!player.trig&&!(cw.res>0))SFX.click();player.trig=true;}}
+ if(!wantFire)player.trig=false;
  const rowing=player.boatSeat!=null&&BOAT.show;
- sendInput(dt,{mx,mz,sprint,fire,use:!!keys.KeyE&&!NET.paused&&!player.down,row:rowing?((keys.KeyW?1:0)-(keys.KeyS?1:0)):0,turn:rowing?((keys.KeyD?1:0)-(keys.KeyA?1:0)):0});smoothRemote(dt);updateFx(dt,region());}
+ sendInput(dt,{mx,mz,sprint,fire:wantFire,use:!!keys.KeyE&&!NET.paused&&!player.down,row:rowing?((keys.KeyW?1:0)-(keys.KeyS?1:0)):0,turn:rowing?((keys.KeyD?1:0)-(keys.KeyA?1:0)):0});smoothRemote(dt);updateFx(dt,region());}
 function sendInput(dt,st){NET.acc=(NET.acc||0)+dt;if(NET.acc<1/20&&!NET.edges.length)return;NET.acc=0;
  const msg={t:'in',seq:++NET.iseq,y:player.yaw,p:player.pitch,mx:+st.mx||0,mz:+st.mz||0,sprint:st.sprint?1:0,fire:st.fire?1:0,use:st.use?1:0,row:+st.row||0,turn:+st.turn||0,cut:cutOk(S.cut)?S.cut:'',edges:NET.edges.splice(0,NET.edges.length)};
  if(NET.conn&&NET.conn.open)NET.conn.send(msg);}
@@ -2442,7 +2450,8 @@ window.__game={autopilot,update,updateCamera,fire,AP,useTargets,moveEnt,collide,
  setAuto(on,god){AP.on=on;S.god=!!god;},
  holdFire(on){mouseDown=!!on;},
  holdShove(on){mouseRight=!!on;},
- frontKick,buildSnap,syncCommons,smoothRemote,
+ frontKick,buildSnap,syncCommons,smoothRemote,playNetEvent,
+ tracerCount(){let n=0;for(const tr of tracers)if(tr.t>0)n++;return n;},
  press(code,on){keys[code]=!!on;},
  setBg,bg(){return AU.bgVol;},
  bgGain(){return AU.bg?AU.bg.gain.value:null;},
@@ -2456,7 +2465,7 @@ window.__game={autopilot,update,updateCamera,fire,AP,useTargets,moveEnt,collide,
  fakeRoom(){NET.role='host';NET.room='TEST';NET.ff=storedFF();NET._sent=[];NET.conns.set('fake',{open:true,send(m){NET._sent.push(m);}});paintFF();paintRestart();return NET.room;},
  asClient(){NET.role='client';paintFF();paintRestart();},
  sent(){return NET._sent||[];},
- simulate(sec){const dt=1/30,n=Math.round(sec*30);for(let i=0;i<n&&S.phase==='play';i++){if(AP.on)autopilot(dt);updateCamera(dt);update(dt);}updateCamera(1/30);updateHud(1);
+ simulate(sec){const dt=1/30,n=Math.round(sec*30);for(let i=0;i<n&&S.phase==='play';i++){if(NET.role==='client'){clientUpdate(dt);updateCamera(dt);}else{if(AP.on)autopilot(dt);updateCamera(dt);update(dt);}}updateCamera(1/30);updateHud(1);
   return {t:+S.t.toFixed(1),phase:S.phase,obj:S.obj,objText:OBJ[S.obj],safe:safeIndex,hp:Math.round(player.hp),pos:[+(player.x/T).toFixed(1),+(player.z/T).toFixed(1)],tile:chAt(player),kills:S.kills,skills:S.skills,commons:aliveCommons(),specials:specials.filter(s=>!s.dead).map(s=>s.type+':'+s.state),bots:bots.map(b=>b.name+':'+Math.round(b.hp)+(b.down?'D':'')+(b.boatSeat!=null?'B':'')+(b.zipU!=null?'Z':'')),dmg:Math.round(S.dmg),ff:S.ff,dir:DIR.mode,bridge:S.bridge,bridgeT:+S.bridgeT.toFixed(2),y:+player.y.toFixed(2),seat:player.boatSeat,zip:player.zipU==null?-1:+player.zipU.toFixed(2),boat:BOAT.show?[+BOAT.x.toFixed(1),+BOAT.z.toFixed(1),+BOAT.yaw.toFixed(2),BOAT.oars.length,BOAT.beached?1:0]:null};},
  lookAt(x,y,z){const dx=x-player.x,dz=z-player.z;player.yaw=Math.atan2(-dx,-dz);player.pitch=Math.atan2(y-player.y,Math.hypot(dx,dz));updateCamera(1);},
  teleport(tx,tz){player.zipU=null;player.x=(tx+.5)*T;player.z=(tz+.5)*T;player.y=groundAt(player.x,player.z)+1.6;updateCamera(1);},
