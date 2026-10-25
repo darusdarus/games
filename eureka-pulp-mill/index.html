@@ -601,7 +601,7 @@ function goalTiles(){const ids=[];if(safeIndex<SAFES.length){const s=SAFES[safeI
 /* Roadside closets. The hall sits behind a full wall and the door is around
    the end, so a horde fills the room and walks out instead of appearing on the street. */
 const COVER=[];
-const COVER_CAP=6;
+const COVER_CAP=48;
 const COVER_STATS={kept:0,tried:0,fit:0,seen:0,open:0,write:0,leak:0};
 function buildCover(){
  const from=dijkstra([8*W+4],true,false);
@@ -1338,7 +1338,7 @@ function tickBikes(dt){if(!bikes.length)return;const auth=NET.role!=='client';
  if(auth){for(let i=0;i<bikes.length;i++)for(let j=i+1;j<bikes.length;j++){const a=bikes[i],c=bikes[j];if(a.sunk||c.sunk||a.sinking||c.sinking)continue;let dx=c.x-a.x,dz=c.z-a.z,d=Math.hypot(dx,dz);if(d>=1.15||d<1e-4)continue;dx/=d;dz/=d;const p=(1.15-d)*.5;a.x-=dx*p;a.z-=dz*p;c.x+=dx*p;c.z+=dz*p;}}}
 function startFlee(){if(S.nuns==='flee'||S.nuns==='ride')return;S.nuns='flee';openGate(true);const tiles=[];
  for(let x=138;x<=139;x++)for(let z=7;z<=9;z++)if(isWalk(x,z))tiles.push([x,z]);
- const n=Math.max(40,Math.round(72*Math.max(.55,swarmMul())));let made=0;for(let k=0;made<n&&k<n*8;k++){if(!tiles.length)break;const t=tiles[(Math.random()*tiles.length)|0];const c=spawnCommon((t[0]+rand(.18,.82))*T,(t[1]+rand(.18,.82))*T,true,player);if(c){c.calm=0;c.stag=.7;c.pvx=0;c.pvz=0;made++;}}
+ const n=Math.max(80,Math.round(250*Math.max(.55,swarmMul())));let made=0;for(let k=0;made<n&&k<n*8;k++){if(!tiles.length)break;const t=tiles[(Math.random()*tiles.length)|0];const c=spawnCommon((t[0]+rand(.18,.82))*T,(t[1]+rand(.18,.82))*T,true,player);if(c){c.calm=0;c.stag=.7;c.pvx=0;c.pvz=0;made++;}}
  if(SFX.horde)SFX.horde();DIR.peakT=S.t;feed('<b>The horde is behind you.</b> There are too many. Take the bikes and leave the nuns.','#f66',12);nunObjective();}
 function swimAlive(){let n=0;for(const c of commons)if(c.swim&&!c.dead)n++;return n;}
 function swimFight(){return !!S.swimOn&&!BOAT.beached&&(swimAlive()>0||S.swimMade<SWIM_MAX);}
@@ -1861,14 +1861,14 @@ function directorUpdate(dt){DIR.intensity=Math.max(0,DIR.intensity-dt*(S.t-DIR.p
  if(DIR.mode==='RELAX'&&S.t>DIR.relaxUntil)DIR.mode='BUILD-UP';
  if(DIR.mode!=='RELAX')DIR.mode=(S.t-DIR.peakT<12||DIR.intensity>70)?'PEAK':'BUILD-UP';
  for(const w of DIR.waves)if(!w.done&&S.t>=w.t){w.done=true;if(w.special)spawnSpecial(w.special);else spawnHorde(w.n);}
- if(!S.dirOn||S.riding||nunQuiet()||swimFight())return;
+ if(!S.dirOn||S.riding||nunCalm()||swimFight())return;
  const relax=DIR.mode==='RELAX';
- DIR.spawnT-=dt;const want=Math.round((S.inLobby?36:46)*swarmMul());
- if(!relax&&DIR.spawnT<=0){DIR.spawnT=0.22;let wand=0;for(const c of commons)if(!c.dead&&c.state==='wander')wand++;if(wand<want){const sp=pickSpawn(6,32,true)||pickSpawn(4,48,false);if(sp)spawnCommon(sp.x,sp.z,false);}}
+ DIR.spawnT-=dt;const want=Math.round((S.inLobby?52:74)*swarmMul());
+ if(!relax&&DIR.spawnT<=0){DIR.spawnT=0.16;let wand=0;for(const c of commons)if(!c.dead&&c.state==='wander')wand++;if(wand<want){const sp=pickSpawn(6,32,true)||pickSpawn(4,48,false);if(sp)spawnCommon(sp.x,sp.z,false);}}
  const alive=specials.filter(s=>!s.dead).length;
  if(!relax&&S.t>DIR.nextSpecial&&alive<4){const type=DIR.queue.length?DIR.queue.shift():pick(['boomer','hunter','smoker']);if(spawnSpecial(type))DIR.nextSpecial=S.t+rand(14,22);else DIR.queue.unshift(type);}
  const eventOn=S.alarmT>0&&S.t-S.alarmT<25||S.elevT>0&&!S.elevArrived;
- if(!relax&&!eventOn&&S.t>DIR.nextHorde){spawnHorde(Math.floor(rand(90,140)));DIR.nextHorde=S.t+rand(50,72);feed('<i>You hear a horde coming...</i>','#e99');}}
+ if(!relax&&!eventOn&&S.t>DIR.nextHorde){spawnHorde(Math.floor(rand(380,620)));DIR.nextHorde=S.t+rand(24,36);feed('<i>You hear a horde coming...</i>','#e99');}}
 
 /* ---- shooting ---- */
 const _o=new THREE.Vector3(),_d=new THREE.Vector3(),_e=new THREE.Vector3(),_r=new THREE.Vector3(),_u=new THREE.Vector3();
@@ -2046,7 +2046,7 @@ function useTargets(ent){const self=ent||player;const out=[];const yaw=self.yaw|
  if(self!==player)offerDown(player);for(const b of bots)offerDown(b);
  out.sort((a,b)=>a.d-b.d);return out[0]||null;}
 function useAction(){const u=useTargets();if(u&&u.act)u.act();}
-function tryOpen(id){if(doors[id])return;if(id==='shop'){doors.shop=true;flowDirty=true;SFX.door();feed('The auto shop door is up.','#fd8');if(S.nuns==='wait')beginNuns();if(!S.toldPart)explainParts();S.nuns='shop';fillShop();nunObjective();return;}if(id==='gate'){openGate();return;}if(!DOOR_LABEL[id])return;doors[id]=true;flowDirty=true;SFX.door();feed(DOOR_LABEL[id].replace('Open the ','The ')+' is open.','#fd8');S.dirOn=true;DIR.waves.push({t:S.t+1,n:60});}
+function tryOpen(id){if(doors[id])return;if(id==='shop'){doors.shop=true;flowDirty=true;SFX.door();feed('The auto shop door is up.','#fd8');if(S.nuns==='wait')beginNuns();if(!S.toldPart)explainParts();S.nuns='shop';fillShop();nunObjective();return;}if(id==='gate'){openGate();return;}if(!DOOR_LABEL[id])return;doors[id]=true;flowDirty=true;SFX.door();feed(DOOR_LABEL[id].replace('Open the ','The ')+' is open.','#fd8');S.dirOn=true;DIR.waves.push({t:S.t+1,n:200});}
 function inSafe(ent,s){const tx=Math.floor(ent.x/T),tz=Math.floor(ent.z/T);return tx>=s.x0&&tx<=s.x1&&tz>=s.z0&&tz<=s.z1&&charAt(tx,tz)==='K';}
 function closeSafe(){const s=SAFES[safeIndex];if(!s)return;if(NET.role==='off'){if(!inSafe(player,s))return;}else{const living=livingHumans();if(!living.length||!living.every(h=>inSafe(h,s))){feed('The whole team has to be in the safe room.','#fd8');return;}}
  for(const h of [player,...bots])if(h.cargo&&inSafe(h,s))tryDeliver(h);
@@ -2056,9 +2056,9 @@ function closeSafe(){const s=SAFES[safeIndex];if(!s)return;if(NET.role==='off'){
  doors[s.inn]=false;doors[s.out]=true;flowDirty=true;safeIndex++;recomputeRoute();player.hp=100;for(const b of bots){if(!b.down&&!stood.has(b))b.hp=Math.max(b.hp,80);}for(const c of commons)if(!c.dead&&inSafe(c,s))killCommon(c,false,false);
  DIR.relaxUntil=S.t+8;DIR.mode='RELAX';setObj(s.nextObj);feed('<b>SAFE ROOM</b> — '+s.name,'#9f9');bark(null,s.line,'safe'+s.name,99);SFX.door();}
 function openGate(quiet){if(doors.gate)return;if(LAYOUT==='town'&&!quiet&&S.nuns!=='done'&&S.nuns!=='sunk'){if(S.nuns==='wait')beginNuns();feed('The nuns have the gate. The bikes have to move first.','#fd8');return;}doors.gate=true;flowDirty=true;SFX.door(FIN.gateX,FIN.gateZ);if(quiet)return;S.alarmT=S.t;SFX.alarm(14);setObj(7);feed('<b>The gate gives.</b> Everything on the bridge heard it.','#f66');bark(null,'So much for quiet. Cookhouse is on the other side.','gate',99);
- S.dirOn=true;DIR.waves.push({t:S.t+1,n:80},{t:S.t+7,n:100},{t:S.t+14,n:80},{t:S.t+6,special:'hunter'});DIR.relaxUntil=0;DIR.mode='PEAK';}
+ S.dirOn=true;DIR.waves.push({t:S.t+1,n:260},{t:S.t+7,n:340},{t:S.t+14,n:260},{t:S.t+6,special:'hunter'});DIR.relaxUntil=0;DIR.mode='PEAK';}
 function callHeli(){if(S.elevT>=0)return;S.elevT=S.t;setObj(10);doorMeshes.btn.material=mat(0x22ff44,{emissive:0x116622});SFX.ding(FIN.callX,FIN.callZ);feed('Mayday received. The chopper is <b>30 seconds</b> out. Hold the roof.','#fd8');bark(null,'I hear rotors! Keep them off the stairs!','heli',99);
- DIR.waves.push({t:S.t+2,n:80},{t:S.t+10,n:100},{t:S.t+18,n:90},{t:S.t+24,n:80},{t:S.t+8,special:'smoker'});}
+ DIR.waves.push({t:S.t+2,n:240},{t:S.t+10,n:320},{t:S.t+18,n:280},{t:S.t+24,n:240},{t:S.t+8,special:'smoker'});}
 function survivorsInside(){if(NET.role==='off')return chAt(player)==='R';const living=livingHumans();return living.length>0&&living.every(h=>chAt(h)==='R');}
 function boardHeli(){if(!S.elevArrived||chAt(player)!=='R')return;if(!survivorsInside()){feed('The whole team has to be on the pad.','#fd8');return;}completeChapter();}
 
@@ -2125,7 +2125,17 @@ function updateBot(b,dt){if(b.net){updateNetSurvivor(b,dt);return;}
 function placeBot(b){const m=b.mesh;if(b.zipU!=null){const p=zipPos(b.zipU);b.x=p.x;b.z=p.z;b.y=p.y;}else if(b.bike!=null)b.y=standY(b.x,b.z)+.55;else b.y=standY(b.x,b.z);m.g.position.set(b.x,b.y,b.z);m.g.rotation.y=b.yaw;const sw=Math.sin(b.phase)*Math.min(1,b.moveSpd/3);m.legL.rotation.x=sw*.7;m.legR.rotation.x=-sw*.7;m.b.position.y=Math.abs(sw)*.05;poseLimbs(b);}
 
 /* ---- commons update ---- */
+const _sp=new THREE.Vector3(),_fwd=new THREE.Vector3();
+let _seeStamp=-1;
+function camSees(x,y,z){if(_seeStamp!==S.t){_seeStamp=S.t;camera.updateMatrixWorld();camera.matrixWorldInverse.copy(camera.matrixWorld).invert();camera.getWorldDirection(_fwd);}
+ const dx=x-camera.position.x,dy=y-camera.position.y,dz=z-camera.position.z,dist=Math.hypot(dx,dy,dz)||1;
+ if(dist<2.2)return true;
+ const dot=dx*_fwd.x+dy*_fwd.y+dz*_fwd.z;if(dot<=0.35)return false;
+ _sp.set(x,y,z).project(camera);
+ if(_sp.x<-1.02||_sp.x>1.02||_sp.y<-1.02||_sp.y>1.02)return false;
+ return shotHitT(camera.position.x,camera.position.y,camera.position.z,dx/dist,dy/dist,dz/dist,dist)>=dist-0.45;}
 function updateCommon(c,dt){c.hitT=Math.max(0,c.hitT-dt);
+ if(!c.dead&&!c.swim&&!c.flying)c.seen=camSees(c.x,(Number.isFinite(c.y)?c.y:groundAt(c.x,c.z))+1.15,c.z);
  if(c.feast&&!c.dead){c.y=standY(c.x,c.z);c.phase+=dt*9;c.mv=1.5;c.swipe=.25;c.yaw+=dt*2.4;return;}
  if(c.dead){if(c.swim){c.deathT+=dt;c.y-=dt*.9;return;}c.deathT+=dt;c.fall=Math.min(1,c.fall+dt*2.6);c.flying=false;const gnd=corpseRestY(c);
   if(c.y>gnd+0.04){c.fvy=(c.fvy||0)-KICK_G*dt;c.y+=c.fvy*dt;if(c.deathT<3)moveEnt(c,(c.fvx||0)*dt,(c.fvz||0)*dt,.3);if(c.y<=gnd){c.y=gnd;c.fvy=0;c.fvx=0;c.fvz=0;}}
@@ -2146,7 +2156,7 @@ function updateCommon(c,dt){c.hitT=Math.max(0,c.hitT-dt);
   const d=Math.hypot(t.x-c.x,t.z-c.z);
   if(d<1.22){c.yaw=lerpAng(c.yaw,Math.atan2(t.x-c.x,t.z-c.z),dt*12);c.atk-=dt;if(c.atk<=0){c.atk=rand(.55,.8);c.swipe=.3;hurtSurvivor(t,t===player?12:8);}}
   else{let dir=null;if(d<14&&losClear(c.x,c.z,t.x,t.z))dir=[(t.x-c.x)/d,(t.z-c.z)/d];else dir=flowStep(c.x,c.z);
-   if(dir){const sp=c.speed*(S.biledT>0?1.12:1)*(chAt(c)==='U'?0.45:1);moveEnt(c,dir[0]*sp*dt,dir[1]*sp*dt,.3);c.yaw=lerpAng(c.yaw,Math.atan2(dir[0],dir[1]),dt*10);}}
+   if(dir){const sp=c.speed*(S.biledT>0?1.12:1)*(chAt(c)==='U'?0.45:1)*(c.seen?1:1.85);moveEnt(c,dir[0]*sp*dt,dir[1]*sp*dt,.3);c.yaw=lerpAng(c.yaw,Math.atan2(dir[0],dir[1]),dt*10);}}
   c.groanT-=dt;if(c.groanT<=0){c.groanT=rand(10,22);if(Math.random()<.06)SFX.scream(c.x,c.z);else if(Math.random()<.12)SFX.groan(c.x,c.z);}}
  c.mv=Math.hypot(c.x-ox,c.z-oz)/Math.max(dt,1e-4);c.phase+=dt*(1.5+c.mv*1.6);c.swipe=Math.max(0,c.swipe-dt);c.y=standY(c.x,c.z);}
 function zBodyR(e){return e.type?SPEC[e.type].r:.36;}
@@ -2166,12 +2176,11 @@ function corpseRestY(e){const base=e.type?groundAt(e.x,e.z):bodyY(e.x,e.z);let y
   for(const c of commons)push(c);for(const s of specials)push(s);
   if(n){const l=Math.hypot(sx,sz)||1;e.x+=sx/l*0.35;e.z+=sz/l*0.35;collide(e,e.type?0.35:0.3);}}
  return cap;}
-function separateCommons(){const a=[];for(const c of commons)if(!c.dead&&!c.flying&&!c.swim)a.push(c);for(const s of specials)if(!s.dead&&!s.flying)a.push(s);
+function separateCommons(){const a=[];for(const c of commons)if(!c.dead&&!c.flying&&!c.swim&&c.seen)a.push(c);for(const s of specials)if(!s.dead&&!s.flying)a.push(s);
  const n=a.length;if(!n)return;const cell=2,blocked=new Uint8Array(n);
- const relax=()=>{const buckets=new Map();
+ const relax=(placeY)=>{const buckets=new Map();
   for(let i=0;i<n;i++){const p=a[i];const key=((p.x/cell)|0)+','+((p.z/cell)|0);let bucket=buckets.get(key);if(!bucket)buckets.set(key,bucket=[]);bucket.push(i);}
-  const sx=new Float64Array(n),sz=new Float64Array(n);
-  for(let i=0;i<n;i++){sx[i]=a[i].x;sz[i]=a[i].z;}
+  const ox=new Float64Array(n),oz=new Float64Array(n);
   for(let i=0;i<n;i++){const p=a[i],kx=(p.x/cell)|0,kz=(p.z/cell)|0,pr=zBodyR(p);
    for(let gz=-1;gz<=1;gz++)for(let gx=-1;gx<=1;gx++){const bucket=buckets.get((kx+gx)+','+(kz+gz));if(!bucket)continue;
     for(const j of bucket){if(j<=i)continue;const q=a[j],need=pr+zBodyR(q);let dx=q.x-p.x,dz=q.z-p.z,d2=dx*dx+dz*dz;if(d2>=need*need)continue;
@@ -2180,17 +2189,21 @@ function separateCommons(){const a=[];for(const c of commons)if(!c.dead&&!c.flyi
      else{const d=Math.sqrt(d2);ux=dx/d;uz=dz/d;overlap=need-d;}
      let sp,sq;if(ai||blocked[i]){sp=0;sq=1;}else if(aj||blocked[j]){sp=1;sq=0;}else sp=sq=.5;
      if(ai)sp=0;if(aj)sq=0;if(!sp&&!sq)continue;
-     p.x-=ux*overlap*sp;p.z-=uz*overlap*sp;q.x+=ux*overlap*sq;q.z+=uz*overlap*sq;}}}
-  for(let i=0;i<n;i++){const e=a[i];if(zAnchored(e)||e.flying){blocked[i]=1;continue;}
-   const mx=e.x,mz=e.z;collide(e,e.type?0.35:0.3);const undone=Math.hypot(e.x-mx,e.z-mz),kept=Math.hypot(e.x-sx[i],e.z-sz[i]);
-   blocked[i]=undone>.02&&kept<undone*.45?1:0;
-   if(e.type){if(e.state!=='leap')e.y=standY(e.x,e.z);}else e.y=standY(e.x,e.z);}};
- for(let pass=0;pass<2;pass++)relax();
+     ox[i]-=ux*overlap*sp;oz[i]-=uz*overlap*sp;ox[j]+=ux*overlap*sq;oz[j]+=uz*overlap*sq;}}}
+  for(let i=0;i<n;i++){const e=a[i];let dx=ox[i],dz=oz[i],m=Math.hypot(dx,dz);if(m>0.55){const s=0.55/m;dx*=s;dz*=s;}
+   if(zAnchored(e)||e.flying){blocked[i]=1;continue;}
+   const x0=e.x,z0=e.z;
+   const step=(x,z)=>{const px=e.x,pz=e.z;e.x=x;e.z=z;if(!isWalk(Math.floor(e.x/T),Math.floor(e.z/T))){e.x=px;e.z=pz;return false;}collide(e,e.type?0.35:0.3);if(!isWalk(Math.floor(e.x/T),Math.floor(e.z/T))){e.x=px;e.z=pz;return false;}return true;};
+   if(m>0&&!step(x0+dx,z0+dz)){step(x0+dx,z0);step(e.x,e.z+dz);}
+   blocked[i]=m>0.12&&Math.hypot(e.x-x0,e.z-z0)<0.04?1:0;
+   if(placeY){if(e.type){if(e.state!=='leap')e.y=standY(e.x,e.z);}else e.y=standY(e.x,e.z);}}};
+ for(let pass=0;pass<3;pass++)relax(false);
  for(let i=0;i<n;i++){const p=a[i];if(p.type||p.flying)continue;
   const dx=p.x-player.x,dz=p.z-player.z,d=Math.hypot(dx,dz);if(d<.75&&d>1e-4){p.x+=dx/d*(.75-d);p.z+=dz/d*(.75-d);}
   if(NET.role==='host'){for(const b of bots){if(!b.net||b.down)continue;const bx=p.x-b.x,bz=p.z-b.z,bd=Math.hypot(bx,bz);if(bd<.75&&bd>1e-4){p.x+=bx/bd*(.75-bd);p.z+=bz/bd*(.75-bd);}}}
   collide(p,.3);p.y=standY(p.x,p.z);}
- for(let pass=0;pass<6;pass++)relax();
+ for(let pass=0;pass<8;pass++)relax(false);
+ relax(true);
  for(const s of specials){if(s.dead||s.flying||!s.mesh)continue;s.mesh.g.position.set(s.x,s.y,s.z);}}
 const _root=new THREE.Matrix4(),_R=new THREE.Matrix4(),_P=new THREE.Matrix4(),_M=new THREE.Matrix4(),_c=new THREE.Color();
 function drawCommons(){let n=0;const list=[];for(const c of commons)list.push(c);list.sort((a,b)=>{const p=c=>c.dead?4:(c.state==='grab'||c.state==='climb')?0:c.state==='jump'?1:c.swim?2:3;return p(a)-p(b);});for(const c of list){if(n>=MAXI)break;const rush=!c.dead&&c.state==='rush'&&c.stag<=0;
@@ -2333,7 +2346,7 @@ function update(dt){S.t+=dt;
  if(NET.role!=='client'){tryDeliver(player);for(const b of bots)if(!b.down)tryDeliver(b);}
  // ----- triggers / objectives -----
  const reg=region();
- if(S.obj===1&&!S.dirOn&&player.x>16*T){player.flash=true;S.dirOn=true;DIR.nextSpecial=S.t+16;DIR.nextHorde=S.t+40;bark(null,'Trinity is behind us. First safe room is Redwood Acres.','town',99);}
+ if(S.obj===1&&!S.dirOn&&player.x>16*T){player.flash=true;S.dirOn=true;DIR.nextSpecial=S.t+16;DIR.nextHorde=S.t+12;bark(null,'Trinity is behind us. First safe room is Redwood Acres.','town',99);}
  if(!S.dirOn&&S.t>40&&player.x>16*T)S.dirOn=true;
  if(reg==='sky')bark(null,'Redwood Sky Walk. A hundred feet up, and the deck keeps turning.','sky',99);
  else if(reg==='zoo')bark(null,'Sequoia Park Zoo. Otters, the bear, the aviary. Stay out of the pens.','zoo',99);
@@ -2361,7 +2374,7 @@ function endRide(){S.riding=false;S.inLobby=true;S.shake=0;
  doors.g=true;flowDirty=true;flow=dijkstra([tileOf(player)]);flowTile=tileOf(player);setObj(9);SFX.ding(36*T,33*T);
  setTimeout(()=>$('fade').style.opacity=0,AUTOTEST?0:300);
  for(let i=0;i<9;i++){const sp=pickSpawn(6,40,false);if(sp)spawnCommon(sp.x,sp.z,false);}
- DIR.nextSpecial=S.t+15;DIR.queue=['boomer','hunter'];DIR.nextHorde=S.t+80;}
+ DIR.nextSpecial=S.t+15;DIR.queue=['boomer','hunter'];DIR.nextHorde=S.t+16;}
 function completeChapter(){if(S.complete)return;S.complete=true;S.phase='done';
  const inside=bots.filter(b=>!b.down&&Math.hypot(b.x-player.x,b.z-player.z)<30);
  inside.forEach((b,i)=>{b.x=FIN.padX;b.z=FIN.padZ+(i-1)*1.2;b.y=10;placeBot(b);});
