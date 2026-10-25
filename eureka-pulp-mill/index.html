@@ -567,6 +567,95 @@ function dijkstra(srcs,doorsOpen=false,link=false){const d=new Float32Array(N).f
  return d;}
 function goalTiles(){const ids=[];if(safeIndex<SAFES.length){const s=SAFES[safeIndex];for(let z=s.z0;z<=s.z1;z++)for(let x=s.x0;x<=s.x1;x++)if(G[z][x]==='K')ids.push(z*W+x);return ids;}
  for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(G[z][x]==='R')ids.push(z*W+x);return ids;}
+/* Roadside closets. The hall sits behind a full wall and the door is around
+   the end, so a horde fills the room and walks out instead of appearing on the street. */
+const COVER=[];
+const COVER_CAP=6;
+const COVER_STATS={kept:0,tried:0,fit:0,seen:0,open:0,write:0,leak:0};
+function buildCover(){
+ const from=dijkstra([8*W+4],true,false);
+ const used=new Uint8Array(N);
+ const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+ const approach=(x,z)=>{let bx=0,bz=0,best=from[z*W+x];
+  for(const [dx,dz] of dirs){const nx=x+dx,nz=z+dz;if(nx<0||nz<0||nx>=W||nz>=H)continue;const c=G[nz][nx];if(c!=='.'&&c!=='n'&&c!=='w'&&c!=='m'&&c!=='D')continue;const v=from[nz*W+nx];if(v<best){best=v;bx=dx;bz=dz;}}
+  return bx||bz?[bx,bz]:[-1,0];};
+ const structural=(x,z)=>{for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){const c=charAt(x+dx,z+dz);if(c==='m'||c==='K'||c==='D'||c===','||c==='S'||c==='R'||c==='I'||c==='c'||c==='F'||c==='x')return true;}return false;};
+ const writable=(x,z)=>{if(x<0||z<0||x>=W||z>=H||used[z*W+x])return false;if(x>=BR_A&&x<=BR_B)return false;if(x>=142&&x<=151)return false;if(LAYOUT!=='linear'&&x>=134&&x<=144&&z>=3&&z<=22)return false;const c=G[z][x];if(c===' '||c==='n'||c==='=')return true;if(c==='t')return !(LAYOUT==='town'&&zoneAt[z*W+x]===2);if(c==='#')return !structural(x,z);return false;};
+ const nearWalk=(ax,az)=>{const allow=new Set([az*W+ax]),q=[[ax,az,0]];
+  for(let i=0;i<q.length;i++){const [x,z,d]=q[i];if(d>=7)continue;for(const [dx,dz] of dirs){const nx=x+dx,nz=z+dz;if(nx<0||nz<0||nx>=W||nz>=H)continue;const id=nz*W+nx;if(allow.has(id)||!isWalk(nx,nz))continue;allow.add(id);q.push([nx,nz,d+1]);}}
+  return allow;};
+ const sees=(ex,ey,ez,x,y,z)=>{const dx=x-ex,dy=y-ey,dz=z-ez,dist=Math.hypot(dx,dy,dz);if(dist<0.8)return true;const hit=shotHitT(ex,ey,ez,dx/dist,dy/dist,dz/dist,dist);return hit>=dist-0.4;};
+ const hiddenAt=(eyes,tx,tz)=>{const x=(tx+.5)*T,z=(tz+.5)*T,gy=groundAt(x,z),pts=[[x,gy+1.08,z],[x,gy+1.58,z],[x+.34,gy+1.08,z],[x-.34,gy+1.08,z],[x,gy+1.08,z+.34],[x,gy+1.08,z-.34]];
+  for(const e of eyes)for(const p of pts)if(sees(e[0],e[1],e[2],p[0],p[1],p[2]))return false;return true;};
+ function tryShape(ax,az,ux,uz,bx,bz,nSpawn,deep){
+  COVER_STATS.tried++;
+  const at=(u,b)=>[ax+ux*u+bx*b,az+uz*u+bz*b];
+  const spec=[];
+  const wall=(u,b)=>spec.push([u,b,'#']);
+  const floor=(u,b)=>spec.push([u,b,'.']);
+  const back=deep?4:3;
+  for(let b=0;b<=nSpawn+2;b++)wall(1,b);
+  wall(2,-2);wall(1,-2);wall(2,nSpawn+2);
+  floor(2,0);floor(2,1);
+  for(let b=2;b<=nSpawn+1;b++)floor(2,b);
+  floor(2,-1);floor(1,-1);floor(0,-1);
+  if(deep){wall(3,-1);wall(3,nSpawn+2);floor(3,0);floor(3,1);for(let b=2;b<=nSpawn+1;b++)floor(3,b);}
+  for(let b=-2;b<=nSpawn+2;b++){const x=at(back,b)[0],z=at(back,b)[1],cur=charAt(x,z);
+   if(cur==='#'||cur==='b')continue;if(x<0||z<0||x>=W||z>=H)continue;if(!writable(x,z)){COVER_STATS.write++;return false;}wall(back,b);}
+  const cells=[],saved=[];
+  const y=deckY[az*W+ax],zn=zoneAt[az*W+ax];
+  for(const [u,b,c] of spec){
+   const x=at(u,b)[0],z=at(u,b)[1],cur=charAt(x,z);
+   if(c==='#'&&(WALK.has(cur)||cur==='D')){COVER_STATS.write++;return false;}
+   if(c==='.'&&(WALK.has(cur)||cur==='D')){cells.push([x,z,'k']);continue;}
+   if(!writable(x,z)){COVER_STATS.write++;return false;}
+   cells.push([x,z,c]);
+  }
+  const allow=nearWalk(ax,az);
+  const inside=new Set(cells.map(([x,z])=>z*W+x));
+  for(const [x,z,c] of cells){if(c!=='.')continue;for(const [dx,dz] of dirs){const nx=x+dx,nz=z+dz,id=nz*W+nx;if(inside.has(id)||allow.has(id))continue;const k=charAt(nx,nz);if(WALK.has(k)||k==='D'){COVER_STATS.leak++;return false;}}}
+  for(const [x,z,c] of cells){if(c==='k')continue;saved.push([x,z,G[z][x],zoneAt[z*W+x],deckY[z*W+x]]);put(x,z,c,zn);if(y===y)elev(x,z,y);else deckY[z*W+x]=NaN;}
+  const skirt=[];
+  for(const [x,z,c] of cells){if(c!=='.')continue;for(const [dx,dz] of dirs){const nx=x+dx,nz=z+dz;if(nx<0||nz<0||nx>=W||nz>=H||inside.has(nz*W+nx))continue;const k=G[nz][nx];if(k!==' '&&k!=='~')continue;skirt.push([nx,nz,k,zoneAt[nz*W+nx],deckY[nz*W+nx]]);put(nx,nz,'=',zn);if(y===y)elev(nx,nz,y);}}
+  const undo=()=>{for(const [x,z,c,zo,dy] of skirt.concat(saved)){G[z][x]=c;zoneAt[z*W+x]=zo;deckY[z*W+x]=dy;}};
+  const eyes=[];
+  const eye=(u,b)=>{const x=at(u,b)[0],z=at(u,b)[1];if(x<0||z<0||x>=W||z>=H)return;const c=G[z][x];if(c!=='.'&&c!=='n'&&c!=='w'&&c!=='m'&&c!=='K')return;eyes.push([(x+.5)*T,groundAt((x+.5)*T,(z+.5)*T)+1.62,(z+.5)*T]);};
+  for(const u of [0,-1,-2]){eye(u,0);eye(u,-1);for(const d of [-16,-8,8,16])eye(u,d);}
+  eye(1,-1);
+  const hidden=[];
+  const rows=deep?[2,3]:[2];
+  for(const u of rows)for(let b=2;b<=nSpawn+1;b++){const x=at(u,b)[0],z=at(u,b)[1];if(z<0||x<0||z>=H||x>=W||!isWalk(x,z))continue;if(hiddenAt(eyes,x,z))hidden.push({x,z,i:z*W+x});}
+  const need=deep?4:2;
+  let reach=false;
+  if(hidden.length>=need){const q=[[hidden[0].x,hidden[0].z]],seen=new Set([hidden[0].i]);
+   for(let i=0;i<q.length&&i<90;i++){const [x,z]=q[i];if(x===ax&&z===az){reach=true;break;}
+    for(const [dx,dz] of dirs){const nx=x+dx,nz=z+dz;if(!isWalk(nx,nz))continue;const id=nz*W+nx;if(seen.has(id))continue;if(Math.abs(nx-ax)>6||Math.abs(nz-az)>nSpawn+6)continue;seen.add(id);q.push([nx,nz]);}}}
+  if(hidden.length<need||!reach){undo();if(hidden.length<need)COVER_STATS.seen++;else COVER_STATS.open++;return false;}
+  for(const [x,z] of cells)used[z*W+x]=1;
+  for(let b=-3;b<=nSpawn+4;b++)for(let u=-1;u<=1;u++){const x=at(u,b)[0],z=at(u,b)[1];if(x>=0&&z>=0&&x<W&&z<H)used[z*W+x]=1;}
+  for(const h of hidden)COVER.push(h);
+  COVER_STATS.kept+=hidden.length;COVER_STATS.fit++;
+  return true;
+ }
+ for(let x=14;x<W;x++)for(let z=0;z<H;z++){
+  if(used[z*W+x])continue;
+  const base=G[z][x];
+  if(base!=='.'&&base!=='n')continue;
+  if(x>=BR_A&&x<=BR_B||(x>=142&&x<=151)||(LAYOUT!=='linear'&&x>=134&&x<=144&&z>=3&&z<=22))continue;
+  const ab=approach(x,z),bx=ab[0],bz=ab[1];
+  for(const [ux,uz] of dirs){
+   if(ux*bx+uz*bz!==0)continue;
+   const nb=charAt(x+ux,z+uz);
+   if(WALK.has(nb)||nb==='D')continue;
+   let placed=false;
+   for(const [n,deep] of [[12,true],[9,true],[6,true],[4,true],[8,false],[4,false],[3,false]]){
+    if(tryShape(x,z,ux,uz,bx,bz,n,deep)||tryShape(x,z,ux,uz,-bx,-bz,n,deep)){placed=true;break;}
+   }
+   if(placed)break;
+  }
+ }
+}
+buildCover();
 let route;function recomputeRoute(){route=dijkstra(goalTiles(),true,false);}recomputeRoute();
 let flow=new Float32Array(N).fill(INF),flowTile=-1,flowDirty=true;
 function flowStep(x,z){const tx=Math.floor(x/T),tz=Math.floor(z/T);const d0=flow[tz*W+tx];if(d0===undefined||d0>=INF)return null;let best=d0,bx=0,bz=0;
@@ -1435,7 +1524,7 @@ for(const b of bots)b.headProp=makeHeadProp(b.skin,b.hair);
 function aliveCommons(){let n=0;for(const c of commons)if(!c.dead)n++;return n;}
 function swarmMul(){return clamp(NET.swarm,0,200)/100;}
 function seedCommons(){const scale=swarmMul(),n=Math.round(START_COMMONS.length*scale);
- for(let i=0;i<n;i++){const [x,z]=START_COMMONS[i%START_COMMONS.length];const lap=(i/START_COMMONS.length)|0;const jx=lap?(((i*17)%7)-3)*0.15:0,jz=lap?(((i*13)%5)-2)*0.12:0;spawnCommon((x+.5)*T+jx,(z+.5)*T+jz,false);}}
+ for(let i=0;i<n;i++){const [x,z]=START_COMMONS[i%START_COMMONS.length];const spot=concealTile(x,z,i)||hiddenNear(x,z,14,i);if(spot)spawnCommon(spot.x,spot.z,false);}}
 function spawnCommon(x,z,alert,target){if(aliveCommons()>=MAXC)return null;if(!isWalk(Math.floor(x/T),Math.floor(z/T)))return null;
  const c={id:++ENTID,x,z,y:groundAt(x,z),yaw:rand(0,6.28),hp:75,dead:false,deathT:0,fall:0,state:alert?'rush':'wander',target:null,atk:rand(.2,.55),phase:rand(0,6),wt:0,wdx:0,wdz:0,stag:0,pvx:0,pvz:0,shirt:pick(SHIRTS),pants:pick(PANTS),skin:pick(SKINS),speed:rand(5.8,7.2),swipe:0,chk:rand(0,.3),groanT:rand(4,16),hitT:0,mv:0};
  if(alert)c.target=target||chooseTarget(c);commons.push(c);return c;}
@@ -1551,7 +1640,7 @@ function hurtPlayer(n){if(S.phase!=='play'||player.down)return;S.dmg+=n;DIR.inte
 
 /* ---- specials ---- */
 const SPEC={boomer:{hp:100,r:.6,h:1.75,hh:1.75,col:'#b5c46a'},hunter:{hp:250,r:.4,h:1.3,hh:1.15,col:'#8aa0d0'},smoker:{hp:220,r:.35,h:2.0,hh:1.95,col:'#9ab060'}};
-function spawnSpecial(type){const sp=pickSpawn(10,22,true)||pickSpawn(6,30,false);if(!sp)return null;const x=(sp.x+.5)*T,z=(sp.z+.5)*T;const m=makeSpecialMesh(type);
+function spawnSpecial(type){const sp=pickSpawn(10,22,true)||pickSpawn(6,30,false);if(!sp)return null;const x=sp.x,z=sp.z;const m=makeSpecialMesh(type);
  const s={id:++ENTID,type,x,z,y:groundAt(x,z),yaw:0,hp:SPEC[type].hp,mesh:m,state:'approach',cd:3,t:0,dead:false,deathT:0,stag:0,pvx:0,pvz:0,sndT:rand(.5,2),vx:0,vz:0,vy:0,tl:0,losLost:0,phase:0,hitT:0,vic:null};
  specials.push(s);return s;}
 function killSpecial(s,byPlayer){if(s.dead)return;s.dead=true;s.deathT=0;if(byPlayer)S.skills++;DIR.intensity+=6;
@@ -1574,18 +1663,36 @@ function damageSpecial(s,dmg,head,byPlayer){if(s.dead)return;s.hp-=head?dmg*2:dm
 
 /* ---- AI Director ---- */
 const DIR={intensity:0,mode:'BUILD-UP',relaxUntil:0,nextSpecial:0,nextHorde:0,spawnT:0,waves:[],queue:['smoker','boomer','hunter'],peakT:0};
-function pickSpawn(minD,maxD,ahead){const list=spawnTiles.hotel.concat(spawnTiles.lobby);const pr=route[tileOf(player)];
- for(let k=0;k<60;k++){const t=pick(list);const fd=flow[t.i];if(fd>=INF)continue;if(fd<minD||fd>maxD)continue;if(ahead&&route[t.i]>pr+3)continue;
-  const wx=(t.x+.5)*T,wz=(t.z+.5)*T;const d=Math.hypot(wx-player.x,wz-player.z);if(d<12)continue;if(d<26&&losClear(player.x,player.z,wx,wz))continue;return t;}
+function survivorEyes(){const eyes=[{x:player.x,y:player.y,z:player.z}];
+ for(const b of bots){const feet=standY(b.x,b.z);eyes.push({x:b.x,y:feet+(b.down?0.32:1.55),z:b.z});}
+ return eyes;}
+function eyeSees(e,x,y,z){const dx=x-e.x,dy=y-e.y,dz=z-e.z,dist=Math.hypot(dx,dy,dz);if(dist<0.9)return true;const hit=shotHitT(e.x,e.y,e.z,dx/dist,dy/dist,dz/dist,dist);return hit>=dist-0.42;}
+function pointHidden(x,z){const gy=groundAt(x,z),chest=gy+1.08,head=gy+1.58,eyes=survivorEyes();
+ for(const e of eyes)if(eyeSees(e,x,chest,z)||eyeSees(e,x,head,z))return false;
+ for(const e of eyes)if(eyeSees(e,x+0.34,chest,z)||eyeSees(e,x-0.34,chest,z)||eyeSees(e,x,chest,z+0.34)||eyeSees(e,x,chest,z-0.34))return false;
+ return true;}
+function concealTile(tx,tz,salt){if(!isWalk(tx,tz))return null;const spots=[[.42,.5],[.58,.5],[.5,.42],[.5,.58],[.38,.38],[.62,.62],[.38,.62],[.62,.38],[.5,.5]];
+ const n=spots.length,s=((salt||0)%n+n)%n;
+ for(let k=0;k<n;k++){const [fx,fz]=spots[(s+k)%n];const x=(tx+fx)*T,z=(tz+fz)*T;if(pointHidden(x,z))return {x,z};}
  return null;}
-function hordeSpots(){const list=spawnTiles.hotel.concat(spawnTiles.lobby),spots=[];
- for(const t of list){const fd=flow[t.i];if(fd>=INF||fd<3||fd>36)continue;const d=Math.hypot((t.x+.5)*T-player.x,(t.z+.5)*T-player.z);if(d<8||d>52)continue;spots.push(t);}
- if(spots.length>=12)return spots;
- for(const t of list){const fd=flow[t.i];if(fd>=INF||fd>60)continue;if(Math.hypot((t.x+.5)*T-player.x,(t.z+.5)*T-player.z)<6)continue;spots.push(t);}
+function hiddenNear(tx,tz,rad,salt){let best=null,bd=1e9;
+ for(const t of COVER){const dx=t.x-tx,dz=t.z-tz;if(Math.abs(dx)>rad||Math.abs(dz)>rad)continue;const spot=concealTile(t.x,t.z,(salt||0)+dx*3+dz);if(!spot)continue;const d=dx*dx+dz*dz;if(d<bd){bd=d;best=spot;}}
+ return best;}
+function holds(x,z){if(!pointHidden(x,z))return false;const step=flowStep(x,z);if(!step)return true;const nx=x+step[0]*2,nz=z+step[1]*2;if(!isWalk(Math.floor(nx/T),Math.floor(nz/T)))return true;return pointHidden(nx,nz);}
+function pickSpawn(minD,maxD,ahead){const pr=route[tileOf(player)],n=COVER.length;if(!n)return null;
+ for(let k=0;k<Math.min(n,200);k++){const t=COVER[(Math.random()*n)|0];const fd=flow[t.i];if(fd>=INF||fd<minD||fd>maxD)continue;if(ahead&&route[t.i]>pr+3)continue;
+  const d=Math.hypot((t.x+.5)*T-player.x,(t.z+.5)*T-player.z);if(d<5)continue;const spot=concealTile(t.x,t.z,k);if(spot&&holds(spot.x,spot.z))return spot;}
+ return null;}
+function hordeSpots(need){const spots=[];const seen=new Uint8Array(N);
+ const add=(minF,maxF,minD,maxD,list)=>{for(const t of list){if(seen[t.i])continue;const fd=flow[t.i];if(fd>=INF||fd<minF||fd>maxF)continue;const d=Math.hypot((t.x+.5)*T-player.x,(t.z+.5)*T-player.z);if(d<minD||d>maxD)continue;if(!holds((t.x+.5)*T,(t.z+.5)*T))continue;seen[t.i]=1;spots.push(t);}};
+ add(2,48,5,42,COVER);
+ if(spots.length*COVER_CAP<need)add(1,80,4,78,COVER);
+ if(spots.length*COVER_CAP<need)add(1,120,4,130,COVER);
+ if(spots.length<6)add(2,48,5,48,spawnTiles.hotel.concat(spawnTiles.lobby));
  return spots;}
-function spawnHorde(n,target){n=Math.round(n*swarmMul());if(n<=0)return 0;SFX.horde();DIR.peakT=S.t;const spots=hordeSpots();const cap=Math.min(n,MAXC-aliveCommons());let made=0,tries=0;
- while(made<cap&&tries++<cap*8){const sp=spots.length?spots[(Math.random()*spots.length)|0]:(pickSpawn(4,40,false)||pickSpawn(2,70,false));if(!sp)break;
-  const ang=rand(0,6.28),rad=rand(0,.95);if(spawnCommon((sp.x+.5)*T+Math.sin(ang)*rad,(sp.z+.5)*T+Math.cos(ang)*rad,true,target))made++;}
+function spawnHorde(n,target){n=Math.round(n*swarmMul());if(n<=0)return 0;SFX.horde();DIR.peakT=S.t;const cap=Math.min(n,MAXC-aliveCommons());const spots=hordeSpots(cap);let made=0,tries=0,salt=0;const load=new Map();
+ while(made<cap&&tries++<Math.max(cap*16,32)){let spot=null,tile=null;if(spots.length){for(let s=0;s<spots.length;s++){const cand=spots[(Math.random()*spots.length)|0];if((load.get(cand.i)||0)>=COVER_CAP)continue;tile=cand;break;}if(!tile)break;spot=concealTile(tile.x,tile.z,salt++);}else spot=pickSpawn(4,48,false)||pickSpawn(2,80,false);
+  if(!spot||!holds(spot.x,spot.z)){if(!spots.length)break;continue;}if(spawnCommon(spot.x,spot.z,true,target)){made++;if(tile)load.set(tile.i,(load.get(tile.i)||0)+1);}}
  return made;}
 function directorUpdate(dt){DIR.intensity=Math.max(0,DIR.intensity-dt*(S.t-DIR.peakT>6?5:1.5));
  if(DIR.intensity>220&&DIR.mode!=='RELAX'){DIR.mode='RELAX';DIR.relaxUntil=S.t+6;}
@@ -1595,7 +1702,7 @@ function directorUpdate(dt){DIR.intensity=Math.max(0,DIR.intensity-dt*(S.t-DIR.p
  if(!S.dirOn||S.riding||nunQuiet()||swimFight())return;
  const relax=DIR.mode==='RELAX';
  DIR.spawnT-=dt;const want=Math.round((S.inLobby?36:46)*swarmMul());
- if(!relax&&DIR.spawnT<=0){DIR.spawnT=0.22;let wand=0;for(const c of commons)if(!c.dead&&c.state==='wander')wand++;if(wand<want){const sp=pickSpawn(9,28,true);if(sp)spawnCommon((sp.x+.5)*T+rand(-.6,.6),(sp.z+.5)*T+rand(-.6,.6),false);}}
+ if(!relax&&DIR.spawnT<=0){DIR.spawnT=0.22;let wand=0;for(const c of commons)if(!c.dead&&c.state==='wander')wand++;if(wand<want){const sp=pickSpawn(6,32,true)||pickSpawn(4,48,false);if(sp)spawnCommon(sp.x,sp.z,false);}}
  const alive=specials.filter(s=>!s.dead).length;
  if(!relax&&S.t>DIR.nextSpecial&&alive<4){const type=DIR.queue.length?DIR.queue.shift():pick(['boomer','hunter','smoker']);if(spawnSpecial(type))DIR.nextSpecial=S.t+rand(14,22);else DIR.queue.unshift(type);}
  const eventOn=S.alarmT>0&&S.t-S.alarmT<25||S.elevT>0&&!S.elevArrived;
@@ -2084,7 +2191,7 @@ function endRide(){S.riding=false;S.inLobby=true;S.shake=0;
  for(const s of specials){scene.remove(s.mesh.g);if(s.mesh.tongue)scene.remove(s.mesh.tongue);}specials.length=0;commons.length=0;DIR.waves.length=0;
  doors.g=true;flowDirty=true;flow=dijkstra([tileOf(player)]);flowTile=tileOf(player);setObj(9);SFX.ding(36*T,33*T);
  setTimeout(()=>$('fade').style.opacity=0,AUTOTEST?0:300);
- for(let i=0;i<9;i++){const sp=pickSpawn(6,40,false);if(sp)spawnCommon((sp.x+.5)*T,(sp.z+.5)*T,false);}
+ for(let i=0;i<9;i++){const sp=pickSpawn(6,40,false);if(sp)spawnCommon(sp.x,sp.z,false);}
  DIR.nextSpecial=S.t+15;DIR.queue=['boomer','hunter'];DIR.nextHorde=S.t+80;}
 function completeChapter(){if(S.complete)return;S.complete=true;S.phase='done';
  const inside=bots.filter(b=>!b.down&&Math.hypot(b.x-player.x,b.z-player.z)<30);
@@ -2734,7 +2841,7 @@ function autopilot(dt){AP.mv=[0,0];AP.fire=false;AP.revive=false;AP.useCd-=dt;AP
   if(nc==='D'&&nid&&!doors[nid]){goal=[(tx+.5+bx*.35)*T,(tz+.5+bz*.35)*T];if(nid==='roof'&&S.elevT<0)goal=[FIN.callX,FIN.callZ];if(Math.hypot(goal[0]-player.x,goal[1]-player.z)<1.5&&AP.useCd<=0){AP.useCd=.8;player.yaw=Math.atan2(-(nx+.5)*T+player.x,-(nz+.5)*T+player.z);useAction();}}
   else{goal=[(nx+.5)*T,(nz+.5)*T];}}
  if(goal){const dx=goal[0]-player.x,dz=goal[1]-player.z,d=Math.hypot(dx,dz);if(d>.15)AP.mv=[dx/d,dz/d];if(!tgt&&d>.3){player.yaw=Math.atan2(-dx,-dz);player.pitch=0;}}}
-window.__game={autopilot,update,updateCamera,fire,AP,useTargets,moveEnt,collide,isWalk,flowStep,groundAt,shotHitT,hallPics(){let n=0;scene.traverse(m=>{if(m.name==='hallpic')n++;});return n;},S,player,bots,commons,specials,doors,items,route,G,T,W,applySnap,bikes,nuns,
+window.__game={autopilot,update,updateCamera,fire,AP,useTargets,moveEnt,collide,isWalk,flowStep,groundAt,shotHitT,pointHidden,spawnHorde,hallPics(){let n=0;scene.traverse(m=>{if(m.name==='hallpic')n++;});return n;},cover:()=>COVER.length,coverTiles:()=>COVER,coverStats:()=>COVER_STATS,S,player,bots,commons,specials,doors,items,route,G,T,W,H,applySnap,bikes,nuns,
  hurtPlayer,knockDown,finishRevive,chooseCut,cycleCut,limbsLeft,poseLimbs,poseOwnArms,tryDeliver,closeSafe,
  limbView(ent){const m=ent&&ent.mesh,vis={};if(m)for(const id of LIMBS)vis[id]={limb:!!(m[id]&&m[id].visible),stump:!!(m.stumps&&m.stumps[id]&&m.stumps[id].visible),bite:!!(m.bites&&m.bites[id]&&m.bites[id].visible),sy:m[id]?+m[id].scale.y.toFixed(3):1};const w=curW();return {lost:lostOf(ent).slice(),bite:ent&&ent.bite||null,down:!!(ent&&ent.down),hp:ent?Math.round(ent.hp):0,headless:!!(ent&&ent.headless),cargo:ent&&ent.cargo?(ent.cargo===player?'you':ent.cargo.name):null,credits:(ent&&ent.credits||[]).slice(),loose:!!(ent&&ent.loose),head:!!(m&&m.head&&m.head.visible),headSy:m&&m.head?+m.head.scale.y.toFixed(3):1,neck:!!(m&&m.neck&&m.neck.visible),carry:!!(ent&&ent.headProp&&ent.headProp.visible),vis,hand:!!(w&&vmHands[w.type]&&vmHands[w.type].visible),vmGun:!!(w&&vmModels[w.type]&&vmModels[w.type].visible),vmHead:!!vmHead.visible,gunOnBody:!!(ent&&ent.gun&&ent.mesh&&ent.gun.parent===ent.mesh.b)};},
  start(){startGame();},
