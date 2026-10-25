@@ -1510,7 +1510,7 @@ function fire(dry){const w=curW();const def=WEAP[w.type];if(!dry){if(!w.bottomle
 function startReload(){const w=curW();if(!w||w.bottomless||player.reloadT>0)return;const def=WEAP[w.type];if(!def||w.mag>=def.mag||!(w.res>0))return;NET.reloadLatch=null;player.reloadT=def.reload;SFX.reload();}
 function finishReload(){const w=curW();if(!w)return;const def=WEAP[w.type];const need=def.mag-w.mag;const take=Math.min(need,w.res);w.mag+=take;if(w.res!==Infinity)w.res-=take;if(NET.role==='client')NET.reloadLatch={slot:player.slot,mag:w.mag,until:S.t+1.2};}
 function shoveFx(){SFX.shove();vmShove=.3;}
-function kickFx(){if(player.down||(player.pinnedBy&&!player.pinnedBy.dead)||(player.kickCd||0)>0||NET.paused)return false;player.kickCd=.5;vmFrontKick=.34;S.shake=Math.max(S.shake||0,.16);SFX.kick(player.x,player.z);if(!kickTold){kickTold=true;feed('Front kick. One in four: they fly, drop sobbing, burst, or lose the head.','#fd8');}return true;}
+function kickFx(){if(player.down||(player.pinnedBy&&!player.pinnedBy.dead)||(player.kickCd||0)>0||NET.paused)return false;player.kickCd=.5;vmFrontKick=.34;S.shake=Math.max(S.shake||0,.16);SFX.kick(player.x,player.z);if(!kickTold){kickTold=true;feed('Front kick. One in four for everyone in front of you: they fly, drop sobbing, burst, or lose the head.','#fd8');}return true;}
 function predictSlot(slot){if(slot==='primary'){if(!player.inv.primary||player.slot==='primary')return false;}else if(player.slot==='pistol')return false;player.slot=slot;player.reloadT=0;NET.reloadLatch=null;NET.poseSlot=slot;NET.poseUntil=S.t+0.5;return true;}
 function predictFlash(){player.flash=!player.flash;NET.holdFlash={v:!!player.flash,t:S.t+0.5};}
 function predictHeal(){if(player.down||!player.kit||player.hp>=100||S.healT>0||player.pinnedBy||player.pulledBy)return false;S.healT=3;player.reloadT=0;NET.holdHeal=S.t+0.5;NET.healDone=0;return true;}
@@ -1524,7 +1524,7 @@ function shove(){player.lastShove=S.t;SFX.shove();vmShove=.3;
  for(const c of commons){if(c.dead)continue;const dx=c.x-player.x,dz=c.z-player.z,d=Math.hypot(dx,dz);if(d<2.3&&(dx*fx+dz*fz)/(d||1)>.35){c.stag=.9;c.pvx=dx/d*4+fx*2;c.pvz=dz/d*4+fz*2;c.hp-=6;if(c.hp<=0)killCommon(c,true,false);}}
  for(const s of specials){if(s.dead)continue;const dx=s.x-player.x,dz=s.z-player.z,d=Math.hypot(dx,dz);if(d<2.6&&(dx*fx+dz*fz)/(d||1)>.2){s.stag=1;s.pvx=dx/d*4;s.pvz=dz/d*4;if(s.state==='leap'){s.state='approach';s.cd=3;s.vy=0;feed('Deflected the Hunter\'s pounce!','#9f9');}if(player.pulledBy===s)releaseTongue(s);}}}
 function releaseTongue(s){const vic=s.vic||player;if(vic&&vic.pulledBy===s)vic.pulledBy=null;if(player.pulledBy===s)player.pulledBy=null;s.state='approach';s.cd=9;if(s.mesh.tongue)s.mesh.tongue.visible=false;}
-/* Front kick. Each zombie in front rolls an even chance: fly, sob, burst, or lose the head. */
+/* Front kick. One roll covers every zombie in front of you: fly, sob, burst, or lose the head. */
 const KICK_DIST=15.24,KICK_G=14,KICK_ANG=70*Math.PI/180,KICK_KINDS=['fly','sob','boom','head'],GORE_R=10*0.3048;
 let kickTold=false,kickForce='',goreT=0;
 function kickVel(){const v=Math.sqrt(KICK_DIST*KICK_G/Math.sin(2*KICK_ANG));return {vxz:v*Math.cos(KICK_ANG),vy:v*Math.sin(KICK_ANG)};}
@@ -1567,7 +1567,7 @@ function kickDecap(ent,kicker){releaseGrip(ent);ent.flying=false;ent.flyKill=fal
  ent.y=ent.type?groundAt(ent.x,ent.z):bodyY(ent.x,ent.z);const hy=ent.y+1.55;const vx=dir.x*3.4,vy=5.4,vz=dir.z*3.4;tossHead(ent.x,hy,ent.z,vx,vy,vz);NET.ev({t:'head',x:nq(ent.x),y:nq(hy),z:nq(ent.z),vx:nq(vx),vy:vy,vz:nq(vz)});
  for(let i=0;i<10;i++)PBlood.emit(ent.x,hy,ent.z,dir.x*rand(1,4),rand(1,4),dir.z*rand(1,4),rand(.3,.6),.3,.18,.55,.08,.04,.95,8);SFX.head(ent.x,ent.z);
  if(ent.mesh&&ent.mesh.head){ent.mesh.head.visible=false;if(ent.mesh.neck)ent.mesh.neck.visible=true;}}
-function applyKick(ent,kicker){const kind=rollKick();if(kind==='fly')kickLaunch(ent,kicker);else if(kind==='sob')kickSob(ent);else if(kind==='boom')kickBoom(ent,kicker);else if(kind==='head')kickDecap(ent,kicker);}
+function applyKick(ent,kicker,kind){if(kind==='fly')kickLaunch(ent,kicker);else if(kind==='sob')kickSob(ent);else if(kind==='boom')kickBoom(ent,kicker);else if(kind==='head')kickDecap(ent,kicker);}
 function tickKickPose(e,dt,groundFn,radius){e.flying=false;e.poseT=(e.poseT||0)+dt;e.y=groundFn(e.x,e.z);
  if(e.state==='sob'){e.mv=0;return;}
  if(e.state==='headwait'){e.mv=0;if(e.poseT>=1){e.state='headwalk';e.poseT=0;}return;}
@@ -1584,10 +1584,14 @@ function tickFlight(e,dt,radius,groundFn){const prev=e.fvy;e.fvy-=KICK_G*dt;e.fy
 function inKickCone(ent,x,z,reach){const dx=x-ent.x,dz=z-ent.z,d=Math.hypot(dx,dz);if(d>=reach)return false;if(d<0.35)return true;
  const fx=-Math.sin(ent.yaw),fz=-Math.cos(ent.yaw);return (dx*fx+dz*fz)/d>0.35;}
 function frontKick(ent){if(!ent||ent.down||(ent.pinnedBy&&!ent.pinnedBy.dead))return;if((ent.kickCd||0)>0||NET.paused)return;ent.kickCd=.5;
- if(ent===player){vmFrontKick=.34;S.shake=Math.max(S.shake||0,.16);if(!kickTold){kickTold=true;feed('Front kick. One in four: they fly, drop sobbing, burst, or lose the head.','#fd8');}}
+ if(ent===player){vmFrontKick=.34;S.shake=Math.max(S.shake||0,.16);if(!kickTold){kickTold=true;feed('Front kick. One in four for everyone in front of you: they fly, drop sobbing, burst, or lose the head.','#fd8');}}
  SFX.kick(ent.x,ent.z);
- for(const c of commons)if(!c.dead&&inKickCone(ent,c.x,c.z,2.5))applyKick(c,ent);
- for(const s of specials)if(!s.dead&&inKickCone(ent,s.x,s.z,2.8))applyKick(s,ent);}
+ const hit=[];
+ for(const c of commons)if(!c.dead&&inKickCone(ent,c.x,c.z,2.5))hit.push(c);
+ for(const s of specials)if(!s.dead&&inKickCone(ent,s.x,s.z,2.8))hit.push(s);
+ if(!hit.length)return;
+ const kind=rollKick();
+ for(const z of hit)applyKick(z,ent,kind);}
 
 /* ---- zipline. Feet ride zipPos. The cable and trolley sit 1.15 above that. ---- */
 function zipPos(u){const t=Math.max(0,Math.min(1,u)),s=Math.sin(t*Math.PI);return {x:ZIP_A.x+(ZIP_B.x-ZIP_A.x)*t,y:ZIP_A.y+(ZIP_B.y-ZIP_A.y)*t-s*2.8,z:ZIP_A.z+(ZIP_B.z-ZIP_A.z)*t};}
