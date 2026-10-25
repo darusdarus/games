@@ -403,6 +403,10 @@ for(let z=12;z<=19;z++)if(G[z][143]==='='){put(143,z,' ',0);deckY[z*W+143]=NaN;}
 /* Slough under the zipline. The small bridge is the only deck across it. */
 for(let x=134;x<=143;x++)for(let z=4;z<=11;z++)if(G[z][x]===' ')put(x,z,'~',7);
 for(let x=139;x<=142;x++)if(G[11][x]!=='.'&&G[11][x]!=='m'&&G[11][x]!=='D'&&G[11][x]!=='K')put(x,11,'#',11);
+/* The low steps cannot cut north onto the upper hall, and the dining room
+   cannot step onto the second flight. The landing is the way up. */
+put(139,15,'#',11);elev(139,15,4.8);put(140,15,'#',11);elev(140,15,4.8);
+put(137,18,'#',6);elev(137,18,porch);
 deck(138,7,141,9,3.5,7);rim(138,7,141,9,3.5,7);
 rampX(141,143,7,9,3.5,0,7);
 if(G[10][143]==='='){put(143,10,' ',0);deckY[10*W+143]=NaN;}
@@ -508,7 +512,7 @@ const WATER=-0.65;
 function bridgeDeckY(tx){const u=tx+0.5;if(u<=HIGH_A)return DECK_Y*clamp((u-BR_A)/(HIGH_A-BR_A),0,1);if(u>=HIGH_B)return DECK_Y*clamp((BR_B+1-u)/(BR_B+1-HIGH_B),0,1);return DECK_Y;}
 function onBridgeDeck(tx,tz){return LAYOUT!=='linear'&&tx>=BR_A&&tx<=BR_B&&tz>=6&&tz<=10;}
 function tileBase(c,tx,tz){if(ROOF.has(c))return 10;if(c==='U')return WATER;if(c==='D'&&doorId(tx,tz)==='roof')return 10;return 0;}
-function ceilOf(c,tx,tz){if(c!=='m'&&c!=='K')return null;const zn=zoneAt[tz*W+tx];if(zn===6)return 5.4;if(zn===11)return 3.1;if(zn===8)return 3.6;if(zn===1)return 4.6;return 4.2;}
+function ceilOf(c,tx,tz){if(c!=='m'&&c!=='K')return null;const zn=zoneAt[tz*W+tx];if(zn===6)return 5.4;if(zn===11)return 4.4;if(zn===8)return 3.6;if(zn===1)return 4.6;return 4.2;}
 const charAt=(tx,tz)=>(tz>=0&&tz<H&&tx>=0&&tx<W)?G[tz][tx]:' ';
 function slopeAcross(x,z){const y=deckY[z*W+x];if(y!==y)return null;
  const at=(xx,zz)=>(xx>=0&&zz>=0&&xx<W&&zz<H)?deckY[zz*W+xx]:NaN;
@@ -756,13 +760,13 @@ const redwoodSpots=[];
   if(c==='n'||c==='w')fc=zn===2?shade(0x243628,0.85+Math.random()*.2):shade(0x3d4a34,0.88+Math.random()*.22);
   else if(c==='a')fc=0x4a5a38;
   else if(c==='.'||c==='D')fc=lifted&&dy>8&&zn===2?0x7a6248:lifted&&dy>1&&dy<8?0x6a5038:lifted&&zn===2?0x6e5a3e:(zn===7)?(((x+z)&1)?0x4a4638:0x3a362c):(zn===2)?0x2a3824:(((x+z)&1)?0x3c4044:0x34383c);
-  else if(c==='K')fc=0x6a5038;
-  else if(c==='m')fc=zn===6?0x7a6854:zn===11?0x6a5844:zn===8?0x5a3030:zn===1?0x6a4030:((x+z)&1)?0x4e463c:0x3c342c;
+  else if(c==='K')fc=zn===6?0x9a5860:0x6a5038;
+  else if(c==='m')fc=zn===6?0x8a6840:zn===11?0xc4a06a:zn===8?0x5a3030:zn===1?0x6a4030:((x+z)&1)?0x4e463c:0x3c342c;
   else if(c==='F'||c==='x'||c==='B')fc=0x241610;
   else if(c==='R')fc=0x6a7268;
   else if(ROOF.has(c))fc=shade(0x5c584e,0.9+Math.random()*.15);
   else if(c==='c')fc=0x3a3028;
-  if(sl&&zn===2)fc=0x7a6248;else if(sl)fc=0x6a5038;
+  if(sl&&zn===2)fc=0x7a6248;else if(sl)fc=(zn===6||zn===11)&&x>=136?0xd4b06a:0x6a5038;
   if(c==='S'){for(let s=0;s<2;s++){const sx=(x+.25+.5*s)*T,top=groundAt(sx,cz);floors.push({x:sx,y:top-0.08,z:cz,sx:T/2-0.02,sy:0.16,sz:T,c:s?0x6e7270:0x5c605e});}}
   else if(onBridgeDeck(x,z)){/* deck slabs are the bridge group */}
   else if(sl){const n=stairCount(sl.y0,sl.y1),rise=(sl.y1-sl.y0)/n;
@@ -772,7 +776,7 @@ const redwoodSpots=[];
     floors.push({x:along?x*T+(s+1)*(T/n)-0.03:cx,y:(stand+prev)*0.5,z:along?cz:z*T+(s+1)*(T/n)-0.03,sx:along?0.08:T*0.98,sy:Math.max(0.08,Math.abs(rise)),sz:along?T*0.98:0.08,c:fc});}}
   else floors.push({x:cx,y:b-0.12,z:cz,sx:T,sy:0.24,sz:T,c:fc});
   const ch=ceilOf(c,x,z);
-  if(ch!==null){ceils.push({x:cx,y:b+ch+0.12,z:cz,sx:T,sy:0.24,sz:T,c:zn===6?0x4a4030:0x3a342c});
+  if(ch!==null){ceils.push({x:cx,y:b+ch+0.12,z:cz,sx:T,sy:0.24,sz:T,c:(zn===6||zn===11)?0xefe4d0:0x3a342c});
    if((c==='m'||c==='K')&&(x+z)%3===0)(Math.random()<0.45?flick:lamps).push({x:cx,y:b+ch-0.02,z:cz,sx:0.8,sy:0.06,sz:0.4,c:0xffe2b0});}
   if(c==='c'){obst.push({x:cx,y:b+0.4,z:cz,sx:T*0.72,sy:0.7,sz:T*0.62,ry:rand(-.2,.2),c:pick([0x6b4423,0x5a3a22,0x4a4038])});obst.push({x:cx+rand(-.2,.2),y:b+0.85,z:cz,sx:T*0.4,sy:0.28,sz:T*0.4,c:0x3a2a1a});}
   if(c==='B'){obst.push({x:cx,y:b+0.42,z:cz,sx:1.55,sy:0.7,sz:0.85,ry:(x+z)*.4,c:pick([0x2a2420,0x3a1a14,0x1a1c1e])});obst.push({x:cx,y:b+0.85,z:cz-0.1,sx:0.85,sy:0.38,sz:0.7,c:0x151515});fires.push({x:cx,y:b+0.35,z:cz,r:0.55,big:false});}
@@ -989,6 +993,74 @@ facade(scene,'acres-hall.jpg',0.06,0.16,0.94,0.7,10,4.4,34*T-0.3,2.5,25.5*T,Math
  const seat=new THREE.Group();seat.name='trolley';
  box(0.08,0.42,0.08,0x222,0,0.15,0,seat);box(0.62,0.07,0.1,0xc4a56a,0,-0.12,0,seat);
  scene.add(seat);window.__trolley=seat;
+}
+/* Interior, the rooms from the house tour. The stair, the upper hall, and the
+   billiard room are walled and roofed. Dressing sits on the walls and the
+   open landing, so the walk up the tower stays in the clear. */
+{const inn=grp('lm-mansion-in',0,0,0);
+ const FY=1.02,UY=4.8,BY=12,GOLD=0xd4b06a,RED=0x5c2e22,OAK=0x6a4830,ONYX=0xe7e0d2,PLAST=0xefe4d0,CREAM=0xc9c6b0,ROOF=0x3e463c;
+ const roseTex=canvasTex(128,128,(g,w,h)=>{g.fillStyle='#e4b4b6';g.fillRect(0,0,w,h);g.strokeStyle='#7a3048';g.lineWidth=1.6;
+  for(let y=8;y<h;y+=20)for(let x=6;x<w;x+=20){g.beginPath();g.ellipse(x,y,6,3,.5,0,6.3);g.stroke();g.beginPath();g.ellipse(x+8,y+7,5,3,-.4,0,6.3);g.stroke();}});
+ const roseMat=new THREE.MeshLambertMaterial({map:roseTex,emissive:0x3a2024,emissiveIntensity:0.35});
+ const glassTex=canvasTex(128,256,(g,w,h)=>{g.fillStyle='#1a3058';g.fillRect(0,0,w,h);g.fillStyle='#9a2040';g.fillRect(14,16,30,48);g.fillStyle='#204878';g.fillRect(w-44,16,30,48);g.fillStyle='#2a6a48';g.fillRect(14,h-78,34,46);g.fillStyle='#c4a040';g.fillRect(w-50,h-78,34,46);
+  g.fillStyle='#e6d08a';g.beginPath();g.ellipse(w/2,h*0.36,16,20,0,0,6.3);g.fill();g.fillStyle='#8a2848';g.beginPath();g.moveTo(w/2-26,h*0.46);g.lineTo(w/2+26,h*0.48);g.lineTo(w/2+14,h*0.9);g.lineTo(w/2-18,h*0.88);g.fill();
+  g.strokeStyle='#140e08';g.lineWidth=5;g.strokeRect(8,8,w-16,h-16);g.beginPath();g.moveTo(w/2,8);g.lineTo(w/2,h-8);g.moveTo(8,h*0.42);g.lineTo(w-8,h*0.42);g.stroke();});
+ const glassMat=new THREE.MeshBasicMaterial({map:glassTex,side:THREE.DoubleSide});
+ function sheet(w,h,material,x,y,z,ry){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),material);m.position.set(x,y,z);if(ry)m.rotation.y=ry;inn.add(m);return m;}
+ function horseshoe(x,y,z,ry,r){const arc=Math.PI*1.35,holder=new THREE.Group();holder.position.set(x,y,z);holder.rotation.y=ry||0;
+  const m=new THREE.Mesh(new THREE.TorusGeometry(r,0.1,6,18,arc),mat(0xc4a06a));m.rotation.z=Math.PI/2-arc/2;holder.add(m);inn.add(holder);}
+ function slopeBox(x0,y0,z0,x1,y1,z1,w,h,c){const dx=x1-x0,dy=y1-y0,dz=z1-z0,len=Math.hypot(dx,dy,dz)||0.001;const m=new THREE.Mesh(boxGeo,mat(c));m.scale.set(w,h,len);m.position.set((x0+x1)/2,(y0+y1)/2,(z0+z1)/2);_dir.set(dx/len,dy/len,dz/len);m.quaternion.setFromUnitVectors(_zAx,_dir);inn.add(m);return m;}
+ function rail(x0,y0,z0,x1,y1,z1){const n=10;for(let i=0;i<=n;i++){const t=i/n;solid(inn,0.09,0.86,0.09,GOLD,x0+(x1-x0)*t,y0+(y1-y0)*t+0.5,z0+(z1-z0)*t);}slopeBox(x0,y0+0.96,z0,x1,y1+0.96,z1,0.12,0.08,GOLD);slopeBox(x0,y0+0.42,z0,x1,y1+0.42,z1,0.05,0.62,0xe6c98a);}
+ function chandelier(x,y,z){cylMesh(inn,0.02,0.02,0.55,0xc4b48a,x,y+0.28,z,4);sph(0.22,0xf4efe4,x,y,z,inn,{emissive:0xffe2b0,emissiveIntensity:0.8});sph(0.08,0xf4efe4,x-.28,y-.12,z,inn,{emissive:0xffe2b0});sph(0.08,0xf4efe4,x+.28,y-.12,z,inn,{emissive:0xffe2b0});
+  const L=new THREE.PointLight(0xffe0b8,6,16,1);L.position.set(x,y-0.2,z);inn.add(L);}
+ function medallion(x,y,z){cylMesh(inn,0.62,0.62,0.05,0xf7f1e4,x,y,z,14);cylMesh(inn,0.24,0.24,0.08,0xe6d08a,x,y,z,10);}
+ const paperX=(x0,x1,z,ry,y0,y1)=>sheet(Math.abs(x1-x0),y1-y0,roseMat,(x0+x1)/2,(y0+y1)/2,z,ry);
+ const paperZ=(z0,z1,x,ry,y0,y1)=>sheet(Math.abs(z1-z0),y1-y0,roseMat,x,(y0+y1)/2,(z0+z1)/2,ry);
+ paperX(262.3,275.7,22.08,0,2.2,6.2);paperX(262.3,275.7,37.88,Math.PI,2.2,6.2);
+ paperZ(22.4,23.8,262.12,Math.PI/2,2.2,6.2);paperZ(30.2,37.7,262.12,Math.PI/2,2.2,6.2);
+ paperZ(22.4,23.8,275.88,-Math.PI/2,2.2,6.2);paperZ(30.2,37.7,275.88,-Math.PI/2,2.2,6.2);
+ for(const z of [22.12,37.88]){solid(inn,13.4,1.15,0.1,OAK,269,FY+0.58,z);solid(inn,13.4,0.08,0.14,0xe6d08a,269,6.28,z);solid(inn,13.4,0.07,0.14,0x3d6a62,269,6.14,z);solid(inn,13.4,0.08,0.14,0x8a4050,269,6.0,z);}
+ solid(inn,12.6,0.03,1.4,0x8a4050,269,FY+0.045,27);
+ for(const x of [264.4,272.8]){cylMesh(inn,0.18,0.22,4.9,RED,x,FY+2.55,22.28,8);cylMesh(inn,0.18,0.22,4.9,RED,x,FY+2.55,37.62,8);}
+ sheet(5.6,0.85,glassMat,262.14,3.7,27,Math.PI/2);
+ sheet(1.2,2.45,glassMat,264.4,2.45,24.2,0);sheet(1.2,2.45,glassMat,264.4,2.45,29.8,Math.PI);
+ horseshoe(277.4,FY+2.45,27,Math.PI/2,2.05);
+ cylMesh(inn,0.32,0.4,5.2,RED,277.15,FY+2.6,24.05,8);cylMesh(inn,0.32,0.4,5.2,RED,277.15,FY+2.6,29.95,8);
+ solid(inn,8.2,0.22,6.2,PLAST,280,6.62,27);solid(inn,4.2,0.22,6.2,PLAST,282,8.35,27);
+ solid(inn,8.6,0.2,6.5,ROOF,280,6.9,27);solid(inn,4.6,0.2,6.5,ROOF,282,8.6,27);
+ solid(inn,0.16,1.7,6.1,PLAST,280,7.35,27);
+ solid(inn,8.2,7.6,0.16,PLAST,280,4.85,23.9);solid(inn,8.4,7.8,0.18,CREAM,280,4.7,22.05);solid(inn,8.5,0.16,0.24,0x243830,280,8.55,22.05);
+ solid(inn,4.0,7.4,0.16,PLAST,280,4.75,30.08);solid(inn,4.2,4.3,0.14,PLAST,280,6.95,31.95);
+ solid(inn,0.18,7.6,6.1,PLAST,284.1,4.85,27);solid(inn,0.18,7.8,6.3,CREAM,284.45,4.7,27);
+ sheet(2.2,3.4,glassMat,280,5.15,23.78,0);
+ rail(278.4,FY,23.72,283.4,UY,23.72);rail(278.4,FY,30.22,281.6,3.4,30.22);
+ solid(inn,1.2,0.08,0.42,0xe6c98a,274.2,FY+0.5,22.55);solid(inn,0.08,0.42,0.42,0xe6c98a,273.7,FY+0.24,22.55);solid(inn,0.08,0.42,0.42,0xe6c98a,274.7,FY+0.24,22.55);
+ const fx=266.2,fz=37.55;solid(inn,1.8,1.15,0.24,ONYX,fx,FY+0.68,fz);solid(inn,0.7,0.55,0.08,0x2a1810,fx,FY+0.45,fz-0.1);solid(inn,2.15,0.1,0.4,0x4a3028,fx,FY+1.28,fz);
+ solid(inn,1.55,0.95,0.22,ONYX,266.2,FY+0.58,22.32);sheet(1.2,2.6,glassMat,266.2,4.25,22.14,0);
+ solid(inn,1.6,0.55,0.7,0x8a4050,263.4,FY+0.4,36.6);solid(inn,1.5,0.4,0.62,0xc4848c,263.4,FY+0.78,36.6);
+ solid(inn,2.4,0.1,1.15,OAK,272.2,FY+0.78,34.8);solid(inn,2.55,0.12,1.3,0x4a3020,272.2,FY+0.66,34.8);
+ for(const dx of [-1.1,1.1])for(const dz of [-0.5,0.5])solid(inn,0.08,0.62,0.08,0x3a2418,272.2+dx,FY+0.32,34.8+dz);
+ solid(inn,2.3,1.35,0.16,OAK,272.2,FY+0.9,37.72);solid(inn,1.6,0.95,0.04,0xd8d2c4,272.2,FY+1.2,37.52);
+ medallion(266.2,6.4,33.4);medallion(270.6,6.4,35.2);chandelier(266.2,5.45,33.4);chandelier(270.6,5.45,35.2);chandelier(280,5.7,27);
+ paperZ(30.4,37.6,278.1,Math.PI/2,5.9,8.9);paperZ(30.4,37.6,285.85,-Math.PI/2,5.9,8.9);paperX(278.2,281.8,32.08,0,5.9,8.9);
+ solid(inn,3.8,4.5,0.16,PLAST,279.9,UY+2.25,30.15);
+ solid(inn,0.16,4.5,7.6,PLAST,278.08,UY+2.25,34);solid(inn,0.16,4.5,7.8,PLAST,285.95,UY+2.25,34);solid(inn,0.18,4.6,8.0,CREAM,286.4,UY+2.2,34);
+ solid(inn,8.4,0.22,8.2,ROOF,282,9.6,34);
+ for(const z of [30.3,37.7]){solid(inn,8.0,0.08,0.12,0xe6d08a,282,9.15,z);solid(inn,8.0,0.06,0.12,0x3d6a62,282,9.02,z);}
+ solid(inn,3.6,1.05,0.1,OAK,279.9,UY+0.55,30.22);
+ horseshoe(284,UY+1.85,30.25,0,1.55);horseshoe(280,UY+1.75,37.75,0,1.7);
+ horseshoe(278.25,UY+1.7,34,Math.PI/2,1.25);horseshoe(285.75,UY+1.7,34,Math.PI/2,1.25);
+ sheet(1.5,2.5,glassMat,281.2,UY+2.7,30.4,0);
+ rail(276.25,UY,36.4,276.25,BY,41.4);rail(283.75,UY,36.4,283.75,BY,40.2);
+ solid(inn,0.18,15.4,9.8,CREAM,275.82,8.3,41);solid(inn,0.1,7.2,5.2,OAK,276.12,UY+3.6,38.8);solid(inn,8.2,0.2,2.1,PLAST,280,10.3,37);solid(inn,8.2,0.2,2.1,PLAST,280,13.3,39);solid(inn,8.4,0.18,2.2,ROOF,280,10.55,37);
+ solid(inn,14.2,4.3,0.18,CREAM,283,BY+2.15,45.85);solid(inn,14.0,4.1,0.12,0xc4b49a,283,BY+1.15,45.7);
+ solid(inn,0.18,4.3,5.8,CREAM,289.85,BY+2.15,43);solid(inn,1.3,4.2,0.16,CREAM,284.6,BY+2.1,40.15);solid(inn,1.2,4.2,0.16,CREAM,289.3,BY+2.1,40.15);
+ horseshoe(287,BY+2.05,40.35,0,1.35);
+ solid(inn,9.2,0.2,5.8,0x4a3828,280.6,16.35,43);solid(inn,4.2,0.2,2.2,0x4a3828,287,16.35,45);solid(inn,0.2,4.2,2.4,PLAST,285.15,BY+2.1,41.2);solid(inn,0.2,4.2,2.4,PLAST,288.85,BY+2.1,41.2);
+ solid(inn,2.2,0.1,1.2,0x1a4a32,279.4,BY+0.82,44.85);solid(inn,2.4,0.12,1.35,0x4a3020,279.4,BY+0.7,44.85);
+ for(const dx of [-1.05,1.05])for(const dz of [-0.55,0.55])solid(inn,0.08,0.66,0.08,0x3a2418,279.4+dx,BY+0.34,44.85+dz);
+ for(let i=0;i<6;i++)solid(inn,0.045,0.85,0.045,0xc4b49a,276.35,BY+1.35,42.4+i*0.28);
+ solid(inn,0.08,1.05,1.7,0xc4b49a,276.3,BY+0.6,43.2);
 }
 function beast(kind,x,z,y0){const g=new THREE.Group();g.position.set(x,y0,z);scene.add(g);const ph=Math.random()*6;
  if(kind==='otter'){solid(g,0.85,0.28,0.32,0x6a4a32,0,0.2,0);solid(g,0.28,0.22,0.26,0x5a3a28,0.42,0.32,0);solid(g,0.45,0.08,0.08,0x4a3424,-0.55,0.22,0);}
