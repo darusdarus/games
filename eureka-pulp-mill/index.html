@@ -173,10 +173,10 @@ body.touching #ffplay{left:8px;bottom:auto;top:calc(330px + env(safe-area-inset-
  <div class="controls">
   <div><b>WASD</b>Move</div><div><b>MOUSE</b>Look</div><div><b>L-CLICK</b>Shoot</div>
   <div><b>R-CLICK</b>Shove (hold)</div><div><b>R</b>Reload</div><div><b>1 / 2</b>Primary / Pistol</div>
-  <div id="eline"><b>E</b>Use / cut the bitten limb</div><div id="sline"><b>W / A D</b>Row / turn the skiff</div><div><b>H</b>Heal (first aid)</div><div><b>F</b>Flashlight</div>
-  <div><b>Z</b>Choose limb or head</div><div><b>K</b>Front kick</div>
+  <div id="eline"><b>E</b>Use / cut the bitten limb</div><div id="sline"><b>W / A D</b>Row / turn the skiff</div><div><b>H</b>Heal (first aid)</div><div><b>F</b>Front kick</div>
+  <div><b>Z</b>Choose limb or head</div><div><b>G</b>Flashlight</div>
   <div><b>SHIFT</b>Sprint</div><div><b>ESC / P</b>Pause</div><div><b>M</b>Mute</div>
-  <div><b>V</b>Talk (hold)</div><div><b>G</b>God fly</div>
+  <div><b>V</b>Talk (hold)</div><div><b>C</b>God fly</div>
  </div>
  <div class="touchhelp">Left side moves, right side looks. FIRE shoots, hold SHOVE to push, hold USE to cut off the bitten limb. The limb buttons pick which one, or the head once every limb is gone. Hold TALK to speak in co-op.</div>
  <div class="soundrow">
@@ -1470,7 +1470,7 @@ function shove(){player.lastShove=S.t;SFX.shove();vmShove=.3;
  for(const c of commons){if(c.dead)continue;const dx=c.x-player.x,dz=c.z-player.z,d=Math.hypot(dx,dz);if(d<2.3&&(dx*fx+dz*fz)/(d||1)>.35){c.stag=.9;c.pvx=dx/d*4+fx*2;c.pvz=dz/d*4+fz*2;c.hp-=6;if(c.hp<=0)killCommon(c,true,false);}}
  for(const s of specials){if(s.dead)continue;const dx=s.x-player.x,dz=s.z-player.z,d=Math.hypot(dx,dz);if(d<2.6&&(dx*fx+dz*fz)/(d||1)>.2){s.stag=1;s.pvx=dx/d*4;s.pvz=dz/d*4;if(s.state==='leap'){s.state='approach';s.cd=3;s.vy=0;feed('Deflected the Hunter\'s pounce!','#9f9');}if(player.pulledBy===s)releaseTongue(s);}}}
 function releaseTongue(s){const vic=s.vic||player;if(vic&&vic.pulledBy===s)vic.pulledBy=null;if(player.pulledBy===s)player.pulledBy=null;s.state='approach';s.cd=9;if(s.mesh.tongue)s.mesh.tongue.visible=false;}
-/* Front kick. F stays the flashlight. First kick on a zombie throws it ~50 ft and it comes back. The second kick on that same zombie detonates it at the top of the arc. */
+/* Front kick is F, next to WASD. G is the flashlight. First kick throws a zombie ~50 ft and it comes back. The second kick on that same zombie detonates it at the top of the arc. */
 const KICK_DIST=15.24,KICK_G=14,KICK_ANG=70*Math.PI/180;
 let kickTold=false;
 function kickVel(){const v=Math.sqrt(KICK_DIST*KICK_G/Math.sin(2*KICK_ANG));return {vxz:v*Math.cos(KICK_ANG),vy:v*Math.sin(KICK_ANG)};}
@@ -1888,7 +1888,7 @@ function updateHud(dt){flashT=Math.max(0,flashT-dt*1.6);$('dmg').style.opacity=f
  if(NET.role!=='off'){const nb=$('netbadge');nb.classList.remove('hidden');nb.textContent=(NET.role==='host'?'Hosting ':'Joined ')+NET.room+(NET.ping?' · '+NET.ping+' ms':'');}
  const inf=!!w.bottomless;$('wname').textContent=(inf?'Auto Shotgun':def.name)+(player.reloadT>0?' — reloading':'');$('acount').innerHTML=(inf?'∞':w.mag)+' <small>/ '+(inf||w.res===Infinity?'∞':w.res)+'</small>';
  const pn=player.inv.primary?(player.inv.primary.bottomless?'Auto Shotgun':WEAP[player.inv.primary.type].name):'';
- $('slots').textContent=(S.fly?'GOD FLY — look and WASD, Space up, Ctrl down, Shift faster, G lands':((pn?'[1] '+pn+'  ':'[1] —  ')+'[2] Pistol'+(player.kit?'  [H] Heal':'')+'  [F] Light '+(player.flash?'on':'off')+'  [K] Kick  [G] Fly'));
+ $('slots').textContent=(S.fly?'GOD FLY — look and WASD, Space up, Ctrl down, Shift faster, C lands':((pn?'[1] '+pn+'  ':'[1] —  ')+'[2] Pistol'+(player.kit?'  [H] Heal':'')+'  [F] Kick  [G] Light '+(player.flash?'on':'off')+'  [C] Fly'));
  $('dir').innerHTML='AI Director: <b>'+(S.dirOn?DIR.mode:'WAITING')+'</b><br>intensity '+Math.round(DIR.intensity)+' · infected '+aliveCommons()+' · specials '+specials.filter(s=>!s.dead).length;
  const u=S.phase==='play'?useTargets():null;
  if(u&&u.revive){const left=limbsLeft(u.revive);
@@ -1909,7 +1909,7 @@ function updateHud(dt){flashT=Math.max(0,flashT-dt*1.6);$('dmg').style.opacity=f
 const canvas=renderer.domElement;
 function lock(){if(AUTOTEST||COOPTEST||wantTouch())return;try{const p=canvas.requestPointerLock();if(p&&p.catch)p.catch(()=>{});}catch(e){}}
 function coopPause(){$('pause').classList.remove('hidden');mouseDown=false;mouseRight=false;keys={};NET.paused=true;syncTouch();paintFF();paintRestart();}
-function toggleFly(){if(NET.role==='client'||S.phase!=='play')return;S.fly=!S.fly;if(S.fly){S.god=true;if(player.headless){player.headless=false;player.loose=false;clearCargoOf(player);}player.down=false;player.bite=null;player.pinnedBy=null;player.pulledBy=null;player.hp=100;poseOwnArms();poseCargo();feed('<b>God fly on.</b> WASD goes where you look. Space up, Ctrl down, Shift is faster. G lands.','#fd8');}else{if(!COOPTEST)S.god=false;player.y=groundAt(player.x,player.z)+1.62;feed('Landed.','#ccc');}}
+function toggleFly(){if(NET.role==='client'||S.phase!=='play')return;S.fly=!S.fly;if(S.fly){S.god=true;if(player.headless){player.headless=false;player.loose=false;clearCargoOf(player);}player.down=false;player.bite=null;player.pinnedBy=null;player.pulledBy=null;player.hp=100;poseOwnArms();poseCargo();feed('<b>God fly on.</b> WASD goes where you look. Space up, Ctrl down, Shift is faster. C lands.','#fd8');}else{if(!COOPTEST)S.god=false;player.y=groundAt(player.x,player.z)+1.62;feed('Landed.','#ccc');}}
 let introGen=0;
 function queueIntro(){const gen=++introGen;feed('<i>Trinity Street is quiet in the wrong way.</i>','#ccc');
  setTimeout(()=>{if(gen!==introGen||S.phase!=='play')return;bark(bots[0],LAYOUT==='town'?'Guns are in the truck. Redwood Acres, the Sky Walk, the zoo, the tree walk, then the mansion.':'Guns are in the truck. Straight through the acres, the redwoods, the zoo, and the mansion.','plan',99);},900);
@@ -1994,8 +1994,8 @@ document.addEventListener('keydown',e=>{keys[e.code]=true;
   if(e.code==='Digit1')NET.edges.push('f1');
   if(e.code==='Digit2')NET.edges.push('f2');
   if(e.code==='KeyE'&&!player.down)NET.edges.push('use');
-  if(e.code==='KeyF')NET.edges.push('flash');
-  if(e.code==='KeyK'&&!player.down)NET.edges.push('kick');
+  if(e.code==='KeyF'&&!player.down)NET.edges.push('kick');
+  if(e.code==='KeyG')NET.edges.push('flash');
   if(e.code==='KeyH')NET.edges.push('heal');
   if(e.code==='KeyX')NET.edges.push('xgun');
   if(e.code==='KeyP'||e.code==='Escape'){if(document.pointerLockElement)document.exitPointerLock();coopPause();}
@@ -2006,9 +2006,9 @@ document.addEventListener('keydown',e=>{keys[e.code]=true;
  if(e.code==='KeyQ'){player.slot=player.slot==='pistol'&&player.inv.primary?'primary':'pistol';player.reloadT=0;}
  if(e.code==='KeyZ'&&!e.repeat)cycleCut(1);
  if(e.code==='KeyE'&&!e.repeat&&!player.down)useAction();
- if(e.code==='KeyF'&&!e.repeat)player.flash=!player.flash;
- if(e.code==='KeyK'&&!e.repeat&&!player.down)frontKick(player);
- if(e.code==='KeyG'&&!e.repeat)toggleFly();
+ if(e.code==='KeyF'&&!e.repeat&&!player.down)frontKick(player);
+ if(e.code==='KeyG'&&!e.repeat)player.flash=!player.flash;
+ if(e.code==='KeyC'&&!e.repeat)toggleFly();
  if(e.code==='KeyX'&&!e.repeat)makeAutoShotgun(player);
  if(S.fly&&(e.code==='Space'||e.code==='ControlLeft'||e.code==='ControlRight'))e.preventDefault();
  if(e.code==='KeyH'&&!e.repeat&&player.kit&&player.hp<100&&S.healT<=0&&!player.pinnedBy&&!player.pulledBy&&!player.down){S.healT=3;player.reloadT=0;}
