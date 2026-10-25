@@ -16,3 +16,12 @@ cookhouse.jpg | File:Samoa Cookhouse - December 2021 - Sarah Stierch 01.jpg | Mi
 zoo.jpg | File:Nancy Hilfiker Aviary - December 2024 - Sarah Stierch 03.jpg | Missvain | CC0 | https://commons.wikimedia.org/wiki/File:Nancy_Hilfiker_Aviary_-_December_2024_-_Sarah_Stierch_03.jpg
 street.jpg | File:Old Town Eureka, California.jpg | Pamla J. Eisenberg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Old_Town_Eureka,_California.jpg
 office.jpg | File:Eureka, California - Old Town 20 - 935 3rd Street.jpg | Joe Mabel | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Eureka,_California_-_Old_Town_20_-_935_3rd_Street.jpg
+zoo-gate.jpg | File:Sequoia-Park-Zoo.jpg | AuroraTeagarden | CC0 | https://commons.wikimedia.org/wiki/File:Sequoia-Park-Zoo.jpg
+zoo-path.jpg | File:Sequoia Park Zoo - panoramio.jpg | Ray Ok | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Sequoia_Park_Zoo_-_panoramio.jpg
+zoo-yard.jpg | File:Sequoia Park Zoo 03.jpg | Missvain | CC0 | https://commons.wikimedia.org/wiki/File:Sequoia_Park_Zoo_03.jpg
+zoo-aviary-a.jpg | File:Nancy Hilfiker Aviary - December 2024 - Sarah Stierch 01.jpg | Missvain | CC0 | https://commons.wikimedia.org/wiki/File:Nancy_Hilfiker_Aviary_-_December_2024_-_Sarah_Stierch_01.jpg
+zoo-aviary-b.jpg | File:Nancy Hilfiker Aviary - December 2024 - Sarah Stierch 02.jpg | Missvain | CC0 | https://commons.wikimedia.org/wiki/File:Nancy_Hilfiker_Aviary_-_December_2024_-_Sarah_Stierch_02.jpg
+eureka-boardwalk.jpg | File:Eureka Boardwalk - December 2021 - Sarah Stierch 01.jpg | Missvain | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Eureka_Boardwalk_-_December_2021_-_Sarah_Stierch_01.jpg
+eureka-oldtown.jpg | File:Old Town Eureka - December 2021 - Sarah Stierch.jpg | Missvain | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Old_Town_Eureka_-_December_2021_-_Sarah_Stierch.jpg
+eureka-plaza.jpg | File:Plaza in Eureka (21742786688).jpg | Robert Ashworth | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Plaza_in_Eureka_(21742786688).jpg
+eureka-clock.jpg | File:Eureka Old Town and Clock.jpg | Jan Kronsell | Public domain | https://commons.wikimedia.org/wiki/File:Eureka_Old_Town_and_Clock.jpg
