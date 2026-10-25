@@ -1,0 +1,34 @@
+name: Restack stacked pull requests
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: restack-children
+  cancel-in-progress: false
+
+jobs:
+  restack:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Replay child branches onto the merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash .github/scripts/restack-children.sh \
+            --apply \
+            --old-tip "${{ github.event.pull_request.head.sha }}" \
+            --new-tip "${{ github.event.pull_request.merge_commit_sha }}" \
+            --merged-pr "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}"
