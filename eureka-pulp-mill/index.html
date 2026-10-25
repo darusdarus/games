@@ -330,7 +330,7 @@ const SAFES=LAYOUT==='linear'?[
  {name:'Redwood Acres',x0:37,x1:40,z0:25,z1:27,inn:'acresIn',out:'acresOut',nextObj:2,line:'Up the Redwood Sky Walk. The zoo is under the canopy.'},
  {name:'Sequoia Park Zoo',x0:105,x1:108,z0:28,z1:30,inn:'zooIn',out:'zooOut',nextObj:3,line:'Out on the tree walk. H Street is next. The Rentor office is 3109.'},
  {name:'Rentor, 3109 H Street',x0:117,x1:120,z0:11,z1:13,inn:'rentorIn',out:'rentorOut',nextObj:4,line:'Old Town. You go through the Carson Mansion. The tower faces the bay.'},
- {name:'Carson Mansion',x0:132,x1:135,z0:14,z1:16,inn:'mansionIn',out:'mansionOut',nextObj:5,line:'Up the stairs to the tower. The zipline leaves the peak for the slough bridge.'},
+ {name:'Carson Mansion',x0:131,x1:133,z0:16,z1:18,inn:'mansionIn',out:'mansionOut',nextObj:5,line:'Parlor is shut. The hall stair is the only way up. Fight the upper floors to the tower. The line leaves the peak.'},
  {name:'Samoa Cookhouse',x0:170,x1:173,z0:7,z1:9,inn:'cookIn',out:'cookOut',nextObj:8,line:'The mill road. The chopper is on the roof.'},
 ];
 function put(x,z,c,zn){if(x<0||z<0||x>=W||z>=H)return;G[z][x]=c;if(zn!=null)zoneAt[z*W+x]=zn;}
@@ -384,29 +384,48 @@ doorX('rentorIn',115,11,13,4);doorX('rentorOut',123,11,13,4);
 road(124,11,127,13,4);road(125,6,127,13,4);road(118,6,130,8,6);
 fill(118,9,124,11,'#',4);fill(120,2,125,5,'#',0);
 road(128,8,130,15,6);
-/* Carson Mansion. The 2nd Street front has the steps. The parlor, the stair,
-   and the tower are the only way up to the line. */
-fill(130,10,138,19,'#',6);fill(131,11,137,18,'m',6);fill(132,14,135,16,'K',6);
-doorX('mansionIn',130,12,14,6);doorX('mansionOut',138,12,14,6);
-const porch=1.02;
+/* Carson Mansion, from the first-floor plan. Front steps into the vestibule,
+   hall in the middle, parlor to the north, library to the south, dining room
+   and kitchen at the back. The hall stair is the only way up: second floor,
+   third floor, then the tower and the line. */
+fill(130,10,138,19,'#',6);
+const porch=1.02,F2=4.8,F3=8.6,FT=12;
 for(let z=12;z<=14;z++){
  put(127,z,'.',6);put(128,z,'.',6);put(129,z,'.',6);
- elev(127,z,0.34);elev(128,z,0.68);elev(129,z,porch);elev(130,z,porch);elev(138,z,porch);
+ elev(127,z,0.34);elev(128,z,0.68);elev(129,z,porch);
 }
-for(let z=11;z<=18;z++)for(let x=131;x<=137;x++)if(G[z][x]==='m'||G[z][x]==='K')elev(x,z,porch);
-rampX(139,141,12,14,porch,4.8,11);
-for(let z=15;z<=18;z++)for(let x=139;x<=142;x++){put(x,z,'m',11);elev(x,z,4.8);}
-rim(139,15,142,18,4.8,11);
-rampZ(18,20,138,141,4.8,12,11);
-deck(138,20,144,22,12,6);rim(138,20,144,22,12,6);
+doorX('mansionIn',130,12,14,6);
+for(let z=12;z<=14;z++)elev(130,z,porch);
+for(let z=12;z<=14;z++)for(let x=131;x<=135;x++){put(x,z,'m',6);elev(x,z,porch);}
+for(let z=13;z<=14;z++)for(let x=136;x<=137;x++){put(x,z,'m',6);elev(x,z,porch);}
+doorX('mansionOut',138,13,14,6);
+for(let z=13;z<=14;z++)elev(138,z,porch);
+for(let x=134;x<=137;x++){put(x,11,'m',6);elev(x,11,porch);}
+put(133,15,'m',6);elev(133,15,porch);
+for(let z=16;z<=18;z++)for(let x=131;x<=133;x++){put(x,z,'K',6);elev(x,z,porch);}
+for(let x=135;x<=136;x++){put(x,15,'m',6);elev(x,15,porch);}
+for(let z=16;z<=18;z++)for(let x=135;x<=137;x++){put(x,z,'m',6);elev(x,z,porch);}
+rampX(139,141,13,14,porch,F2,11);
+for(let z=13;z<=14;z++)put(142,z,'#',11);
+for(let x=139;x<=141;x++)put(x,12,'#',11);
+for(let z=15;z<=16;z++)for(let x=141;x<=142;x++){put(x,z,'m',11);elev(x,z,F2);}
+for(let z=17;z<=18;z++)for(let x=139;x<=142;x++){put(x,z,'m',11);elev(x,z,F2);}
+put(139,15,'#',11);put(140,15,'#',11);put(139,16,'#',11);put(140,16,'#',11);
+rampZ(18,20,140,141,F2,F3,11);
+put(139,18,'#',11);put(142,18,'#',11);
+for(let z=20;z<=21;z++)for(let x=139;x<=141;x++){put(x,z,'m',11);elev(x,z,F3);}
+put(138,20,'#',6);put(138,21,'#',6);put(142,20,'#',11);put(142,21,'#',11);
+put(139,22,'#',11);put(140,22,'m',11);elev(140,22,F3);put(140,23,'#',11);
+rampX(141,143,22,22,F3,FT,11);
+put(141,21,'#',11);
+put(143,21,'m',11);elev(143,21,FT);put(144,21,'m',11);elev(144,21,FT);put(144,22,'m',11);elev(144,22,FT);
+put(142,21,'#',11);put(145,21,'#',11);put(145,22,'#',11);
+put(143,15,'#',11);put(143,16,'#',11);put(143,17,'#',11);put(143,18,'#',11);
+put(143,23,'#',11);put(144,23,'#',11);
 for(let z=12;z<=19;z++)if(G[z][143]==='='){put(143,z,' ',0);deckY[z*W+143]=NaN;}
 /* Slough under the zipline. The small bridge is the only deck across it. */
 for(let x=134;x<=143;x++)for(let z=4;z<=11;z++)if(G[z][x]===' ')put(x,z,'~',7);
 for(let x=139;x<=142;x++)if(G[11][x]!=='.'&&G[11][x]!=='m'&&G[11][x]!=='D'&&G[11][x]!=='K')put(x,11,'#',11);
-/* The low steps cannot cut north onto the upper hall, and the dining room
-   cannot step onto the second flight. The landing is the way up. */
-put(139,15,'#',11);elev(139,15,4.8);put(140,15,'#',11);elev(140,15,4.8);
-put(137,18,'#',6);elev(137,18,porch);
 deck(138,7,141,9,3.5,7);rim(138,7,141,9,3.5,7);
 rampX(141,143,7,9,3.5,0,7);
 if(G[10][143]==='='){put(143,10,' ',0);deckY[10*W+143]=NaN;}
@@ -450,7 +469,7 @@ put(126,3,'I',6);
 for(let x=118;x<=143;x++)if(G[1][x]==='#')put(x,1,'~',6);
 fill(135,7,143,9,'.',4);
 }
-const ZIP_A=LAYOUT==='town'?{x:143.5*T,y:12,z:21.5*T}:{x:0,y:0,z:0};
+const ZIP_A=LAYOUT==='town'?{x:143.5*T,y:18,z:21.5*T}:{x:0,y:0,z:0};
 const ZIP_B=LAYOUT==='town'?{x:143.5*T,y:0,z:8.5*T}:{x:0,y:0,z:0};
 fill(144,1,144,14,'#',7);doorX('gate',144,7,9,7);
 fill(161,7,163,9,'.',8);
@@ -515,7 +534,7 @@ function tileBase(c,tx,tz){if(ROOF.has(c))return 10;if(c==='U')return WATER;if(c
 function ceilOf(c,tx,tz){if(c!=='m'&&c!=='K')return null;const zn=zoneAt[tz*W+tx];if(zn===6)return 5.4;if(zn===11)return 4.4;if(zn===8)return 3.6;if(zn===1)return 4.6;return 4.2;}
 const charAt=(tx,tz)=>(tz>=0&&tz<H&&tx>=0&&tx<W)?G[tz][tx]:' ';
 function slopeAcross(x,z){const y=deckY[z*W+x];if(y!==y)return null;
- const at=(xx,zz)=>(xx>=0&&zz>=0&&xx<W&&zz<H)?deckY[zz*W+xx]:NaN;
+ const at=(xx,zz)=>{if(xx<0||zz<0||xx>=W||zz>=H)return NaN;const c=G[zz][xx];if(!(WALK.has(c)||c==='D'))return NaN;return deckY[zz*W+xx];};
  const e=at(x+1,z),n=at(x,z+1);
  const ex=e===e&&Math.abs(e-y)>0.04,nz=n===n&&Math.abs(n-y)>0.04;
  const xRise=ex?Math.abs(e-y):0,zRise=nz?Math.abs(n-y):0;
@@ -540,7 +559,7 @@ function wallHitT(ox,oz,dx,dz,maxT){let tx=Math.floor(ox/T),tz=Math.floor(oz/T);
  for(let k=0;k<200&&t<maxT;k++){if(mx<mz){tx+=sx;t=mx;mx+=ddx;}else{tz+=sz;t=mz;mz+=ddz;}if(blocks(tx,tz))return t;}return maxT;}
 /* A shot stops on the solid you can see. Grass, open air beside a trunk, and the space over a rail or a wreck are not walls. */
 function wallSpan(tx,tz){let lo=1e9,hi=-1e9;const zn=(tz>=0&&tz<H&&tx>=0&&tx<W)?zoneAt[tz*W+tx]:0;
- for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const n=charAt(tx+b,tz+a);if(n===' '||WALLC.has(n)||n==='D')continue;const bh=tileH(tx+b,tz+a);const lip=(MILL.has(n)||zn===9)?6.4:(ROOF.has(n)||n==='S')?1.5:zn===6?6.6:zn===1?5.2:zn===8?4.2:3.2;lo=Math.min(lo,bh);hi=Math.max(hi,bh+lip);}
+ for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const n=charAt(tx+b,tz+a);if(n===' '||WALLC.has(n)||n==='D')continue;const bh=tileH(tx+b,tz+a);const lip=(MILL.has(n)||zn===9)?6.4:(ROOF.has(n)||n==='S')?1.5:zn===6?6.6:zn===11?5.0:zn===1?5.2:zn===8?4.2:3.2;lo=Math.min(lo,bh);hi=Math.max(hi,bh+lip);}
  if(lo>hi){lo=0;hi=zn===6?6.6:3;}return [lo-0.15,hi];}
 function rayAABB(ox,oy,oz,dx,dy,dz,x0,y0,z0,x1,y1,z1){let t0=0,t1=1e9;
  const slab=(o,d,a,b)=>{if(Math.abs(d)<1e-9)return o>=a&&o<=b;let u=(a-o)/d,v=(b-o)/d;if(u>v){const s=u;u=v;v=s;}if(u>t0)t0=u;if(v<t1)t1=v;return t0<=t1;};
@@ -746,12 +765,12 @@ const redwoodSpots=[];
     continue;}
    const base=deckY[z*W+x],by=base===base?base:0;obst.push({x:cx,y:by+0.62,z:cz,sx:T*0.96,sy:0.1,sz:0.1,c:0xcbb892});obst.push({x:cx,y:by+0.32,z:cz,sx:0.08,sy:0.64,sz:0.08,c:0x3a3028});continue;}
   if(c==='#'||c==='b'){let lo=1e9,hi=-1e9,mill=false,high=false;const zn=zoneAt[z*W+x];
-   for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const n=charAt(x+b,z+a);if(n===' '||WALLC.has(n)||n==='D')continue;const bh=tileH(x+b,z+a);const lip=(MILL.has(n)||zn===9)?6.4:(ROOF.has(n)||n==='S')?1.5:zn===6?6.6:zn===1?5.2:zn===8?4.2:3.2;lo=Math.min(lo,bh);hi=Math.max(hi,bh+lip);if(MILL.has(n)||zn===9)mill=true;if(ROOF.has(n)||n==='S')high=true;}
-   if(lo>hi){lo=0;hi=zn===6?6.6:3;}lo-=0.15;const v=0.88+Math.random()*0.16;
-   const col=zn===6?shade(0xc9c6b0,v):zn===1?shade(0x7a3030,v):zn===3?shade(0x3e4a38,v):zn===8?shade(0x8a2e28,v):zn===9||mill?shade(0x6b4032,v):high?shade(0x5a5650,v):shade(((x*3+z)%4===0)?0x6a5a48:0x7d6b56,v);
+   for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const n=charAt(x+b,z+a);if(n===' '||WALLC.has(n)||n==='D')continue;const bh=tileH(x+b,z+a);const lip=(MILL.has(n)||zn===9)?6.4:(ROOF.has(n)||n==='S')?1.5:zn===6?6.6:zn===11?5.0:zn===1?5.2:zn===8?4.2:3.2;lo=Math.min(lo,bh);hi=Math.max(hi,bh+lip);if(MILL.has(n)||zn===9)mill=true;if(ROOF.has(n)||n==='S')high=true;}
+   if(lo>hi){lo=0;hi=zn===6?6.6:zn===11?5:3;}lo-=0.15;const v=0.88+Math.random()*0.16;
+   const col=(zn===6||zn===11)?shade(0xc9c6b0,v):zn===1?shade(0x7a3030,v):zn===3?shade(0x3e4a38,v):zn===8?shade(0x8a2e28,v):zn===9||mill?shade(0x6b4032,v):high?shade(0x5a5650,v):shade(((x*3+z)%4===0)?0x6a5a48:0x7d6b56,v);
    walls.push({x:cx,y:(lo+hi)/2,z:cz,sx:T,sy:hi-lo,sz:T,c:col});
-   if(!high)trims.push({x:cx,y:lo+0.28,z:cz,sx:T*1.02,sy:0.22,sz:T*1.02,c:zn===6?0x243830:zn===8||zn===1?0x3a1818:mill?0x3a241c:0x4a3a2a});
-   if(zn===6){trims.push({x:cx,y:lo+2.35,z:cz,sx:T*1.03,sy:0.1,sz:T*1.03,c:0x243830});trims.push({x:cx,y:hi-0.16,z:cz,sx:T*1.04,sy:0.18,sz:T*1.04,c:0x3e463c});}
+   if(!high)trims.push({x:cx,y:lo+0.28,z:cz,sx:T*1.02,sy:0.22,sz:T*1.02,c:(zn===6||zn===11)?0x243830:zn===8||zn===1?0x3a1818:mill?0x3a241c:0x4a3a2a});
+   if(zn===6||zn===11){trims.push({x:cx,y:lo+2.35,z:cz,sx:T*1.03,sy:0.1,sz:T*1.03,c:0x243830});trims.push({x:cx,y:hi-0.16,z:cz,sx:T*1.04,sy:0.18,sz:T*1.04,c:0x3e463c});}
    continue;}
   const b=tileH(x,z);const zn=zoneAt[z*W+x];
   let fc=0x3e4246;
@@ -977,28 +996,27 @@ facade(scene,'acres-hall.jpg',0.06,0.16,0.94,0.7,10,4.4,34*T-0.3,2.5,25.5*T,Math
  solid(man,2.4,0.16,6.2,TRIM,west-0.9,3.72,13.5*T);
  sph(0.16,0xffe2a8,west-0.55,2.45,13.5*T,man,{emissive:0x886633});
  const tx=ZIP_A.x,tz=ZIP_A.z,tw=3.6;
- solid(man,tw,6.4,0.22,BODY,tx,15.2,tz-tw/2);
+ solid(man,tw,1.15,0.22,BODY,tx,12.7,tz-tw/2);
  solid(man,tw,6.4,0.22,BODY,tx,15.2,tz+tw/2);
  solid(man,0.22,6.4,tw,BODY,tx+tw/2,15.2,tz);
  solid(man,0.22,2.2,tw,BODY,tx-tw/2,13.1,tz);
  solid(man,tw+0.5,0.14,tw+0.5,TRIM,tx,12.2,tz);
- coneMesh(man,2.35,4.6,ROOF,tx,19.6,tz);
- cylMesh(man,0.07,0.12,2.4,TRIM,tx,22.4,tz,6);
- strut(man,tx,18.2,tz,tx,ZIP_A.y+1.2,tz,0.07,0x161616);
+ coneMesh(man,2.35,4.2,ROOF,tx,22.4,tz);
+ cylMesh(man,0.07,0.12,2.2,TRIM,tx,25.2,tz,6);
+ strut(man,tx,21.2,tz,tx,ZIP_A.y+1.2,tz,0.12,0xd5d8dc);
 }
 {const line=new THREE.Group();line.name='zipline';
  function zipAt(u){const t=Math.max(0,Math.min(1,u)),s=Math.sin(t*Math.PI);return {x:ZIP_A.x+(ZIP_B.x-ZIP_A.x)*t,y:ZIP_A.y+(ZIP_B.y-ZIP_A.y)*t-s*2.8+1.15,z:ZIP_A.z+(ZIP_B.z-ZIP_A.z)*t};}
- for(let i=0;i<20;i++){const a=zipAt(i/20),b=zipAt((i+1)/20);strut(line,a.x,a.y,a.z,b.x,b.y,b.z,0.07,0x161616);}
+ for(let i=0;i<20;i++){const a=zipAt(i/20),b=zipAt((i+1)/20);strut(line,a.x,a.y,a.z,b.x,b.y,b.z,0.12,0xd5d8dc);}
  scene.add(line);
  const seat=new THREE.Group();seat.name='trolley';
  box(0.08,0.42,0.08,0x222,0,0.15,0,seat);box(0.62,0.07,0.1,0xc4a56a,0,-0.12,0,seat);
  scene.add(seat);window.__trolley=seat;
 }
-/* Interior, the rooms from the house tour. The stair, the upper hall, and the
-   billiard room are walled and roofed. Dressing sits on the walls and the
-   open landing, so the walk up the tower stays in the clear. */
+/* Interior dressing on the new rooms. Pieces sit on the walls: vestibule glass,
+   parlor, library, dining room, the three flights, and the tower table. */
 {const inn=grp('lm-mansion-in',0,0,0);
- const FY=1.02,UY=4.8,BY=12,GOLD=0xd4b06a,RED=0x5c2e22,OAK=0x6a4830,ONYX=0xe7e0d2,PLAST=0xefe4d0,CREAM=0xc9c6b0,ROOF=0x3e463c;
+ const FY=1.02,F2=4.8,F3=8.6,FT=12,GOLD=0xd4b06a,RED=0x5c2e22,OAK=0x6a4830,ONYX=0xe7e0d2,PLAST=0xefe4d0,CREAM=0xc9c6b0,ROOF=0x3e463c;
  const roseTex=canvasTex(128,128,(g,w,h)=>{g.fillStyle='#e4b4b6';g.fillRect(0,0,w,h);g.strokeStyle='#7a3048';g.lineWidth=1.6;
   for(let y=8;y<h;y+=20)for(let x=6;x<w;x+=20){g.beginPath();g.ellipse(x,y,6,3,.5,0,6.3);g.stroke();g.beginPath();g.ellipse(x+8,y+7,5,3,-.4,0,6.3);g.stroke();}});
  const roseMat=new THREE.MeshLambertMaterial({map:roseTex,emissive:0x3a2024,emissiveIntensity:0.35});
@@ -1016,51 +1034,31 @@ facade(scene,'acres-hall.jpg',0.06,0.16,0.94,0.7,10,4.4,34*T-0.3,2.5,25.5*T,Math
  function medallion(x,y,z){cylMesh(inn,0.62,0.62,0.05,0xf7f1e4,x,y,z,14);cylMesh(inn,0.24,0.24,0.08,0xe6d08a,x,y,z,10);}
  const paperX=(x0,x1,z,ry,y0,y1)=>sheet(Math.abs(x1-x0),y1-y0,roseMat,(x0+x1)/2,(y0+y1)/2,z,ry);
  const paperZ=(z0,z1,x,ry,y0,y1)=>sheet(Math.abs(z1-z0),y1-y0,roseMat,x,(y0+y1)/2,(z0+z1)/2,ry);
- paperX(262.3,275.7,22.08,0,2.2,6.2);paperX(262.3,275.7,37.88,Math.PI,2.2,6.2);
- paperZ(22.4,23.8,262.12,Math.PI/2,2.2,6.2);paperZ(30.2,37.7,262.12,Math.PI/2,2.2,6.2);
- paperZ(22.4,23.8,275.88,-Math.PI/2,2.2,6.2);paperZ(30.2,37.7,275.88,-Math.PI/2,2.2,6.2);
- for(const z of [22.12,37.88]){solid(inn,13.4,1.15,0.1,OAK,269,FY+0.58,z);solid(inn,13.4,0.08,0.14,0xe6d08a,269,6.28,z);solid(inn,13.4,0.07,0.14,0x3d6a62,269,6.14,z);solid(inn,13.4,0.08,0.14,0x8a4050,269,6.0,z);}
- solid(inn,12.6,0.03,1.4,0x8a4050,269,FY+0.045,27);
- for(const x of [264.4,272.8]){cylMesh(inn,0.18,0.22,4.9,RED,x,FY+2.55,22.28,8);cylMesh(inn,0.18,0.22,4.9,RED,x,FY+2.55,37.62,8);}
- sheet(5.6,0.85,glassMat,262.14,3.7,27,Math.PI/2);
- sheet(1.2,2.45,glassMat,264.4,2.45,24.2,0);sheet(1.2,2.45,glassMat,264.4,2.45,29.8,Math.PI);
- horseshoe(277.4,FY+2.45,27,Math.PI/2,2.05);
- cylMesh(inn,0.32,0.4,5.2,RED,277.15,FY+2.6,24.05,8);cylMesh(inn,0.32,0.4,5.2,RED,277.15,FY+2.6,29.95,8);
- solid(inn,8.2,0.22,6.2,PLAST,280,6.62,27);solid(inn,4.2,0.22,6.2,PLAST,282,8.35,27);
- solid(inn,8.6,0.2,6.5,ROOF,280,6.9,27);solid(inn,4.6,0.2,6.5,ROOF,282,8.6,27);
- solid(inn,0.16,1.7,6.1,PLAST,280,7.35,27);
- solid(inn,8.2,7.6,0.16,PLAST,280,4.85,23.9);solid(inn,8.4,7.8,0.18,CREAM,280,4.7,22.05);solid(inn,8.5,0.16,0.24,0x243830,280,8.55,22.05);
- solid(inn,4.0,7.4,0.16,PLAST,280,4.75,30.08);solid(inn,4.2,4.3,0.14,PLAST,280,6.95,31.95);
- solid(inn,0.18,7.6,6.1,PLAST,284.1,4.85,27);solid(inn,0.18,7.8,6.3,CREAM,284.45,4.7,27);
- sheet(2.2,3.4,glassMat,280,5.15,23.78,0);
- rail(278.4,FY,23.72,283.4,UY,23.72);rail(278.4,FY,30.22,281.6,3.4,30.22);
- solid(inn,1.2,0.08,0.42,0xe6c98a,274.2,FY+0.5,22.55);solid(inn,0.08,0.42,0.42,0xe6c98a,273.7,FY+0.24,22.55);solid(inn,0.08,0.42,0.42,0xe6c98a,274.7,FY+0.24,22.55);
- const fx=266.2,fz=37.55;solid(inn,1.8,1.15,0.24,ONYX,fx,FY+0.68,fz);solid(inn,0.7,0.55,0.08,0x2a1810,fx,FY+0.45,fz-0.1);solid(inn,2.15,0.1,0.4,0x4a3028,fx,FY+1.28,fz);
- solid(inn,1.55,0.95,0.22,ONYX,266.2,FY+0.58,22.32);sheet(1.2,2.6,glassMat,266.2,4.25,22.14,0);
- solid(inn,1.6,0.55,0.7,0x8a4050,263.4,FY+0.4,36.6);solid(inn,1.5,0.4,0.62,0xc4848c,263.4,FY+0.78,36.6);
- solid(inn,2.4,0.1,1.15,OAK,272.2,FY+0.78,34.8);solid(inn,2.55,0.12,1.3,0x4a3020,272.2,FY+0.66,34.8);
- for(const dx of [-1.1,1.1])for(const dz of [-0.5,0.5])solid(inn,0.08,0.62,0.08,0x3a2418,272.2+dx,FY+0.32,34.8+dz);
- solid(inn,2.3,1.35,0.16,OAK,272.2,FY+0.9,37.72);solid(inn,1.6,0.95,0.04,0xd8d2c4,272.2,FY+1.2,37.52);
- medallion(266.2,6.4,33.4);medallion(270.6,6.4,35.2);chandelier(266.2,5.45,33.4);chandelier(270.6,5.45,35.2);chandelier(280,5.7,27);
- paperZ(30.4,37.6,278.1,Math.PI/2,5.9,8.9);paperZ(30.4,37.6,285.85,-Math.PI/2,5.9,8.9);paperX(278.2,281.8,32.08,0,5.9,8.9);
- solid(inn,3.8,4.5,0.16,PLAST,279.9,UY+2.25,30.15);
- solid(inn,0.16,4.5,7.6,PLAST,278.08,UY+2.25,34);solid(inn,0.16,4.5,7.8,PLAST,285.95,UY+2.25,34);solid(inn,0.18,4.6,8.0,CREAM,286.4,UY+2.2,34);
- solid(inn,8.4,0.22,8.2,ROOF,282,9.6,34);
- for(const z of [30.3,37.7]){solid(inn,8.0,0.08,0.12,0xe6d08a,282,9.15,z);solid(inn,8.0,0.06,0.12,0x3d6a62,282,9.02,z);}
- solid(inn,3.6,1.05,0.1,OAK,279.9,UY+0.55,30.22);
- horseshoe(284,UY+1.85,30.25,0,1.55);horseshoe(280,UY+1.75,37.75,0,1.7);
- horseshoe(278.25,UY+1.7,34,Math.PI/2,1.25);horseshoe(285.75,UY+1.7,34,Math.PI/2,1.25);
- sheet(1.5,2.5,glassMat,281.2,UY+2.7,30.4,0);
- rail(276.25,UY,36.4,276.25,BY,41.4);rail(283.75,UY,36.4,283.75,BY,40.2);
- solid(inn,0.18,15.4,9.8,CREAM,275.82,8.3,41);solid(inn,0.1,7.2,5.2,OAK,276.12,UY+3.6,38.8);solid(inn,8.2,0.2,2.1,PLAST,280,10.3,37);solid(inn,8.2,0.2,2.1,PLAST,280,13.3,39);solid(inn,8.4,0.18,2.2,ROOF,280,10.55,37);
- solid(inn,14.2,4.3,0.18,CREAM,283,BY+2.15,45.85);solid(inn,14.0,4.1,0.12,0xc4b49a,283,BY+1.15,45.7);
- solid(inn,0.18,4.3,5.8,CREAM,289.85,BY+2.15,43);solid(inn,1.3,4.2,0.16,CREAM,284.6,BY+2.1,40.15);solid(inn,1.2,4.2,0.16,CREAM,289.3,BY+2.1,40.15);
- horseshoe(287,BY+2.05,40.35,0,1.35);
- solid(inn,9.2,0.2,5.8,0x4a3828,280.6,16.35,43);solid(inn,4.2,0.2,2.2,0x4a3828,287,16.35,45);solid(inn,0.2,4.2,2.4,PLAST,285.15,BY+2.1,41.2);solid(inn,0.2,4.2,2.4,PLAST,288.85,BY+2.1,41.2);
- solid(inn,2.2,0.1,1.2,0x1a4a32,279.4,BY+0.82,44.85);solid(inn,2.4,0.12,1.35,0x4a3020,279.4,BY+0.7,44.85);
- for(const dx of [-1.05,1.05])for(const dz of [-0.55,0.55])solid(inn,0.08,0.66,0.08,0x3a2418,279.4+dx,BY+0.34,44.85+dz);
- for(let i=0;i<6;i++)solid(inn,0.045,0.85,0.045,0xc4b49a,276.35,BY+1.35,42.4+i*0.28);
- solid(inn,0.08,1.05,1.7,0xc4b49a,276.3,BY+0.6,43.2);
+ paperX(262.2,267.8,37.9,Math.PI,2.2,6.15);paperZ(32.2,37.7,262.12,Math.PI/2,2.2,6.15);
+ solid(inn,5.6,1.05,0.1,OAK,265,FY+0.55,37.85);solid(inn,5.6,0.08,0.12,0xe6d08a,265,6.2,37.85);solid(inn,5.6,0.06,0.12,0x3d6a62,265,6.05,37.85);solid(inn,5.6,0.08,0.12,0x8a4050,265,5.9,37.85);
+ solid(inn,1.7,1.1,0.22,ONYX,265,FY+0.65,37.6);solid(inn,0.6,0.5,0.08,0x2a1810,265,FY+0.42,37.48);solid(inn,2.0,0.1,0.36,0x4a3028,265,FY+1.22,37.6);
+ medallion(265,6.35,35);chandelier(265,5.4,35);
+ sheet(4.6,0.75,glassMat,262.12,3.55,27,Math.PI/2);
+ sheet(1.05,2.3,glassMat,263.3,2.4,24.25,0);sheet(1.05,2.3,glassMat,263.3,2.4,29.75,Math.PI);
+ sheet(1.5,2.3,glassMat,274,4.05,22.16,0);solid(inn,1.4,0.9,0.18,ONYX,274,FY+0.55,22.32);
+ solid(inn,0.16,1.15,1.6,OAK,275.75,FY+0.7,34);solid(inn,0.9,0.08,1.3,OAK,275.2,FY+0.78,34);
+ solid(inn,1.3,0.7,0.4,OAK,272,FY+0.45,37.6);
+ horseshoe(277.2,FY+2.15,28,Math.PI/2,1.55);
+ rail(278.3,FY,26.15,283.5,F2,26.15);rail(278.3,FY,29.85,283.5,F2,29.85);
+ solid(inn,10,0.2,4.4,PLAST,283,8.7,28);solid(inn,10.2,0.16,4.6,ROOF,283,8.95,28);
+ chandelier(270,5.5,27);
+ horseshoe(284,F2+1.7,30.4,0,1.35);horseshoe(284,F2+1.7,33.6,0,1.25);
+ sheet(1.3,2.1,glassMat,283.2,F2+2.4,30.25,0);
+ rail(280.15,F2,36.3,280.15,F3,41.5);rail(283.85,F2,36.3,283.85,F3,41.5);
+ solid(inn,4.2,0.18,4.0,PLAST,282,11.2,37.6);
+ solid(inn,6.4,0.18,6.2,ROOF,281,9.55,35);chandelier(283,F2+3.2,35);
+ rail(282.3,F3,44.2,287.6,FT,44.2);rail(282.3,F3,45.8,287.6,FT,45.8);
+ solid(inn,6.4,0.16,2.2,PLAST,285,15.5,45);
+ solid(inn,1.6,0.08,0.9,0x1a4a32,288.6,FT+0.78,45.15);solid(inn,1.75,0.1,1.05,0x4a3020,288.6,FT+0.66,45.15);
+ for(const dx of [-0.75,0.75])for(const dz of [-0.4,0.4])solid(inn,0.07,0.55,0.07,0x3a2418,288.6+dx,FT+0.32,45.15+dz);
+ for(let i=0;i<4;i++)solid(inn,0.04,0.7,0.04,0xc4b49a,289.55,FT+1.2,44.15+i*0.18);
+ horseshoe(287,FT+1.9,42.15,0,1.2);
+ chandelier(287,FT+3.1,44);
 }
 function beast(kind,x,z,y0){const g=new THREE.Group();g.position.set(x,y0,z);scene.add(g);const ph=Math.random()*6;
  if(kind==='otter'){solid(g,0.85,0.28,0.32,0x6a4a32,0,0.2,0);solid(g,0.28,0.22,0.26,0x5a3a28,0.42,0.32,0);solid(g,0.45,0.08,0.08,0x4a3424,-0.55,0.22,0);}
@@ -1635,7 +1633,7 @@ function aliveCommons(){let n=0;for(const c of commons)if(!c.dead)n++;return n;}
 function swarmMul(){return clamp(NET.swarm,0,200)/100;}
 function seedCommons(){const scale=swarmMul(),n=Math.round(START_COMMONS.length*scale);
  for(let i=0;i<n;i++){const [x,z]=START_COMMONS[i%START_COMMONS.length];const spot=concealTile(x,z,i)||hiddenNear(x,z,14,i);if(spot)spawnCommon(spot.x,spot.z,false);}
- if(LAYOUT==='town')for(const [x,z] of [[136,13],[140,13],[140,17],[141,21]])if(isWalk(x,z))spawnCommon((x+.5)*T,(z+.5)*T,false);}
+ if(LAYOUT==='town')for(const [x,z] of [[132,17],[135,11],[134,13],[140,13],[141,17],[140,21],[143,21]])if(isWalk(x,z))spawnCommon((x+.5)*T,(z+.5)*T,false);}
 function spawnCommon(x,z,alert,target){if(aliveCommons()>=MAXC)return null;if(!isWalk(Math.floor(x/T),Math.floor(z/T)))return null;
  const c={id:++ENTID,x,z,y:groundAt(x,z),yaw:rand(0,6.28),hp:75,dead:false,deathT:0,fall:0,state:alert?'rush':'wander',target:null,atk:rand(.2,.55),phase:rand(0,6),wt:0,wdx:0,wdz:0,stag:0,pvx:0,pvz:0,shirt:pick(SHIRTS),pants:pick(PANTS),skin:pick(SKINS),speed:rand(5.8,7.2),swipe:0,chk:rand(0,.3),groanT:rand(4,16),hitT:0,mv:0};
  if(alert)c.target=target||chooseTarget(c);commons.push(c);return c;}
