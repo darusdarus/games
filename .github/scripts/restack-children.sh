@@ -9,6 +9,7 @@ APPLY=0
 OLD_TIP=""
 NEW_TIP=""
 MERGED_PR=""
+BASE_REF="main"
 REPO="${GITHUB_REPOSITORY:-darusdarus/games}"
 
 while [[ $# -gt 0 ]]; do
@@ -16,18 +17,32 @@ while [[ $# -gt 0 ]]; do
     --apply) APPLY=1; shift ;;
     --old-tip) OLD_TIP=$2; shift 2 ;;
     --new-tip) NEW_TIP=$2; shift 2 ;;
+    --base-ref) BASE_REF=$2; shift 2 ;;
     --merged-pr) MERGED_PR=$2; shift 2 ;;
     --repo) REPO=$2; shift 2 ;;
     *) echo "unknown arg: $1" >&2; exit 2 ;;
   esac
 done
 
-if [[ -z "$OLD_TIP" || -z "$NEW_TIP" ]]; then
-  echo "need --old-tip and --new-tip" >&2
+sha_re='^[0-9a-fA-F]{7,40}$'
+ref_re='^[A-Za-z0-9._/-]+$'
+if [[ ! "$OLD_TIP" =~ $sha_re || ! "$NEW_TIP" =~ $sha_re ]]; then
+  echo "need --old-tip and --new-tip as commit shas" >&2
+  exit 2
+fi
+if [[ ! "$BASE_REF" =~ $ref_re ]]; then
+  echo "unsafe base ref $BASE_REF" >&2
   exit 2
 fi
 
-git fetch origin main
+# The squash lands on the parent PR's base, which may be main or a stack branch.
+git fetch origin "$BASE_REF"
+if [[ "$BASE_REF" != "main" ]]; then
+  git fetch origin main
+fi
+if ! git cat-file -e "${NEW_TIP}^{commit}" 2>/dev/null; then
+  git fetch origin "$NEW_TIP" || true
+fi
 if ! git cat-file -e "${NEW_TIP}^{commit}" 2>/dev/null; then
   echo "merge commit $NEW_TIP is not in this clone" >&2
   exit 1
@@ -38,7 +53,7 @@ mapfile -t PRS < <(gh pr list --repo "$REPO" --state open --limit 100 --json num
 for row in "${PRS[@]}"; do
   ref="${row#*$'\t'}"
   ref="${ref%%$'\t'*}"
-  if [[ ! "$ref" =~ ^[A-Za-z0-9._/-]+$ ]]; then
+  if [[ ! "$ref" =~ $ref_re ]]; then
     echo "skip unsafe ref $ref" >&2
     continue
   fi
@@ -104,16 +119,20 @@ restack_one() {
   printf '%s\n' "$newsha"
 }
 
+FAILED=0
 walk() {
   local old="$1" new="$2" num ref sha newsha
   while IFS=$'\t' read -r num ref sha; do
     [[ -z "${num:-}" ]] && continue
-    echo "child #$num $ref of $old"
+    echo "child #$num $ref of $old" >&2
     if newsha=$(restack_one "$num" "$ref" "$sha" "$new" "$old"); then
       newsha=$(printf '%s\n' "$newsha" | tail -n 1)
       walk "$sha" "$newsha"
+    else
+      FAILED=1
     fi
   done < <(direct_children "$old")
 }
 
 walk "$OLD_TIP" "$NEW_TIP"
+exit "$FAILED"

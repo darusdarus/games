@@ -1,7 +1,10 @@
 name: Restack stacked pull requests
 
+# Runs the workflow file from the default branch, with permission to push the
+# rewritten child branches. The job checks out that same default branch and
+# runs its script. Child branches are rebased as git history and are not executed.
 on:
-  pull_request:
+  pull_request_target:
     types: [closed]
 
 permissions:
@@ -19,6 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 0
       - name: Replay child branches onto the merge
         env:
@@ -30,5 +34,6 @@ jobs:
             --apply \
             --old-tip "${{ github.event.pull_request.head.sha }}" \
             --new-tip "${{ github.event.pull_request.merge_commit_sha }}" \
+            --base-ref "${{ github.event.pull_request.base.ref }}" \
             --merged-pr "${{ github.event.pull_request.number }}" \
             --repo "${{ github.repository }}"
