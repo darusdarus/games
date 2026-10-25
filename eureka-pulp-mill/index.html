@@ -1161,14 +1161,18 @@ function makeHuman(o){const g=new THREE.Group(),b=new THREE.Group();g.add(b);
  const neck=new THREE.Group();neck.position.set(0,1.5,0);b.add(neck);
  box(.18,.1,.18,o.skin,0,-.02,0,neck);box(.11,.04,.11,0x9a2030,0,-.08,0,neck);neck.visible=false;
  return {g,b,legL,legR,armL,armR,head,stumps,bites,neck};}
-function nameSprite(text,color){const t=canvasTex(256,64,(g)=>{g.font='bold 34px Arial';g.textAlign='center';g.textBaseline='middle';g.lineWidth=6;g.strokeStyle='rgba(0,0,0,.8)';g.strokeText(text,128,32);g.fillStyle=color;g.fillText(text,128,32);});
- const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,depthTest:false,transparent:true,fog:false}));s.scale.set(1.4,.35,1);s.renderOrder=10;return s;}
+function nameSprite(text,color){
+ const probe=document.createElement('canvas').getContext('2d');
+ probe.font='bold 34px Arial';
+ const w=Math.max(256,Math.ceil(probe.measureText(text).width)+36);
+ const t=canvasTex(w,64,(g)=>{g.font='bold 34px Arial';g.textAlign='center';g.textBaseline='middle';g.lineWidth=6;g.strokeStyle='rgba(0,0,0,.8)';g.strokeText(text,w/2,32);g.fillStyle=color;g.fillText(text,w/2,32);});
+ const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,depthTest:false,transparent:true,fog:false}));s.scale.set(1.4*(w/256),.35,1);s.renderOrder=10;return s;}
 function gunModel(type,parent){const g=new THREE.Group();parent.add(g);
  if(type==='shotgun'){box(.07,.07,.75,0x222222,0,0,-.3,g);box(.09,.08,.35,0x6b4423,0,-.06,.2,g);box(.08,.06,.25,0x6b4423,0,-.07,-.35,g);}
  else if(type==='smg'){box(.08,.12,.42,0x1c1c1c,0,0,-.12,g);box(.05,.2,.07,0x111111,0,-.14,-.05,g);box(.04,.04,.18,0x333333,0,.02,-.42,g);box(.06,.08,.2,0x1c1c1c,0,-.03,.17,g);}
  else{box(.05,.09,.24,0x2a2a2a,0,0,-.05,g);box(.045,.14,.07,0x3a3028,0,-.1,.04,g);}
  return g;}
-const BOTDEF=[{name:'Rook',shirt:0x2f4f7f,pants:0x2b2b33,skin:0xc89a78,hair:0x1a1410,w:'smg',col:'#7fb2ff'},
+const BOTDEF=[{name:'Welcome Starling',shirt:0x2f4f7f,pants:0x2b2b33,skin:0xc89a78,hair:0x1a1410,w:'smg',col:'#7fb2ff'},
  {name:'Mara',shirt:0x8a2a2a,pants:0x3a3a48,skin:0x8a5a3c,hair:0x2a1a10,w:'shotgun',col:'#ff8a7a'},
  {name:'Jules',shirt:0xc8a032,pants:0x2a3a2a,skin:0xe0b090,hair:0x7a4a20,w:'smg',col:'#ffd76a'}];
 function makeSpecialMesh(type){let m;
