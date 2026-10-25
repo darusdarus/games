@@ -330,7 +330,7 @@ const SAFES=LAYOUT==='linear'?[
  {name:'Redwood Acres',x0:37,x1:40,z0:25,z1:27,inn:'acresIn',out:'acresOut',nextObj:2,line:'Up the Redwood Sky Walk. The zoo is under the canopy.'},
  {name:'Sequoia Park Zoo',x0:105,x1:108,z0:28,z1:30,inn:'zooIn',out:'zooOut',nextObj:3,line:'Out on the tree walk. H Street is next. The Rentor office is 3109.'},
  {name:'Rentor, 3109 H Street',x0:117,x1:120,z0:11,z1:13,inn:'rentorIn',out:'rentorOut',nextObj:4,line:'Old Town. You go through the Carson Mansion. The tower faces the bay.'},
- {name:'Carson Mansion',x0:132,x1:135,z0:14,z1:16,inn:'mansionIn',out:'mansionOut',nextObj:5,line:'Up to the tower. The zipline runs to the slough bridge.'},
+ {name:'Carson Mansion',x0:132,x1:135,z0:14,z1:16,inn:'mansionIn',out:'mansionOut',nextObj:5,line:'Up the stairs to the tower. The zipline leaves the peak for the slough bridge.'},
  {name:'Samoa Cookhouse',x0:170,x1:173,z0:7,z1:9,inn:'cookIn',out:'cookOut',nextObj:8,line:'The mill road. The chopper is on the roof.'},
 ];
 function put(x,z,c,zn){if(x<0||z<0||x>=W||z>=H)return;G[z][x]=c;if(zn!=null)zoneAt[z*W+x]=zn;}
@@ -384,10 +384,17 @@ doorX('rentorIn',115,11,13,4);doorX('rentorOut',123,11,13,4);
 road(124,11,127,13,4);road(125,6,127,13,4);road(118,6,130,8,6);
 fill(118,9,124,11,'#',4);fill(120,2,125,5,'#',0);
 road(128,8,130,15,6);
-/* Carson Mansion. Ground floor, then the stair, the upper hall, the tower balcony. */
+/* Carson Mansion. The 2nd Street front has the steps. The parlor, the stair,
+   and the tower are the only way up to the line. */
 fill(130,10,138,19,'#',6);fill(131,11,137,18,'m',6);fill(132,14,135,16,'K',6);
 doorX('mansionIn',130,12,14,6);doorX('mansionOut',138,12,14,6);
-rampX(139,141,12,14,0,4.8,11);
+const porch=1.02;
+for(let z=12;z<=14;z++){
+ put(127,z,'.',6);put(128,z,'.',6);put(129,z,'.',6);
+ elev(127,z,0.34);elev(128,z,0.68);elev(129,z,porch);elev(130,z,porch);elev(138,z,porch);
+}
+for(let z=11;z<=18;z++)for(let x=131;x<=137;x++)if(G[z][x]==='m'||G[z][x]==='K')elev(x,z,porch);
+rampX(139,141,12,14,porch,4.8,11);
 for(let z=15;z<=18;z++)for(let x=139;x<=142;x++){put(x,z,'m',11);elev(x,z,4.8);}
 rim(139,15,142,18,4.8,11);
 rampZ(18,20,138,141,4.8,12,11);
@@ -395,6 +402,7 @@ deck(138,20,144,22,12,6);rim(138,20,144,22,12,6);
 for(let z=12;z<=19;z++)if(G[z][143]==='='){put(143,z,' ',0);deckY[z*W+143]=NaN;}
 /* Slough under the zipline. The small bridge is the only deck across it. */
 for(let x=134;x<=143;x++)for(let z=4;z<=11;z++)if(G[z][x]===' ')put(x,z,'~',7);
+for(let x=139;x<=142;x++)if(G[11][x]!=='.'&&G[11][x]!=='m'&&G[11][x]!=='D'&&G[11][x]!=='K')put(x,11,'#',11);
 deck(138,7,141,9,3.5,7);rim(138,7,141,9,3.5,7);
 rampX(141,143,7,9,3.5,0,7);
 if(G[10][143]==='='){put(143,10,' ',0);deckY[10*W+143]=NaN;}
@@ -528,8 +536,8 @@ function wallHitT(ox,oz,dx,dz,maxT){let tx=Math.floor(ox/T),tz=Math.floor(oz/T);
  for(let k=0;k<200&&t<maxT;k++){if(mx<mz){tx+=sx;t=mx;mx+=ddx;}else{tz+=sz;t=mz;mz+=ddz;}if(blocks(tx,tz))return t;}return maxT;}
 /* A shot stops on the solid you can see. Grass, open air beside a trunk, and the space over a rail or a wreck are not walls. */
 function wallSpan(tx,tz){let lo=1e9,hi=-1e9;const zn=(tz>=0&&tz<H&&tx>=0&&tx<W)?zoneAt[tz*W+tx]:0;
- for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const n=charAt(tx+b,tz+a);if(n===' '||WALLC.has(n)||n==='D')continue;const bh=tileH(tx+b,tz+a);const lip=(MILL.has(n)||zn===9)?6.4:(ROOF.has(n)||n==='S')?1.5:zn===6?10:zn===1?5.2:zn===8?4.2:3.2;lo=Math.min(lo,bh);hi=Math.max(hi,bh+lip);}
- if(lo>hi){lo=0;hi=zn===6?10:3;}return [lo-0.15,hi];}
+ for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const n=charAt(tx+b,tz+a);if(n===' '||WALLC.has(n)||n==='D')continue;const bh=tileH(tx+b,tz+a);const lip=(MILL.has(n)||zn===9)?6.4:(ROOF.has(n)||n==='S')?1.5:zn===6?6.6:zn===1?5.2:zn===8?4.2:3.2;lo=Math.min(lo,bh);hi=Math.max(hi,bh+lip);}
+ if(lo>hi){lo=0;hi=zn===6?6.6:3;}return [lo-0.15,hi];}
 function rayAABB(ox,oy,oz,dx,dy,dz,x0,y0,z0,x1,y1,z1){let t0=0,t1=1e9;
  const slab=(o,d,a,b)=>{if(Math.abs(d)<1e-9)return o>=a&&o<=b;let u=(a-o)/d,v=(b-o)/d;if(u>v){const s=u;u=v;v=s;}if(u>t0)t0=u;if(v<t1)t1=v;return t0<=t1;};
  if(!slab(ox,dx,x0,x1)||!slab(oy,dy,y0,y1)||!slab(oz,dz,z0,z1)||t1<0)return null;return [t0,t1];}
@@ -580,7 +588,7 @@ function buildCover(){
   for(const [dx,dz] of dirs){const nx=x+dx,nz=z+dz;if(nx<0||nz<0||nx>=W||nz>=H)continue;const c=G[nz][nx];if(c!=='.'&&c!=='n'&&c!=='w'&&c!=='m'&&c!=='D')continue;const v=from[nz*W+nx];if(v<best){best=v;bx=dx;bz=dz;}}
   return bx||bz?[bx,bz]:[-1,0];};
  const structural=(x,z)=>{for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){const c=charAt(x+dx,z+dz);if(c==='m'||c==='K'||c==='D'||c===','||c==='S'||c==='R'||c==='I'||c==='c'||c==='F'||c==='x')return true;}return false;};
- const writable=(x,z)=>{if(x<0||z<0||x>=W||z>=H||used[z*W+x])return false;if(x>=BR_A&&x<=BR_B)return false;if(x>=142&&x<=151)return false;if(LAYOUT!=='linear'&&x>=134&&x<=144&&z>=3&&z<=22)return false;const c=G[z][x];if(c===' '||c==='n'||c==='=')return true;if(c==='t')return !(LAYOUT==='town'&&zoneAt[z*W+x]===2);if(c==='#')return !structural(x,z);return false;};
+ const writable=(x,z)=>{if(x<0||z<0||x>=W||z>=H||used[z*W+x])return false;if(x>=BR_A&&x<=BR_B)return false;if(x>=142&&x<=151)return false;if(LAYOUT!=='linear'&&x>=126&&x<=145&&z>=6&&z<=23)return false;const c=G[z][x];if(c===' '||c==='n'||c==='=')return true;if(c==='t')return !(LAYOUT==='town'&&zoneAt[z*W+x]===2);if(c==='#')return !structural(x,z);return false;};
  const nearWalk=(ax,az)=>{const allow=new Set([az*W+ax]),q=[[ax,az,0]];
   for(let i=0;i<q.length;i++){const [x,z,d]=q[i];if(d>=7)continue;for(const [dx,dz] of dirs){const nx=x+dx,nz=z+dz;if(nx<0||nz<0||nx>=W||nz>=H)continue;const id=nz*W+nx;if(allow.has(id)||!isWalk(nx,nz))continue;allow.add(id);q.push([nx,nz,d+1]);}}
   return allow;};
@@ -610,6 +618,13 @@ function buildCover(){
    if(c==='.'&&(WALK.has(cur)||cur==='D')){cells.push([x,z,'k']);continue;}
    if(!writable(x,z)){COVER_STATS.write++;return false;}
    cells.push([x,z,c]);
+  }
+  for(const [x,z,c] of cells){
+   if(c!=='#'||G[z][x]==='#')continue;
+   for(const [dx,dz] of dirs)if(charAt(x+dx,z+dz)==='D'){COVER_STATS.write++;return false;}
+   const L=charAt(x-1,z),R=charAt(x+1,z),U=charAt(x,z-1),D=charAt(x,z+1);
+   const open=k=>WALK.has(k)||k==='D';
+   if((open(L)&&open(R))||(open(U)&&open(D))){COVER_STATS.write++;return false;}
   }
   const allow=nearWalk(ax,az);
   const inside=new Set(cells.map(([x,z])=>z*W+x));
@@ -641,7 +656,7 @@ function buildCover(){
   if(used[z*W+x])continue;
   const base=G[z][x];
   if(base!=='.'&&base!=='n')continue;
-  if(x>=BR_A&&x<=BR_B||(x>=142&&x<=151)||(LAYOUT!=='linear'&&x>=134&&x<=144&&z>=3&&z<=22))continue;
+  if(x>=BR_A&&x<=BR_B||(x>=142&&x<=151)||(LAYOUT!=='linear'&&x>=126&&x<=145&&z>=6&&z<=23))continue;
   const ab=approach(x,z),bx=ab[0],bz=ab[1];
   for(const [ux,uz] of dirs){
    if(ux*bx+uz*bz!==0)continue;
@@ -727,11 +742,12 @@ const redwoodSpots=[];
     continue;}
    const base=deckY[z*W+x],by=base===base?base:0;obst.push({x:cx,y:by+0.62,z:cz,sx:T*0.96,sy:0.1,sz:0.1,c:0xcbb892});obst.push({x:cx,y:by+0.32,z:cz,sx:0.08,sy:0.64,sz:0.08,c:0x3a3028});continue;}
   if(c==='#'||c==='b'){let lo=1e9,hi=-1e9,mill=false,high=false;const zn=zoneAt[z*W+x];
-   for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const n=charAt(x+b,z+a);if(n===' '||WALLC.has(n)||n==='D')continue;const bh=tileH(x+b,z+a);const lip=(MILL.has(n)||zn===9)?6.4:(ROOF.has(n)||n==='S')?1.5:zn===6?10:zn===1?5.2:zn===8?4.2:3.2;lo=Math.min(lo,bh);hi=Math.max(hi,bh+lip);if(MILL.has(n)||zn===9)mill=true;if(ROOF.has(n)||n==='S')high=true;}
-   if(lo>hi){lo=0;hi=zn===6?10:3;}lo-=0.15;const v=0.88+Math.random()*0.16;
-   const col=zn===6?shade(0xc4a882,v):zn===1?shade(0x7a3030,v):zn===3?shade(0x3e4a38,v):zn===8?shade(0x8a2e28,v):zn===9||mill?shade(0x6b4032,v):high?shade(0x5a5650,v):shade(((x*3+z)%4===0)?0x6a5a48:0x7d6b56,v);
+   for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const n=charAt(x+b,z+a);if(n===' '||WALLC.has(n)||n==='D')continue;const bh=tileH(x+b,z+a);const lip=(MILL.has(n)||zn===9)?6.4:(ROOF.has(n)||n==='S')?1.5:zn===6?6.6:zn===1?5.2:zn===8?4.2:3.2;lo=Math.min(lo,bh);hi=Math.max(hi,bh+lip);if(MILL.has(n)||zn===9)mill=true;if(ROOF.has(n)||n==='S')high=true;}
+   if(lo>hi){lo=0;hi=zn===6?6.6:3;}lo-=0.15;const v=0.88+Math.random()*0.16;
+   const col=zn===6?shade(0xc9c6b0,v):zn===1?shade(0x7a3030,v):zn===3?shade(0x3e4a38,v):zn===8?shade(0x8a2e28,v):zn===9||mill?shade(0x6b4032,v):high?shade(0x5a5650,v):shade(((x*3+z)%4===0)?0x6a5a48:0x7d6b56,v);
    walls.push({x:cx,y:(lo+hi)/2,z:cz,sx:T,sy:hi-lo,sz:T,c:col});
-   if(!high)trims.push({x:cx,y:lo+0.28,z:cz,sx:T*1.02,sy:0.22,sz:T*1.02,c:zn===6?0x6a4030:zn===8||zn===1?0x3a1818:mill?0x3a241c:0x4a3a2a});
+   if(!high)trims.push({x:cx,y:lo+0.28,z:cz,sx:T*1.02,sy:0.22,sz:T*1.02,c:zn===6?0x243830:zn===8||zn===1?0x3a1818:mill?0x3a241c:0x4a3a2a});
+   if(zn===6){trims.push({x:cx,y:lo+2.35,z:cz,sx:T*1.03,sy:0.1,sz:T*1.03,c:0x243830});trims.push({x:cx,y:hi-0.16,z:cz,sx:T*1.04,sy:0.18,sz:T*1.04,c:0x3e463c});}
    continue;}
   const b=tileH(x,z);const zn=zoneAt[z*W+x];
   let fc=0x3e4246;
@@ -929,27 +945,46 @@ facade(scene,'acres-hall.jpg',0.06,0.16,0.94,0.7,10,4.4,34*T-0.3,2.5,25.5*T,Math
  coneMesh(gaz,2.3,1.5,0x6a4038,0,3.3,0);
  solid(gaz,3.2,0.12,3.2,0xc4b49a,0,0.12,0);
 }
-{const man=grp('lm-mansion',130*T-0.2,14.5*T,Math.PI/2);
- solid(man,16,9.2,1.3,0xd9c7aa,0,4.6,0.15);
- gable(man,0,9.2,0,16.4,2.6,3.1,0x3a2c32);
- facade(man,'mansion.jpg',0.08,0.06,0.78,0.92,12.4,8.2,0,4.6,0.85,0);
- for(const x of [-6,-3,-0.2,2.6,5.4])column(man,x,1.7,1.05,3.2,0xf3ecdf);
- solid(man,11,0.16,1.4,0x4a4038,0,0.45,0.95);
- solid(man,2.2,1.6,0.12,0x3a2418,-0.2,1.1,1.05);
+{const man=grp('lm-mansion',0,0,0);
+ const BODY=0xc9c6b0,TRIM=0x243830,ROOF=0x3e463c,AWN=0x0e6b3e,WIN=0x152028,CREAM=0xf3ecdf;
+ const west=130*T,south=10*T;
+ const faceG=new THREE.Group();man.add(faceG);
+ gable(faceG,0,0,0,9.2,7.2,2.8,ROOF);faceG.rotation.y=Math.PI/2;faceG.position.set(west+5.2,7.15,13.2*T);
+ const longG=new THREE.Group();man.add(longG);
+ gable(longG,0,0,0,14,9.4,2.2,ROOF);longG.position.set(134.2*T,7.05,15.2*T);
+ cylMesh(man,1.15,1.3,3.6,BODY,133.2*T,8.4,17.4*T,10);
+ coneMesh(man,1.55,2.5,ROOF,133.2*T,11.4,17.4*T);
+ solid(man,3.4,4.4,0.55,BODY,134.2*T,2.5,south-0.22);
+ solid(man,3.6,0.12,0.7,TRIM,134.2*T,4.55,south-0.28);
+ for(const z of [11.4,13.6,16.2,18.2]){
+  for(const y of [2.15,4.55]){
+   if(y<3&&z>12.2&&z<15.2)continue;
+   solid(man,0.08,1.2,0.95,WIN,west-0.06,y,z*T);
+   solid(man,0.1,1.36,1.12,TRIM,west-0.1,y,z*T);
+  }
+ }
+ for(const x of [131.6,134.2,136.6]){
+  solid(man,0.95,1.2,0.08,WIN,x*T,2.2,south-0.06);
+  solid(man,1.12,1.36,0.1,TRIM,x*T,2.2,south-0.1);
+  const awn=solid(man,1.5,0.07,0.85,AWN,x*T,2.95,south-0.45);awn.rotation.x=0.35;
+ }
+ const porchAw=solid(man,2.8,0.08,5.8,AWN,west-1.25,3.55,13.5*T);porchAw.rotation.z=0.12;
+ column(man,west-0.85,2.45,24.15,2.7,CREAM);column(man,west-0.85,2.45,29.85,2.7,CREAM);
+ solid(man,2.4,0.16,6.2,TRIM,west-0.9,3.72,13.5*T);
+ sph(0.16,0xffe2a8,west-0.55,2.45,13.5*T,man,{emissive:0x886633});
+ const tx=ZIP_A.x,tz=ZIP_A.z,tw=3.6;
+ solid(man,tw,6.4,0.22,BODY,tx,15.2,tz-tw/2);
+ solid(man,tw,6.4,0.22,BODY,tx,15.2,tz+tw/2);
+ solid(man,0.22,6.4,tw,BODY,tx+tw/2,15.2,tz);
+ solid(man,0.22,2.2,tw,BODY,tx-tw/2,13.1,tz);
+ solid(man,tw+0.5,0.14,tw+0.5,TRIM,tx,12.2,tz);
+ coneMesh(man,2.35,4.6,ROOF,tx,19.6,tz);
+ cylMesh(man,0.07,0.12,2.4,TRIM,tx,22.4,tz,6);
+ strut(man,tx,18.2,tz,tx,ZIP_A.y+1.2,tz,0.07,0x161616);
 }
-{const tower=grp('lm-tower',137.2*T,20.2*T,0);
- cylMesh(tower,1.7,1.9,12,0xd9c7aa,0,6,0,14);
- coneMesh(tower,2.15,3.4,0x3a2c32,0,13.6,0);
- solid(tower,0.35,1.1,0.35,0x6a4538,0,15.6,0);
-}
-box(1.8,0.72,0.9,0x4a3020,133.5*T,0.4,15.5*T,scene);
-box(0.7,0.7,0.7,0x5a4030,131.5*T,0.35,13.5*T,scene);
-box(0.7,0.7,0.7,0x5a4030,135.5*T,0.35,13.5*T,scene);
-sph(0.22,0xffe2a8,133.5*T,4.7,15.5*T,scene,{emissive:0x886633});
-box(2.4,0.9,0.8,0x3a2818,140*T,5.3,16.5*T,scene);
 {const line=new THREE.Group();line.name='zipline';
  function zipAt(u){const t=Math.max(0,Math.min(1,u)),s=Math.sin(t*Math.PI);return {x:ZIP_A.x+(ZIP_B.x-ZIP_A.x)*t,y:ZIP_A.y+(ZIP_B.y-ZIP_A.y)*t-s*2.8+1.15,z:ZIP_A.z+(ZIP_B.z-ZIP_A.z)*t};}
- for(let i=0;i<20;i++){const a=zipAt(i/20),b=zipAt((i+1)/20);strut(line,a.x,a.y,a.z,b.x,b.y,b.z,0.04,0x161616);}
+ for(let i=0;i<20;i++){const a=zipAt(i/20),b=zipAt((i+1)/20);strut(line,a.x,a.y,a.z,b.x,b.y,b.z,0.07,0x161616);}
  scene.add(line);
  const seat=new THREE.Group();seat.name='trolley';
  box(0.08,0.42,0.08,0x222,0,0.15,0,seat);box(0.62,0.07,0.1,0xc4a56a,0,-0.12,0,seat);
@@ -1052,13 +1087,13 @@ solid(scene,0.2,4.8,0.2,0xf2efe8,67.7,2.5,2.3);solid(scene,0.2,4.8,0.2,0xf2efe8,
  solid(off,0.55,1.8,0.55,0x6a4038,1.7,9.6,-0.8);
 }
 {const man=grp('lm-mansion',232,9.75,0);
- solid(man,13.5,7.6,7.4,0xd9c7aa,1.4,3.8,0);
+ solid(man,13.5,7.6,7.4,0xc9c6b0,1.4,3.8,0);
  gable(man,1.4,7.6,0,14.1,8.2,3.1,0x3a2c32);
  const cross=solid(man,4.6,0.16,4.4,0x3a2c32,1.6,9.5,2.1);cross.rotation.x=0.62;
- cylMesh(man,1.7,1.85,11.2,0xd9c7aa,-6.2,5.6,3.5,14);
+ cylMesh(man,1.7,1.85,11.2,0xc9c6b0,-6.2,5.6,3.5,14);
  coneMesh(man,2.05,4.2,0x3a2c32,-6.2,13.3,3.5);
  cylMesh(man,0.06,0.1,2.4,0x2a2428,-6.2,16.5,3.5,6);
- solid(man,9.2,0.12,1.6,0x4a4038,1.6,2.45,4.35);
+ solid(man,9.2,0.12,1.6,0x0e6b3e,1.6,2.45,4.35);
  solid(man,9.6,0.14,1.7,0x3a2c32,1.6,1.15,4.45);
  for(const x of [-2.2,0.2,2.6,5.0])column(man,x,1.25,5.05,2.4,0xf3ecdf);
  facade(man,'mansion.jpg',0.12,0.08,0.72,0.9,11.6,7.2,1.8,4.3,4.55,0);
@@ -1245,15 +1280,18 @@ function applyBikeSnap(rows){if(!rows)return;for(let i=0;i<bikes.length&&i<rows.
 
 /* ---- doors. Every campaign door is a line across the road. ---- */
 const doorMeshes={};
-{function leafGate(x,y,z0,z1,color){const span=z1-z0,mid=(z0+z1)/2;
-  const N=new THREE.Group();N.position.set(x,y,z0);scene.add(N);box(.14,2.7,span/2,color,0,1.45,span/4,N);box(.2,.08,.5,0xddd,0,1.3,span/2-.3,N);
-  const Sth=new THREE.Group();Sth.position.set(x,y,z1);scene.add(Sth);box(.14,2.7,span/2,color,0,1.45,-span/4,Sth);box(.2,.08,.5,0xddd,0,1.3,-span/2+.3,Sth);
-  box(.5,.4,span+0.2,0x3a3028,x,y+2.95,mid,scene);
+{function leafGate(x,y,z0,z1,color){const span=z1-z0,mid=(z0+z1)/2,leaf=Math.max(0.45,span/2-0.14);
+  const N=new THREE.Group();N.position.set(x,y,z0);scene.add(N);
+  box(.16,2.7,leaf,color,0,1.45,leaf/2+0.08,N);box(.1,1.7,leaf*0.55,shade(color,0.8),0,1.4,leaf/2+0.12,N);box(.16,.08,.36,0xddd,0,1.25,leaf-0.02,N);
+  const Sth=new THREE.Group();Sth.position.set(x,y,z1);scene.add(Sth);
+  box(.16,2.7,leaf,color,0,1.45,-leaf/2-0.08,Sth);box(.1,1.7,leaf*0.55,shade(color,0.8),0,1.4,-leaf/2-0.12,Sth);box(.16,.08,.36,0xddd,0,1.25,-(leaf-0.02),Sth);
+  box(.24,3.2,.24,0x241c14,x,y+1.55,z0,scene);box(.24,3.2,.24,0x241c14,x,y+1.55,z1,scene);
+  box(.55,.42,span+0.35,0x241c14,x,y+3.05,mid,scene);
   return {update(o,dt){N.rotation.y=lerp(N.rotation.y,o?-1.35:0,dt*4);Sth.rotation.y=lerp(Sth.rotation.y,o?1.35:0,dt*4);}};}
  for(const id of DOOR_IDS){let x0=W,z0=H,z1=-1;for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(doorId(x,z)===id){if(x<x0)x0=x;if(z<z0)z0=z;if(z>z1)z1=z;}
   if(z1<0)continue;
-  const col=id==='gate'?0xc4a35a:id==='shop'?0x8a5a32:id==='roof'?0x8d9398:id.startsWith('mansion')?0xc4a882:id.startsWith('cook')?0x8a2e28:0x6a5344;
-  doorMeshes[id]=leafGate((x0+.5)*T,id==='roof'?10:0,z0*T,(z1+1)*T,col);}
+  const col=id==='gate'?0xc4a35a:id==='shop'?0x8a5a32:id==='roof'?0x8d9398:id.startsWith('mansion')?0x1a3a28:id.startsWith('cook')?0x8a2e28:0x5a4638;
+  doorMeshes[id]=leafGate((x0+.5)*T,id==='roof'?10:tileH(x0,z0),z0*T,(z1+1)*T,col);}
  box(.55,1.15,.55,0x2a2a2a,FIN.callX,10.55,FIN.callZ,scene);
  doorMeshes.btn=box(.18,.18,.18,0xff3311,FIN.callX,11.2,FIN.callZ,scene,{emissive:0x661100});
 }
@@ -1524,7 +1562,8 @@ for(const b of bots)b.headProp=makeHeadProp(b.skin,b.hair);
 function aliveCommons(){let n=0;for(const c of commons)if(!c.dead)n++;return n;}
 function swarmMul(){return clamp(NET.swarm,0,200)/100;}
 function seedCommons(){const scale=swarmMul(),n=Math.round(START_COMMONS.length*scale);
- for(let i=0;i<n;i++){const [x,z]=START_COMMONS[i%START_COMMONS.length];const spot=concealTile(x,z,i)||hiddenNear(x,z,14,i);if(spot)spawnCommon(spot.x,spot.z,false);}}
+ for(let i=0;i<n;i++){const [x,z]=START_COMMONS[i%START_COMMONS.length];const spot=concealTile(x,z,i)||hiddenNear(x,z,14,i);if(spot)spawnCommon(spot.x,spot.z,false);}
+ if(LAYOUT==='town')for(const [x,z] of [[136,13],[140,13],[140,17],[141,21]])if(isWalk(x,z))spawnCommon((x+.5)*T,(z+.5)*T,false);}
 function spawnCommon(x,z,alert,target){if(aliveCommons()>=MAXC)return null;if(!isWalk(Math.floor(x/T),Math.floor(z/T)))return null;
  const c={id:++ENTID,x,z,y:groundAt(x,z),yaw:rand(0,6.28),hp:75,dead:false,deathT:0,fall:0,state:alert?'rush':'wander',target:null,atk:rand(.2,.55),phase:rand(0,6),wt:0,wdx:0,wdz:0,stag:0,pvx:0,pvz:0,shirt:pick(SHIRTS),pants:pick(PANTS),skin:pick(SKINS),speed:rand(5.8,7.2),swipe:0,chk:rand(0,.3),groanT:rand(4,16),hitT:0,mv:0};
  if(alert)c.target=target||chooseTarget(c);commons.push(c);return c;}
@@ -1928,6 +1967,8 @@ function updateBot(b,dt){if(b.net){updateNetSurvivor(b,dt);return;}
    b.revVic=vic;b.revT=(b.revT||0)+dt;poseLimbs(vic);
    if(b.revT>=2.5){finishRevive(vic,b);b.revT=0;b.revVic=null;b.cutChoice=null;}placeBot(b);return;}
   b.revT=0;b.revVic=null;b.cutChoice=null;}
+ if(!pin){const tx=Math.floor(b.x/T),tz=Math.floor(b.z/T),here=route[tz*W+tx];
+  if(here<INF)for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const id=doorId(tx+dx,tz+dz);if(!id||doors[id]||id==='gate'||id==='shop'||id==='roof')continue;if(route[(tz+dz)*W+tx+dx]<here){tryOpen(id);break;}}}
  // movement
  let gx=player.x,gz=player.z,stop=2.6+b.slot*.7;if(pin&&!pin.dead){gx=pin.x;gz=pin.z;stop=b.tgt===pin?5:1.5;}
  const d=Math.hypot(gx-b.x,gz-b.z);let mvx=0,mvz=0;
@@ -2170,7 +2211,7 @@ function update(dt){S.t+=dt;
  else if(reg==='zoo')bark(null,'Sequoia Park Zoo. Otters, the bear, the aviary. Stay out of the pens.','zoo',99);
  else if(LAYOUT==='town'&&reg==='forest'&&player.x>108*T)bark(null,'Tree walk. The office at 3109 H is ahead.','tree',99);
  else if(reg==='forest')bark(null,'Redwoods. Stay on the path.','trees',99);
- if(reg==='hotel'&&(zoneAt[Math.floor(player.z/T)*W+Math.floor(player.x/T)]===6||zoneAt[Math.floor(player.z/T)*W+Math.floor(player.x/T)]===11))bark(null,LAYOUT==='town'?'Carson Mansion. Close the parlor, then the tower. The line is the only way across.':'Carson Mansion. Close the door. The Samoa bridge is next.','man',99);
+ if(reg==='hotel'&&(zoneAt[Math.floor(player.z/T)*W+Math.floor(player.x/T)]===6||zoneAt[Math.floor(player.z/T)*W+Math.floor(player.x/T)]===11))bark(null,LAYOUT==='town'?'Carson Mansion. The line leaves the tower. Fight the stairs up to it.':'Carson Mansion. Close the door. The Samoa bridge is next.','man',99);
  if(LAYOUT==='town'){if(player.zipU==null&&groundAt(player.x,player.z)<2&&player.x>136*T&&S.obj>=5&&S.obj<6&&!doors.gate){setObj(6);bark(null,'Bridge gate is chained. Forcing it brings the horde.','gatetalk',99);}}
  else if(player.x>140*T&&!doors.gate&&S.obj<6){setObj(6);bark(null,'Bridge gate is chained. Forcing it brings the horde.','gatetalk',99);}
  ashore();
