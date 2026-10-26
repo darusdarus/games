@@ -2237,54 +2237,59 @@ function updateCommon(c,dt){c.hitT=Math.max(0,c.hitT-dt);
 function zBodyR(e){return e.type?SPEC[e.type].r:.36;}
 function zAnchored(e){return (e.type==='hunter'&&e.state==='pin')||(e.type==='smoker'&&e.state==='pull');}
 function kickPosed(e){return e.state==='sob'||e.state==='headwait'||e.state==='headwalk';}
-/* A heap of dead commons becomes one mound. The mesh stays near 300 triangles no matter how many bodies are in it. */
+/* A heap of dead commons becomes one mound. The center is a plain cloth mass; real-sized heads and limbs stick out of the outside only. */
 let pileScan=0,pileSeq=1,PILE_MOUND=null,PILE_PLUG=null,PILE_TEX=null;
+const BIT_MAX=300;
+const _bit=new THREE.Object3D(),_bitCol=new THREE.Color(),_blood=new THREE.Color(0x4a1010);
+_bit.rotation.order='YXZ';
 function pileMetrics(count,x,z){const g=bodyY(x,z);const ceil=ceilAt(x,z);const room=ceil==null?120:Math.max(0.8,ceil-g);
  const raw=0.5*Math.pow(Math.max(1,count),0.7);const sealed=ceil!=null&&raw+1.75>=room;
  const h=sealed?room:Math.min(raw,120);const r=Math.min(14,0.75+Math.pow(Math.max(1,count),0.4)*0.62);
  return {g,h,r,sealed,room,raw};}
 function pileTex(){if(PILE_TEX)return PILE_TEX;
- const shirts=['#6b5a3a','#3a4a6b','#7a2a2a','#8e8a7c','#2a2a2a','#4a6a4a','#7a5a7a','#9a7a4a','#5a3a2a','#b8b0a0'];
- const pants=['#2a2a35','#3a3228','#1f2a3a','#4a4038','#262626'];
- const skins=['#8a9a7a','#9a9282','#7a8670','#a09080'];
- PILE_TEX=canvasTex(512,512,(g,w,h)=>{g.fillStyle='#3a2e28';g.fillRect(0,0,w,h);
-  for(let i=0;i<42;i++){const x=(i*97)%w,y=(i*53)%h,ang=((i*47)%100)/100*Math.PI;
-   g.save();g.translate(x,y);g.rotate(ang);
-   g.fillStyle=pants[i%pants.length];g.fillRect(-46,-8,34,9);g.fillRect(-46,3,34,9);
-   g.fillStyle=shirts[i%shirts.length];g.fillRect(-14,-16,40,32);
-   g.fillStyle=skins[i%skins.length];g.fillRect(24,-11,18,22);
-   g.fillStyle='rgba(110,16,12,0.72)';g.fillRect(-6,-6,16,12);g.restore();}
-  g.fillStyle='rgba(70,8,8,0.38)';
-  for(let i=0;i<16;i++){g.beginPath();g.ellipse((i*80)%w,(i*63)%h,22+(i%5)*8,10+(i%4)*5,(i%7)*.4,0,6.3);g.fill();}});
- PILE_TEX.wrapS=PILE_TEX.wrapT=THREE.RepeatWrapping;return PILE_TEX;}
-function addPileBox(positions,uvs,indices,cx,cy,cz,sx,sy,sz,yaw){const hx=sx/2,hy=sy/2,hz=sz/2,c=Math.cos(yaw),s=Math.sin(yaw);
- const corners=[[-hx,-hy,-hz],[hx,-hy,-hz],[hx,hy,-hz],[-hx,hy,-hz],[-hx,-hy,hz],[hx,-hy,hz],[hx,hy,hz],[-hx,hy,hz]];
- const base=positions.length/3;
- for(const p of corners){const x=cx+p[0]*c-p[2]*s,y=cy+p[1],z=cz+p[0]*s+p[2]*c;positions.push(x,y,z);uvs.push(x*1.4+0.5,y*1.4);}
- const faces=[[0,1,2,3],[5,4,7,6],[4,0,3,7],[1,5,6,2],[3,2,6,7],[4,5,1,0]];
- for(const f of faces)indices.push(base+f[0],base+f[1],base+f[2],base+f[0],base+f[2],base+f[3]);}
-function pileGeo(kind){const segs=12,positions=[],uvs=[],indices=[];
- if(kind==='mound'){const rings=6;positions.push(0,1,0);uvs.push(.5,.5);const ringAt=[0];let v=1;
-  for(let k=1;k<=rings;k++){ringAt[k]=v;const y=1-k/rings,rad=Math.sqrt(k/rings);
-   for(let s=0;s<segs;s++){const a=s/segs*Math.PI*2;positions.push(Math.cos(a)*rad,y,Math.sin(a)*rad);uvs.push(.5+Math.cos(a)*rad*.5,.5+Math.sin(a)*rad*.5);v++;}}
-  for(let s=0;s<segs;s++)indices.push(0,ringAt[1]+s,ringAt[1]+(s+1)%segs);
-  for(let k=1;k<rings;k++){const a=ringAt[k],b=ringAt[k+1];
-   for(let s=0;s<segs;s++){const s2=(s+1)%segs;indices.push(a+s,b+s,b+s2,a+s,b+s2,a+s2);}}
-  const bot=v;positions.push(0,0,0);uvs.push(.5,.5);v++;
-  for(let s=0;s<segs;s++)indices.push(bot,ringAt[rings]+(s+1)%segs,ringAt[rings]+s);
-  const lumps=[[.12,.46,.04,.52,.2,.26,.4],[-.26,.3,.16,.34,.14,.46,1.1],[.2,.24,-.28,.4,.12,.2,-.5],[-.02,.62,-.08,.2,.16,.2,.2],[.4,.16,.1,.16,.1,.42,.9],[-.38,.18,-.12,.14,.1,.4,-.3],[.02,.12,.4,.44,.1,.18,1.6],[-.16,.38,.3,.28,.12,.22,2.2],[.3,.36,.2,.18,.14,.18,.5],[-.3,.14,.26,.2,.1,.34,-1.1],[.08,.2,-.4,.36,.1,.16,.7],[-.1,.52,.06,.24,.1,.28,-.2],[.26,.08,-.06,.3,.08,.14,2.5]];
-  for(const L of lumps)addPileBox(positions,uvs,indices,L[0],L[1],L[2],L[3],L[4],L[5],L[6]);}
- else{const stacks=4,ringAt=[];let v=0;
-  for(let k=0;k<=stacks;k++){ringAt[k]=v;const y=k/stacks,rad=1-.14*y;
-   for(let s=0;s<segs;s++){const a=s/segs*Math.PI*2;positions.push(Math.cos(a)*rad,y,Math.sin(a)*rad);uvs.push(s/segs,y);v++;}}
-  for(let k=0;k<stacks;k++){const a=ringAt[k],b=ringAt[k+1];
-   for(let s=0;s<segs;s++){const s2=(s+1)%segs;indices.push(a+s,b+s,b+s2,a+s,b+s2,a+s2);}}
-  positions.push(0,0,0);uvs.push(.5,.5);const bc=v++;
-  for(let s=0;s<segs;s++)indices.push(bc,ringAt[0]+(s+1)%segs,ringAt[0]+s);
-  positions.push(0,1,0);uvs.push(.5,1);const tc=v++;const top=ringAt[stacks];
-  for(let s=0;s<segs;s++)indices.push(tc,top+s,top+(s+1)%segs);
-  const lumps=[[.2,.35,.05,.55,.22,.28,.3],[-.25,.55,.12,.4,.18,.3,1],[.15,.72,-.2,.32,.16,.24,-.4],[0,.88,.02,.22,.16,.22,.1],[.55,.28,.08,.16,.12,.4,.8],[-.5,.4,-.1,.16,.12,.38,-.5],[.05,.18,.45,.46,.14,.2,1.4],[-.2,.62,.35,.3,.14,.22,2],[.35,.5,.28,.22,.16,.2,.6],[-.35,.22,.3,.24,.12,.36,-1],[.1,.3,-.48,.4,.12,.18,.9],[-.08,.78,.1,.26,.12,.3,-.2],[.3,.12,-.1,.32,.1,.16,2.4],[-.42,.48,.22,.2,.14,.28,.2],[.42,.66,-.22,.18,.14,.26,-1.3]];
-  for(const L of lumps)addPileBox(positions,uvs,indices,L[0],L[1],L[2],L[3],L[4],L[5],L[6]);}
+ const blot=['#3a322c','#4a3c32','#2c2a32','#5a4038','#322826','#2a2a2a','#3a3030','#343c34','#4a342c','#5a3830','#2e3430'];
+ PILE_TEX=canvasTex(128,128,(g,w,h)=>{g.fillStyle='#2c2624';g.fillRect(0,0,w,h);
+  for(let i=0;i<70;i++){g.fillStyle=blot[i%blot.length];const x=(i*37)%w,y=(i*19)%h;g.fillRect(x,y,7+(i%5)*3,5+(i%4)*2);}
+  g.fillStyle='rgba(110,18,14,0.55)';
+  for(let i=0;i<14;i++){g.beginPath();g.ellipse((i*29+8)%w,(i*23+6)%h,5+(i%3)*2,3+(i%2)*2,(i%5)*.4,0,6.3);g.fill();}});
+ PILE_TEX.wrapS=PILE_TEX.wrapT=THREE.RepeatWrapping;PILE_TEX.anisotropy=renderer.capabilities.getMaxAnisotropy();return PILE_TEX;}
+function pileHash(n){n=Math.imul(n|0,0x7feb352d);n=Math.imul(n^(n>>>15),0x846ca68b);return ((n^(n>>>16))>>>0)/4294967296;}
+function pileBitsN(p){const midR=Math.max(.8,(p.sealed?0.9:0.72)*p.r);
+ const around=Math.max(5,Math.min(14,Math.round(Math.PI*2*midR/1.15)));
+ const rise=Math.max(2,Math.min(p.sealed?5:10,Math.round(Math.max(p.h,1)/.9)));
+ return Math.max(12,Math.min(100,around*rise));}
+function pileRadAt(t,sealed){return sealed?1-.14*t:Math.sqrt(Math.max(0,1-t));}
+function putBit(mesh,i,x,y,z,rx,ry,rz,sx,sy,sz,hex,blood){_bit.position.set(x,y,z);_bit.rotation.set(rx,ry,rz);_bit.scale.set(sx,sy,sz);_bit.updateMatrix();mesh.setMatrixAt(i,_bit.matrix);
+ _bitCol.setHex(hex);_bitCol.multiplyScalar(.74);if(blood>0)_bitCol.lerp(_blood,blood);mesh.setColorAt(i,_bitCol);}
+function posePileBits(p){const n=pileBitsN(p),mesh=p.bits,span=p.sealed?0.78:0.66,t0=Math.max(.07,.42/Math.max(p.h,.3));let i=0;
+ for(let s=0;s<n;s++){const h=pileHash(p.id*131+s*17+9);
+  const yaw=pileHash(p.id*3+1)*6.2831853+s*2.399963229728653+(h-.5)*.4;
+  let t=t0+Math.pow((s+.5)/n,p.h>6?1:.85)*span+(pileHash(p.id*17+s*5)-.5)*.035;
+  t=Math.max(t0,Math.min(p.sealed?0.86:0.74,t));
+  const R=pileRadAt(t,p.sealed)*p.r,ox=Math.sin(yaw),oz=Math.cos(yaw),px=p.x+ox*R,py=p.g+t*p.h,pz=p.z+oz*R;
+  const shirt=SHIRTS[(pileHash(p.id*11+s*3)*SHIRTS.length)|0],skin=SKINS[(pileHash(p.id*19+s*7)*SKINS.length)|0],pants=PANTS[(pileHash(p.id*23+s*9)*PANTS.length)|0];
+  const blood=h<.22?.62:h<.48?.26:0,twist=(pileHash(p.id*29+s)-.5)*1.15,mode=s%3,hang=h*.25,poke=.16+h*.42;
+  if(mode===1)putBit(mesh,i++,px+ox*(.28+poke),py-.08,pz+oz*(.28+poke),-1.25-hang,yaw+twist,twist*.5,.17,.84,.18,pants,blood);
+  else putBit(mesh,i++,px+ox*(.06+poke*.35),py+.05,pz+oz*(.06+poke*.35),-.55-h*.25,yaw,twist*.22,.5,.4,.28,shirt,blood*.65);
+  putBit(mesh,i++,px+ox*(.34+poke),py+.16,pz+oz*(.34+poke),-.55,yaw+twist*.55,twist*.45,.25,.28,.26,skin,blood*.4);
+  if(mode===0)putBit(mesh,i++,px+ox*(.3+poke),py-.1,pz+oz*(.3+poke),-1.35,yaw-twist*.35,twist*.75,.17,.84,.18,pants,blood*.4);
+  else putBit(mesh,i++,px+ox*(.42+poke),py+.02,pz+oz*(.42+poke),-1.4,yaw+.6,twist,.12,.6,.12,skin,blood*.35);}
+ mesh.count=i;mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;}
+function pileGeo(kind){const segs=24,col=segs+1,positions=[],uvs=[],indices=[];
+ if(kind==='mound'){const rings=6;
+  for(let k=0;k<=rings;k++){const y=1-k/rings,rad=Math.sqrt(k/rings);
+   for(let s=0;s<=segs;s++){const a=s/segs*Math.PI*2;positions.push(Math.cos(a)*rad,y,Math.sin(a)*rad);uvs.push(s/segs,y);}}
+  for(let k=0;k<rings;k++)for(let s=0;s<segs;s++){const a=k*col+s,b=(k+1)*col+s;indices.push(a,b,b+1,a,b+1,a+1);}
+  const bot=positions.length/3;positions.push(0,0,0);uvs.push(.5,0);const base=rings*col;
+  for(let s=0;s<segs;s++)indices.push(bot,base+s+1,base+s);}
+ else{const stacks=4;
+  for(let k=0;k<=stacks;k++){const y=k/stacks,rad=1-.14*y;
+   for(let s=0;s<=segs;s++){const a=s/segs*Math.PI*2;positions.push(Math.cos(a)*rad,y,Math.sin(a)*rad);uvs.push(s/segs,y);}}
+  for(let k=0;k<stacks;k++)for(let s=0;s<segs;s++){const a=k*col+s,b=(k+1)*col+s;indices.push(a,b,b+1,a,b+1,a+1);}
+  const bc=positions.length/3;positions.push(0,0,0);uvs.push(.5,0);
+  for(let s=0;s<segs;s++)indices.push(bc,s+1,s);
+  const tc=positions.length/3;positions.push(0,1,0);uvs.push(.5,1);const top=stacks*col;
+  for(let s=0;s<segs;s++)indices.push(tc,top+s,top+s+1);}
  const geo=new THREE.BufferGeometry();
  geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
  geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
@@ -2293,13 +2298,17 @@ function moundGeo(){return PILE_MOUND||(PILE_MOUND=pileGeo('mound'));}
 function plugGeo(){return PILE_PLUG||(PILE_PLUG=pileGeo('plug'));}
 function refreshPile(p){const m=pileMetrics(p.count,p.x,p.z);p.g=m.g;p.h=m.h;p.r=m.r;p.sealed=m.sealed;p.room=m.room;
  const geo=p.sealed?plugGeo():moundGeo();
- if(!p.mesh){const map=pileTex().clone();map.wrapS=map.wrapT=THREE.RepeatWrapping;map.colorSpace=THREE.SRGBColorSpace;map.needsUpdate=true;
+ if(!p.mesh){const map=pileTex().clone();map.wrapS=map.wrapT=THREE.RepeatWrapping;map.anisotropy=PILE_TEX.anisotropy;map.colorSpace=THREE.SRGBColorSpace;map.needsUpdate=true;
   p.mesh=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({map}));p.mesh.name='corpse-pile';p.mesh.frustumCulled=false;scene.add(p.mesh);}
  else if(p.mesh.geometry!==geo)p.mesh.geometry=geo;
- const tile=3.2;p.mesh.material.map.repeat.set(Math.max(1,p.r*2/tile),Math.max(1,(p.r+p.h)/tile));
- p.mesh.position.set(p.x,p.g,p.z);p.mesh.scale.set(p.r,Math.max(.15,p.h),p.r);}
-function makePile(x,z,count,id){const p={id:id==null?pileSeq++:id|0,x,z,count:count|0,mesh:null,g:0,h:1,r:1,sealed:false};if(id!=null)pileSeq=Math.max(pileSeq,(id|0)+1);refreshPile(p);piles.push(p);return p;}
-function destroyPile(p,idx){if(p.mesh){scene.remove(p.mesh);if(p.mesh.material){if(p.mesh.material.map)p.mesh.material.map.dispose();p.mesh.material.dispose();}}
+ p.mesh.material.map.repeat.set(Math.max(1,Math.PI*2*p.r/2.4),Math.max(1,p.h/1.8));
+ p.mesh.position.set(p.x,p.g,p.z);p.mesh.scale.set(p.r,Math.max(.15,p.h),p.r);
+ if(!p.bits){p.bits=new THREE.InstancedMesh(boxGeo,new THREE.MeshLambertMaterial({color:0xffffff}),BIT_MAX);p.bits.name='corpse-pile-bits';p.bits.frustumCulled=false;scene.add(p.bits);}
+ const key=(p.sealed?1:0)+'|'+((p.x*4)|0)+'|'+((p.z*4)|0)+'|'+((p.g*4)|0)+'|'+((p.r*8)|0)+'|'+((p.h*8)|0);
+ if(p.pose!==key){posePileBits(p);p.pose=key;}}
+function makePile(x,z,count,id){const p={id:id==null?pileSeq++:id|0,x,z,count:count|0,mesh:null,bits:null,g:0,h:1,r:1,sealed:false};if(id!=null)pileSeq=Math.max(pileSeq,(id|0)+1);refreshPile(p);piles.push(p);return p;}
+function destroyPile(p,idx){if(p.bits){scene.remove(p.bits);if(p.bits.material)p.bits.material.dispose();p.bits=null;}
+ if(p.mesh){scene.remove(p.mesh);if(p.mesh.material){if(p.mesh.material.map)p.mesh.material.map.dispose();p.mesh.material.dispose();}}
  const i=idx!=null?idx:piles.indexOf(p);if(i>=0)piles.splice(i,1);}
 function pileTop(p,x,z){if(!p||p.sealed)return -1;const d=Math.hypot(x-p.x,z-p.z);if(d>=p.r)return -1;const u=d/p.r;return p.g+p.h*(1-u*u);}
 function drawPiles(){for(const p of piles)refreshPile(p);}
