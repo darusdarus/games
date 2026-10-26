@@ -1695,7 +1695,7 @@ player.headProp=makeHeadProp(0xb08a6a,0x3a2a1a);
 for(const b of bots)b.headProp=makeHeadProp(b.skin,b.hair);
 
 /* ---- commons ---- */
-function aliveCommons(){let n=0;for(const c of commons)if(!c.dead)n++;return n;}
+function aliveCommons(){let n=0;for(const c of commons)if(!c.dead&&!c.ally)n++;return n;}
 function swarmMul(){return clamp(NET.swarm,0,200)/100;}
 function seedCommons(){const scale=swarmMul(),n=Math.round(START_COMMONS.length*scale);
  for(let i=0;i<n;i++){const [x,z]=START_COMMONS[i%START_COMMONS.length];const spot=concealTile(x,z,i)||hiddenNear(x,z,14,i);if(spot)spawnCommon(spot.x,spot.z,false);}
@@ -1706,13 +1706,13 @@ function spawnCommon(x,z,alert,target){if(aliveCommons()>=MAXC)return null;if(!i
  const c={id:++ENTID,x,z,y:groundAt(x,z),yaw:rand(0,6.28),hp:75,dead:false,deathT:0,fall:0,state:alert?'rush':'wander',target:null,atk:rand(.2,.55),phase:rand(0,6),wt:0,wdx:0,wdz:0,stag:0,pvx:0,pvz:0,shirt:pick(SHIRTS),pants:pick(PANTS),skin:pick(SKINS),speed:rand(5.8,7.2),swipe:0,chk:rand(0,.3),groanT:rand(4,16),hitT:0,mv:0};
  if(alert)c.target=target||chooseTarget(c);commons.push(c);return c;}
 function chooseTarget(c){const alive=bots.filter(b=>!b.down);if(alive.length&&Math.random()<0.3){const b=pick(alive);return b;}return player;}
-function alertCommon(c,target){if(c.dead||c.state==='rush')return;c.state='rush';c.target=target||chooseTarget(c);if(Math.random()<.35)SFX.scream(c.x,c.z);}
-function killCommon(c,byPlayer,head,dir){if(c.dead)return;releaseGrab(c);c.dead=true;c.deathT=0;c.fall=0;if(byPlayer){S.kills++;if(head)S.heads++;}DIR.intensity+=1.2;
+function alertCommon(c,target){if(c.dead||c.ally||c.state==='rush')return;c.state='rush';c.target=target||chooseTarget(c);if(Math.random()<.35)SFX.scream(c.x,c.z);}
+function killCommon(c,byPlayer,head,dir){if(c.dead)return;releaseGrab(c);c.dead=true;c.ally=false;c.owner=null;c.deathT=0;c.fall=0;if(byPlayer){S.kills++;if(head)S.heads++;}DIR.intensity+=1.2;
  for(let i=0;i<(head?14:8);i++)PBlood.emit(c.x,c.y+(head?1.6:1.1),c.z,rand(-1.5,1.5)+(dir?dir.x*2:0),rand(0,2.5),rand(-1.5,1.5)+(dir?dir.z*2:0),rand(.4,.8),.25,.12,.45,.03,.02,.95,9);}
 function damageCommon(c,dmg,head,byPlayer,dir,aggro){if(c.dead)return;if(c.swim&&(c.state==='grab'||c.state==='climb'||c.state==='jump')){shoveOffBoat(c);c.hp=0;killCommon(c,byPlayer,false,dir);for(let i=0;i<8;i++)PBlood.emit(c.x,WATER+0.4,c.z,rand(-2,2),rand(.4,2.2),rand(-2,2),rand(.4,.8),.25,.12,.45,.03,.02,.95,8);SFX.splat(c.x,c.z);return;}c.hp-=head?dmg*4:dmg;c.hitT=.08;
  for(let i=0;i<3;i++)PBlood.emit(c.x,c.y+(head?1.6:1.1),c.z,rand(-1,1),rand(0,1.5),rand(-1,1),rand(.3,.6),.2,.1,.5,.04,.02,.9,8);
  if(dir&&byPlayer){c.x+=dir.x*0.08;c.z+=dir.z*0.08;}
- if(c.hp<=0)killCommon(c,byPlayer,head,dir);else alertCommon(c,aggro||(byPlayer?player:null));}
+ if(c.hp<=0)killCommon(c,byPlayer,head,dir);else if(!c.ally)alertCommon(c,aggro||(byPlayer?player:null));}
 function hurtVic(vic,n){if(!vic||vic===player)hurtPlayer(n);else hurtSurvivor(vic,n);}
 function livingHumans(){const list=[];if(!player.down)list.push(player);for(const b of bots)if(b.net&&!b.down)list.push(b);return list;}
 function checkWipe(){if(NET.role==='off'||S.phase!=='play')return;const any=!player.down||bots.some(b=>!b.down);if(!any)die();}
@@ -1870,9 +1870,9 @@ function hordeSpots(need){const spots=[];const seen=new Uint8Array(N);
  if(spots.length*COVER_CAP<need)add(1,120,4,130,COVER);
  if(spots.length<6)add(2,48,5,48,spawnTiles.hotel.concat(spawnTiles.lobby));
  return spots;}
-function retireFar(room){if(S.riding)return;for(let i=commons.length-1;i>=0;i--){const c=commons[i];if(c.dead||c.feast||c.swim||c.seen)continue;const far=Math.hypot(c.x-player.x,c.z-player.z),fd=flow[tileOf(c)];if(far>150||fd>=INF&&far>60)commons.splice(i,1);}
+function retireFar(room){if(S.riding)return;for(let i=commons.length-1;i>=0;i--){const c=commons[i];if(c.dead||c.ally||c.feast||c.swim||c.seen)continue;const far=Math.hypot(c.x-player.x,c.z-player.z),fd=flow[tileOf(c)];if(far>150||fd>=INF&&far>60)commons.splice(i,1);}
  const need=(room||0)+aliveCommons()-(MAXC-120);if(need<=0)return;const far=[];
- for(let i=0;i<commons.length;i++){const c=commons[i];if(c.dead||c.feast||c.swim||c.seen)continue;const d=Math.hypot(c.x-player.x,c.z-player.z);if(d>70)far.push([d,i]);}
+ for(let i=0;i<commons.length;i++){const c=commons[i];if(c.dead||c.ally||c.feast||c.swim||c.seen)continue;const d=Math.hypot(c.x-player.x,c.z-player.z);if(d>70)far.push([d,i]);}
  far.sort((a,b)=>b[0]-a[0]);const drop=new Set();for(let k=0;k<far.length&&k<need;k++)drop.add(far[k][1]);if(!drop.size)return;
  for(let i=commons.length-1;i>=0;i--)if(drop.has(i))commons.splice(i,1);}
 function streetTiles(){const fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw),front=[],side=[];
@@ -1974,7 +1974,7 @@ function pressXGun(ent){const w=ent&&ent.inv&&ent.inv.primary;if(w&&w.type==='sm
 function shove(){player.lastShove=S.t;SFX.shove();vmShove=.3;
  if(player.pinnedBy){player.pinShoves++;if(player.pinShoves>=5){const h=player.pinnedBy;player.pinnedBy=null;h.state='approach';h.cd=4;h.stag=1.2;const a=player.yaw;h.pvx=-Math.sin(a)*5;h.pvz=-Math.cos(a)*5;h.y=groundAt(h.x,h.z);feed('You shoved the Hunter off!','#9f9');}return;}
  const fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw);
- for(const c of commons){if(c.dead)continue;const dx=c.x-player.x,dz=c.z-player.z,d=Math.hypot(dx,dz);if(d<2.3&&(dx*fx+dz*fz)/(d||1)>.35){c.stag=.9;c.pvx=dx/d*4+fx*2;c.pvz=dz/d*4+fz*2;c.hp-=6;if(c.hp<=0)killCommon(c,true,false);}}
+ for(const c of commons){if(c.dead||c.ally)continue;const dx=c.x-player.x,dz=c.z-player.z,d=Math.hypot(dx,dz);if(d<2.3&&(dx*fx+dz*fz)/(d||1)>.35){c.stag=.9;c.pvx=dx/d*4+fx*2;c.pvz=dz/d*4+fz*2;c.hp-=6;if(c.hp<=0)killCommon(c,true,false);}}
  for(const s of specials){if(s.dead)continue;const dx=s.x-player.x,dz=s.z-player.z,d=Math.hypot(dx,dz);if(d<2.6&&(dx*fx+dz*fz)/(d||1)>.2){s.stag=1;s.pvx=dx/d*4;s.pvz=dz/d*4;if(s.state==='leap'){s.state='approach';s.cd=3;s.vy=0;feed('Deflected the Hunter\'s pounce!','#9f9');}if(player.pulledBy===s)releaseTongue(s);}}}
 function releaseTongue(s){const vic=s.vic||player;if(vic&&vic.pulledBy===s)vic.pulledBy=null;if(player.pulledBy===s)player.pulledBy=null;s.state='approach';s.cd=9;if(s.mesh.tongue)s.mesh.tongue.visible=false;}
 /* Front kick. One roll covers every zombie in front of you: fly, sob, burst, or lose the head. */
@@ -2051,7 +2051,7 @@ function frontKick(ent){if(!ent||ent.down||(ent.pinnedBy&&!ent.pinnedBy.dead))re
  if(ent===player){vmFrontKick=.34;S.shake=Math.max(S.shake||0,.16);if(!kickTold){kickTold=true;feed('Front kick. One in four for everyone in front of you: they fly, drop sobbing, burst, or lose the head.','#fd8');}}
  SFX.kick(ent.x,ent.z);
  const hit=[];
- for(const c of commons)if(!c.dead&&inKickCone(ent,c.x,c.z,2.5))hit.push(c);
+ for(const c of commons)if(!c.dead&&!c.ally&&inKickCone(ent,c.x,c.z,2.5))hit.push(c);
  for(const s of specials)if(!s.dead&&inKickCone(ent,s.x,s.z,2.8))hit.push(s);
  const corpses=kickCorpseTargets(ent);
  const mounds=piles.filter(p=>pileInKick(ent,p));
@@ -2059,7 +2059,7 @@ function frontKick(ent){if(!ent||ent.down||(ent.pinnedBy&&!ent.pinnedBy.dead))re
  if(hit.length){const kind=rollKick();for(const z of hit)applyKick(z,ent,kind);}
  for(const e of corpses)shoveCorpse(e,ent);
  let shed=0;for(const p of mounds)shed+=shedPile(p,ent);
- if((corpses.length||shed)&&ent===player&&!bodiesTold){bodiesTold=true;feed('Bodies came off the pile. Kick it again to break more loose.','#fd8');}}
+ if((corpses.length||shed)&&ent===player&&!bodiesTold){bodiesTold=true;feed('The kick tears about ten feet off the pile. Bodies go flying.','#fd8');}}
 
 /* ---- zipline. Feet ride zipPos. The cable and trolley sit 1.15 above that. ---- */
 function zipPos(u){const t=Math.max(0,Math.min(1,u)),s=Math.sin(t*Math.PI);return {x:ZIP_A.x+(ZIP_B.x-ZIP_A.x)*t,y:ZIP_A.y+(ZIP_B.y-ZIP_A.y)*t-s*2.8,z:ZIP_A.z+(ZIP_B.z-ZIP_A.z)*t};}
@@ -2162,13 +2162,13 @@ function updateBot(b,dt){if(b.net){updateNetSurvivor(b,dt);return;}
  if(S.bridge==='fall'&&chAt(b)==='U'){b.moveSpd=0;placeBot(b);return;}
  m.b.rotation.x=lerp(m.b.rotation.x,0,dt*5);b.tag.material.color.setHex(0xffffff);
  if(b.heal>0){b.heal-=dt;if(b.heal<=0){b.hp=Math.min(100,b.hp+(100-b.hp)*.8);bark(b,'Patched up. Feeling better.','healed'+b.name,10);}placeBot(b);return;}
- if(b.hp<40&&b.kit&&!player.pinnedBy&&!player.pulledBy){let near=false;for(const c of commons)if(!c.dead&&Math.hypot(c.x-b.x,c.z-b.z)<7){near=true;break;}if(!near){b.kit=false;b.heal=3;bark(b,'Healing up, cover me!','heal'+b.name,10);placeBot(b);return;}}
+ if(b.hp<40&&b.kit&&!player.pinnedBy&&!player.pulledBy){let near=false;for(const c of commons)if(!c.dead&&!c.ally&&Math.hypot(c.x-b.x,c.z-b.z)<7){near=true;break;}if(!near){b.kit=false;b.heal=3;bark(b,'Healing up, cover me!','heal'+b.name,10);placeBot(b);return;}}
  let pin=player.pinnedBy||player.pulledBy;
  if(!pin&&NET.role==='host'){for(const o of bots){if(o.pinnedBy&&!o.pinnedBy.dead){pin=o.pinnedBy;break;}if(o.pulledBy&&!o.pulledBy.dead){pin=o.pulledBy;break;}}}
  b.scanT-=dt;if(b.scanT<=0){b.scanT=.15+Math.random()*.1;b.tgt=null;let bd=24;
   if(pin&&!pin.dead&&losClear(b.x,b.z,pin.x,pin.z))b.tgt=pin;
   else{for(const s of specials){if(s.dead)continue;const d=Math.hypot(s.x-b.x,s.z-b.z);if(d<26&&losClear(b.x,b.z,s.x,s.z)){b.tgt=s;bd=0;if(!S.spotted[s.type+specials.indexOf(s)]){S.spotted[s.type+specials.indexOf(s)]=1;bark(b,{boomer:'Boomer! Don\'t shoot it up close!',hunter:'Hunter! Watch for the pounce!',smoker:'Smoker! Stay out of its reach!'}[s.type],'spot'+s.type,12);}break;}}
-   if(!b.tgt)for(const c of commons){if(c.dead)continue;const d=Math.hypot(c.x-b.x,c.z-b.z);if(d<bd&&(c.state==='rush'||d<14)&&losClear(b.x,b.z,c.x,c.z)){bd=d;b.tgt=c;}}}}
+   if(!b.tgt)for(const c of commons){if(c.dead||c.ally)continue;const d=Math.hypot(c.x-b.x,c.z-b.z);if(d<bd&&(c.state==='rush'||d<14)&&losClear(b.x,b.z,c.x,c.z)){bd=d;b.tgt=c;}}}}
  if(b.tgt&&b.tgt.dead)b.tgt=null;
  if(NET.role==='host'&&!b.tgt){let vic=null;const busy=ent=>S.revBot===ent&&S.revT>0;
   if(canRevive(player)&&!busy(player))vic=player;else for(const o of bots)if(o!==b&&canRevive(o)&&!busy(o)){vic=o;break;}
@@ -2211,6 +2211,34 @@ function updateBot(b,dt){if(b.net){updateNetSurvivor(b,dt);return;}
  placeBot(b);}
 function placeBot(b){const m=b.mesh;if(b.zipU!=null){const p=zipPos(b.zipU);b.x=p.x;b.z=p.z;b.y=p.y;}else if(b.bike!=null)b.y=standY(b.x,b.z)+.55;else b.y=standY(b.x,b.z);m.g.position.set(b.x,b.y,b.z);m.g.rotation.y=b.yaw;const sw=Math.sin(b.phase)*Math.min(1,b.moveSpd/3);m.legL.rotation.x=sw*.7;m.legR.rotation.x=-sw*.7;m.b.position.y=Math.abs(sw)*.05;poseLimbs(b);}
 
+/* A revived zombie follows the survivor who brought it back and fights other infected. Nothing on screen says so. */
+const ALLY_HOLD=1.15;
+function allyInReach(c,reach){let best=null,bd=reach;for(const a of commons){if(a===c||!a.ally||a.dead)continue;const d=Math.hypot(a.x-c.x,a.z-c.z);if(d<bd){bd=d;best=a;}}return best;}
+function allyLook(ent){if(!ent)return null;const yaw=ent.yaw||0,fx=-Math.sin(yaw),fz=-Math.cos(yaw);let best=null,score=1e9;
+ for(const c of commons){if(c.swim||c.feast||c.flying)continue;if(c.ally&&!c.dead)continue;if(c.state==='grab'||c.state==='climb'||c.state==='jump')continue;
+  const dx=c.x-ent.x,dz=c.z-ent.z,d=Math.hypot(dx,dz);if(d>2.35||d<0.04)continue;const dot=(dx*fx+dz*fz)/d;if(dot<0.42)continue;const side=Math.abs(dx*fz-dz*fx);if(side>0.9)continue;
+  const s=d+side*1.6;if(s<score){score=s;best=c;}}
+ return best;}
+function reviveAlly(c,by){if(!c||(c.ally&&!c.dead))return;c.dead=false;c.ally=true;c.owner=by||player;c.hp=90;c.fall=0;c.deathT=0;c.flying=false;c.swim=0;c.feast=0;c.state='wander';c.target=null;c.speed=5.6;c.atk=.35;c.swipe=0;c.looseT=0;c.slideT=0;c.fvx=0;c.fvz=0;c.fvy=0;c.seen=true;c.y=standY(c.x,c.z);}
+function tickAllyHold(ent,dt,held){const mine=ent===player;const set=(t,v)=>{if(mine){S.allyT=t;S.allyVic=v;}else{ent.allyT=t;ent.allyVic=v;}};
+ const cur=mine?(S.allyT||0):(ent.allyT||0),vic=mine?S.allyVic:ent.allyVic;
+ if(!held||ent.down||(mine&&S.fly)||(ent.pinnedBy&&!ent.pinnedBy.dead)||(ent.pulledBy&&!ent.pulledBy.dead)){set(0,null);return;}
+ const u=useTargets(mine?null:ent);if(u&&(u.act||u.revive||u.fix)){set(0,null);return;}
+ const z=allyLook(ent);if(!z){set(0,null);return;}
+ const t=z===vic?cur+dt:dt;if(t>=ALLY_HOLD){reviveAlly(z,ent);set(0,null);return;}set(t,z);}
+function updateAlly(c,dt){c.seen=true;c.hitT=Math.max(0,c.hitT-dt);const owner=c.owner&&!c.owner.down?c.owner:player;let foe=null,fd=14;
+ for(const o of commons){if(o===c||o.dead||o.ally||o.swim||o.feast)continue;const d=Math.hypot(o.x-c.x,o.z-c.z);if(d<fd){fd=d;foe=o;}}
+ for(const s of specials){if(s.dead)continue;const d=Math.hypot(s.x-c.x,s.z-c.z);if(d<fd){fd=d;foe=s;}}
+ const ox=c.x,oz=c.z;
+ if(foe&&fd<12){const dx=foe.x-c.x,dz=foe.z-c.z;c.yaw=lerpAng(c.yaw,Math.atan2(dx,dz),dt*10);
+  if(fd<1.25){c.state='rush';c.atk-=dt;if(c.atk<=0){c.atk=rand(.42,.62);c.swipe=.3;if(foe.type)damageSpecial(foe,16,false,false);else damageCommon(foe,22,false,false);}}
+  else{c.state='rush';moveEnt(c,dx/fd*c.speed*dt,dz/fd*c.speed*dt,.3);}}
+ else{const dx=owner.x-c.x,dz=owner.z-c.z,d=Math.hypot(dx,dz)||1;c.state='wander';
+  if(d>22){const fx=-Math.sin(owner.yaw||0),fz=-Math.cos(owner.yaw||0);c.x=owner.x-fx*1.8;c.z=owner.z-fz*1.8;}
+  else if(d>2.35){moveEnt(c,dx/d*c.speed*1.05*dt,dz/d*c.speed*1.05*dt,.3);c.yaw=lerpAng(c.yaw,Math.atan2(dx,dz),dt*8);}
+  else if(d<1.25){moveEnt(c,-(dx/d)*1.5*dt,-(dz/d)*1.5*dt,.3);}
+  else c.yaw=lerpAng(c.yaw,owner.yaw||c.yaw,dt*3);}
+ c.mv=Math.hypot(c.x-ox,c.z-oz)/Math.max(dt,1e-4);c.phase+=dt*(1.5+c.mv*1.6);c.swipe=Math.max(0,c.swipe-dt);c.y=standY(c.x,c.z);}
 /* ---- commons update ---- */
 const _sp=new THREE.Vector3(),_fwd=new THREE.Vector3();
 let _seeStamp=-1;
@@ -2228,6 +2256,7 @@ function updateCommon(c,dt){c.hitT=Math.max(0,c.hitT-dt);
  if(c.flying){const phase=tickFlight(c,dt,.3,bodyY);if(phase==='land'){c.state='rush';c.target=c.target||player;c.stag=.35;c.pvx=0;c.pvz=0;}c.mv=Math.hypot(c.fvx||0,c.fvz||0);c.phase+=dt*8;c.swipe=Math.max(0,c.swipe-dt);return;}
  if(!c.dead&&(c.state==='sob'||c.state==='headwait'||c.state==='headwalk')){tickKickPose(c,dt,standY,.3);if(c.state==='sob'&&(c.sobSnd||0)<=S.t){c.sobSnd=S.t+rand(1.2,1.8);SFX.sob(c.x,c.z);}return;}
  if(c.swim){tickSwim(c,dt);return;}
+ if(c.ally){updateAlly(c,dt);return;}
  if(c.calm&&nunCalm()){c.state='wander';c.target=null;c.wdx=0;c.wdz=0;c.mv=0;c.y=standY(c.x,c.z);return;}
  const tc=chAt(c);if(tc==='F'||tc==='x'){c.hp-=25*dt;if(c.hp<=0){killCommon(c,false,false);return;}}
  if(c.stag>0){c.stag-=dt;moveEnt(c,c.pvx*dt,c.pvz*dt,.3);c.pvx*=.9;c.pvz*=.9;c.y=bodyY(c.x,c.z);c.mv=0;return;}
@@ -2238,8 +2267,9 @@ function updateCommon(c,dt){c.hitT=Math.max(0,c.hitT-dt);
    if(see(player))alertCommon(c,player);else if(NET.role==='host'){const b=bots.find(x=>x.net&&see(x));if(b)alertCommon(c,b);}}
   c.groanT-=dt;if(c.groanT<=0){c.groanT=rand(14,30);if(Math.random()<.25)SFX.groan(c.x,c.z);}}
  else{let t=c.target;if(!t||t.down)t=c.target=NET.role==='host'?chooseTarget(c):player;if(S.biledT>0)t=c.target=player;
-  const d=Math.hypot(t.x-c.x,t.z-c.z);
-  if(d<1.22){c.yaw=lerpAng(c.yaw,Math.atan2(t.x-c.x,t.z-c.z),dt*12);c.atk-=dt;if(c.atk<=0){c.atk=rand(.55,.8);c.swipe=.3;hurtSurvivor(t,t===player?12:8);}}
+  const d=Math.hypot(t.x-c.x,t.z-c.z);const pal=allyInReach(c,1.22);
+  if(pal){const adx=pal.x-c.x,adz=pal.z-c.z;c.yaw=lerpAng(c.yaw,Math.atan2(adx,adz),dt*12);c.atk-=dt;if(c.atk<=0){c.atk=rand(.55,.8);c.swipe=.3;damageCommon(pal,10,false,false);}}
+  else if(d<1.22){c.yaw=lerpAng(c.yaw,Math.atan2(t.x-c.x,t.z-c.z),dt*12);c.atk-=dt;if(c.atk<=0){c.atk=rand(.55,.8);c.swipe=.3;hurtSurvivor(t,t===player?12:8);}}
   else{let dir=null;if(d<14&&losClear(c.x,c.z,t.x,t.z))dir=[(t.x-c.x)/d,(t.z-c.z)/d];else dir=flowStep(c.x,c.z);
    if(dir){const sp=c.speed*(S.biledT>0?1.12:1)*(chAt(c)==='U'?0.45:1)*(c.seen?1:1.85);moveEnt(c,dir[0]*sp*dt,dir[1]*sp*dt,.3);c.yaw=lerpAng(c.yaw,Math.atan2(dir[0],dir[1]),dt*10);}}
   c.groanT-=dt;if(c.groanT<=0){c.groanT=rand(10,22);if(Math.random()<.06)SFX.scream(c.x,c.z);else if(Math.random()<.12)SFX.groan(c.x,c.z);}}
@@ -2328,14 +2358,21 @@ function shedSpot(p,ux,uz){for(const dist of [p.r+.45,p.r*.55,.4]){const x=p.x+u
  if(isWalk(Math.floor(p.x/T),Math.floor(p.z/T)))return {x:p.x,z:p.z};return null;}
 function makeShedCorpse(x,z){const c={id:++ENTID,x,z,y:bodyY(x,z)+.45,yaw:rand(0,6.28),hp:0,dead:true,deathT:.5,fall:.15,state:'wander',target:null,atk:0,phase:rand(0,6),wt:0,wdx:0,wdz:0,stag:0,pvx:0,pvz:0,shirt:pick(SHIRTS),pants:pick(PANTS),skin:pick(SKINS),speed:0,swipe:0,chk:9,groanT:99,hitT:0,mv:0,looseT:2.8,slideT:.9,flying:false,fvx:0,fvz:0,fvy:2.2};
  commons.push(c);return c;}
-function shedPile(p,ent){const n=Math.min(p.count,Math.max(4,Math.min(10,Math.round(p.count*.2))));
- const fx=-Math.sin(ent.yaw),fz=-Math.cos(ent.yaw);let made=0;
- for(let i=0;i<n;i++){const fan=(i-(n-1)/2)*.22;let dx=fx-fz*fan,dz=fz+fx*fan,len=Math.hypot(dx,dz)||1;dx/=len;dz/=len;
-  const spot=shedSpot(p,dx,dz);if(!spot)continue;const c=makeShedCorpse(spot.x,spot.z);const spd=8+Math.random()*3;
-  c.fvx=dx*spd;c.fvz=dz*spd;c.fvy=2.2;c.yaw=Math.atan2(dx,dz);
-  for(let k=0;k<3;k++)PBlood.emit(c.x,c.y+.2,c.z,dx*2+rand(-1,1),rand(.4,1.6),dz*2+rand(-1,1),rand(.28,.5),.2,.1,.45,.04,.02,.9,7);
+const PILE_BITE=10*0.3048;
+function countForPileHeight(h){if(h<=0.2)return 0;return Math.pow(h/0.5,1/0.7);}
+function pileAfterKick(p){const m=pileMetrics(p.count,p.x,p.z);if(m.h<=PILE_BITE+0.35)return 0;const next=Math.floor(countForPileHeight(m.h-PILE_BITE));if(!(next>=1)||next>=p.count)return 0;return next;}
+function shedPile(p,ent){const next=pileAfterKick(p),removed=p.count-next;const m=pileMetrics(p.count,p.x,p.z);
+ const fx=-Math.sin(ent.yaw),fz=-Math.cos(ent.yaw);
+ const burst=Math.min(80,Math.max(48,Math.min(removed,80)));let made=0;
+ for(let i=0;i<burst;i++){const fan=(burst<=1?0:(i/(burst-1)-0.5)*2.3)+(Math.random()-.5)*.4;
+  let dx=fx*Math.cos(fan)-fz*Math.sin(fan),dz=fz*Math.cos(fan)+fx*Math.sin(fan),len=Math.hypot(dx,dz)||1;dx/=len;dz/=len;
+  const spot=shedSpot(p,dx,dz)||{x:p.x+dx*(m.r+.6),z:p.z+dz*(m.r+.6)};const c=makeShedCorpse(spot.x,spot.z);const spd=16+Math.random()*12;
+  c.fvx=dx*spd;c.fvz=dz*spd;c.fvy=10+Math.random()*7;c.y=m.g+Math.max(.6,m.h*(.2+Math.random()*.65));c.yaw=Math.atan2(dx,dz);c.fall=.08;c.slideT=2.8;c.looseT=5.2;c.deathT=.45;
+  if(i%2===0)PBlood.emit(c.x,c.y,c.z,dx*3+rand(-1.5,1.5),rand(1,4),dz*3+rand(-1.5,1.5),rand(.4,.9),.35,.16,.5,.06,.02,.95,8);
   made++;}
- p.count-=made;refreshPile(p);if(p.count<=0)destroyPile(p);return made;}
+ const bx=p.x+fx*Math.min(m.r,.8),by=m.g+Math.min(m.h*.55,3),bz=p.z+fz*Math.min(m.r,.8);
+ for(let k=0;k<18;k++)PBlood.emit(bx,by,bz,fx*rand(2,8)+rand(-3,3),rand(2,9),fz*rand(2,8)+rand(-3,3),rand(.5,1.1),.5,.2,.55,.08,.03,.95,10);
+ p.count=next;if(p.count<=0)destroyPile(p);else refreshPile(p);return made;}
 function settledLoose(c){return !!(c&&c.dead&&!c.swim&&!c.flying&&!c.type&&(c.fall||0)>.85&&(c.deathT||0)>.45&&(c.slideT||0)<=0&&(c.looseT||0)<=0);}
 function absorbSettled(){const eaten=new Set();
  for(const c of commons){if(!settledLoose(c))continue;let best=null,bd=1e9;
@@ -2503,7 +2540,7 @@ function update(dt){S.t+=dt;
  if(S.bridge==='up'&&doors.gate&&!S.fly&&(onDeck(player)||bots.some(b=>b.net&&onDeck(b))))collapseBridge(false);
  const seated=player.boatSeat!=null&&BOAT.show;
  const zipping=player.zipU!=null;
- const biking=player.bike!=null;let spd=(actionDown('sprint')||AP.on)?6.3:4.3;if(player.hp<30)spd*=.75;if(S.healT>0||S.revT>0||S.fixT>0)spd*=.35;if(pinned||pulled||S.riding||player.down||seated||zipping||biking)spd=0;else if(S.bridge==='fall'&&chAt(player)==='U')spd=0;else if(chAt(player)==='U')spd=Math.min(spd,2.2);
+ const biking=player.bike!=null;let spd=(actionDown('sprint')||AP.on)?6.3:4.3;if(player.hp<30)spd*=.75;if(S.healT>0||S.revT>0||S.fixT>0)spd*=.35;else if(S.allyT>0)spd*=.55;if(pinned||pulled||S.riding||player.down||seated||zipping||biking)spd=0;else if(S.bridge==='fall'&&chAt(player)==='U')spd=0;else if(chAt(player)==='U')spd=Math.min(spd,2.2);
  if(S.fly){if(player.boatSeat!=null){BOAT.seats[player.boatSeat]=-1;player.boatSeat=null;}if(player.bike!=null)leaveBike(player);player.pinnedBy=null;player.pulledBy=null;if(player.headless){player.headless=false;player.loose=false;clearCargoOf(player);}player.down=false;
   camera.rotation.set(player.pitch,player.yaw,0);camera.updateMatrixWorld();camera.getWorldDirection(_d);
   const f=(actionDown('forward')?1:0)-(actionDown('back')?1:0),st=(actionDown('right')?1:0)-(actionDown('left')?1:0),up=(actionDown('up')?1:0)-(actionDown('down')?1:0);
@@ -2531,6 +2568,7 @@ function update(dt){S.t+=dt;
   if(left.length){if(S.cut&&left.includes(S.cut))vic.bite=S.cut;else if(!vic.bite||lostOf(vic).includes(vic.bite))markBite(vic);}
   else{const opts=rescueOpts();if(!opts.includes(S.cut))S.cut=opts[0]||'armL';}
   S.revT+=dt;S.revBot=vic;poseLimbs(vic);if(S.revT>=2.5){finishRevive(vic,player);S.revT=0;S.revBot=null;}}else{S.revT=0;S.revBot=null;}
+ tickAllyHold(player,dt,(actionDown('use')||AP.revive)&&!pinned&&!pulled&&!player.down&&!(S.revT>0)&&!(S.fixT>0));
  if(ut&&ut.fix&&actionDown('use')&&!pinned&&!pulled&&!player.down&&!(S.revT>0))channelFix(player,ut.bike,dt);else S.fixT=0;
  S.biledT-=dt;if(NET.role==='host')for(const b of bots)if(b.biledT>0)b.biledT-=dt;
  if(player.hp<25){S.lowHpT-=dt;if(S.lowHpT<=0){S.lowHpT=.9;SFX.heart();}}
@@ -2540,7 +2578,7 @@ function update(dt){S.t+=dt;
  directorUpdate(dt);
  for(const c of commons)updateCommon(c,dt);
  if(NET.role!=='client')tickPiles(dt);
- for(let i=commons.length-1;i>=0;i--){const c=commons[i];const far=Math.hypot(c.x-player.x,c.z-player.z);const fd=flow[tileOf(c)];if(c.dead&&c.swim&&c.deathT>1.5)commons.splice(i,1);else if(c.dead&&(c.deathT>48||(c.deathT>8&&far>68)))commons.splice(i,1);else if(!c.dead&&!c.feast&&!c.swim&&!c.seen&&!S.riding&&(far>150||fd>=INF&&far>60))commons.splice(i,1);}
+ for(let i=commons.length-1;i>=0;i--){const c=commons[i];const far=Math.hypot(c.x-player.x,c.z-player.z);const fd=flow[tileOf(c)];if(c.dead&&c.swim&&c.deathT>1.5)commons.splice(i,1);else if(c.dead&&(c.deathT>48||(c.deathT>8&&far>68)))commons.splice(i,1);else if(!c.dead&&!c.ally&&!c.feast&&!c.swim&&!c.seen&&!S.riding&&(far>150||fd>=INF&&far>60))commons.splice(i,1);}
  {const dead=commons.filter(c=>c.dead);if(dead.length>100){dead.sort((a,b)=>(Math.hypot(b.x-player.x,b.z-player.z)+b.deathT*2)-(Math.hypot(a.x-player.x,a.z-player.z)+a.deathT*2));for(let k=0;k<dead.length-100;k++){const i=commons.indexOf(dead[k]);if(i>=0)commons.splice(i,1);}}}
  for(const s of specials)updateSpecial(s,dt);
  separateCommons();
@@ -2742,7 +2780,7 @@ function resetBotBody(b,i){freshBody(b);const sp=BOT_SPAWN[i];b.x=sp[0]*T;b.z=sp
  if(b.net){b.inv={pistol:{type:'pistol',mag:15,res:Infinity},primary:b.botW?{type:b.botW,mag:WEAP[b.botW].mag,res:WEAP[b.botW].res}:null};b.wep=b.inv.primary?'primary':'pistol';setGun(b,b.wep==='primary'?b.botW:'pistol');}
  else{b.inv=null;b.wep='primary';b.w=b.botW;b.mag=b.w==='shotgun'?8:50;b.shownW=null;setGun(b,b.botW);if(b.botName&&b.name!==b.botName)retag(b,b.botName,b.botCol);}
  if(b.mesh){b.mesh.b.rotation.x=0;if(b.tag)b.tag.material.color.setHex(0xffffff);}placeBot(b);}
-function resetChapter(remote,skipIntro){introGen++;restoreSpan();S.phase='play';S.t=0;S.obj=0;S.kills=0;S.skills=0;S.heads=0;S.dmg=0;S.ff=0;S.shots=0;S.hits=0;S.alarmT=-1;S.elevT=-1;S.elevArrived=false;S.inElevT=0;S.riding=false;S.rideT=0;S.inLobby=false;S.lobbyHorde=false;S.biledT=0;S.healT=0;S.revT=0;S.revBot=null;S.cut=null;S.shake=0;S.fade=0;S.dirOn=false;S.complete=false;S.lowHpT=0;S.fly=false;S.endPack=null;S.spotted={};if(COOPTEST)S.god=true;else if(!remote)S.god=false;
+function resetChapter(remote,skipIntro){introGen++;restoreSpan();S.phase='play';S.t=0;S.obj=0;S.kills=0;S.skills=0;S.heads=0;S.dmg=0;S.ff=0;S.shots=0;S.hits=0;S.alarmT=-1;S.elevT=-1;S.elevArrived=false;S.inElevT=0;S.riding=false;S.rideT=0;S.inLobby=false;S.lobbyHorde=false;S.biledT=0;S.healT=0;S.revT=0;S.revBot=null;S.allyT=0;S.allyVic=null;S.cut=null;S.shake=0;S.fade=0;S.dirOn=false;S.complete=false;S.lowHpT=0;S.fly=false;S.endPack=null;S.spotted={};if(COOPTEST)S.god=true;else if(!remote)S.god=false;
  player.x=4.5*T;player.z=8.5*T;player.y=groundAt(4.5*T,8.5*T)+1.62;player.yaw=-Math.PI/2;player.pitch=0.04;player.hp=100;player.down=false;freshBody(player);player.lost=[];player.bite=null;player.kit=false;player.zipU=null;player.inv={primary:null,pistol:{type:'pistol',mag:15,res:Infinity}};player.slot='pistol';player.fireCd=0;player.reloadT=0;player.shoveCd=0;player.lastShove=-9;player.kickCd=0;player.trig=false;player.bob=0;player.vx=0;player.vz=0;player.pinnedBy=null;player.pulledBy=null;player.pinShoves=0;player.flash=false;player.spread=0;player.crumbs=[];player.crumbT=0;player.hurtT=0;player.burnT=0;poseOwnArms();
  for(const id of DOOR_IDS)doors[id]=false;if(doorMeshes.btn)doorMeshes.btn.material=mat(0xff3311,{emissive:0x661100});
  for(const it of items){it.taken=false;it.g.visible=true;}clearSpecials();commons.length=0;clearGrabSlots();
@@ -2925,7 +2963,7 @@ function fireEnt(ent){const w=entW(ent);if(!w)return;const def=WEAP[w.type];if(!
 function shoveEnt(ent){ent.lastShove=S.t;SFX.shove();
  if(ent.pinnedBy&&!ent.pinnedBy.dead){ent.pinShoves=(ent.pinShoves||0)+1;if(ent.pinShoves>=5){const h=ent.pinnedBy;ent.pinnedBy=null;h.state='approach';h.cd=4;h.stag=1.2;h.pvx=-Math.sin(ent.yaw)*5;h.pvz=-Math.cos(ent.yaw)*5;h.y=groundAt(h.x,h.z);feed(ent.name+' shoved the Hunter off!','#9f9');}return;}
  const fx=-Math.sin(ent.yaw),fz=-Math.cos(ent.yaw);
- for(const c of commons){if(c.dead)continue;const dx=c.x-ent.x,dz=c.z-ent.z,d=Math.hypot(dx,dz);if(d<2.3&&(dx*fx+dz*fz)/(d||1)>.35){c.stag=.9;c.pvx=dx/d*4+fx*2;c.pvz=dz/d*4+fz*2;c.hp-=6;if(c.hp<=0)killCommon(c,true,false);}}
+ for(const c of commons){if(c.dead||c.ally)continue;const dx=c.x-ent.x,dz=c.z-ent.z,d=Math.hypot(dx,dz);if(d<2.3&&(dx*fx+dz*fz)/(d||1)>.35){c.stag=.9;c.pvx=dx/d*4+fx*2;c.pvz=dz/d*4+fz*2;c.hp-=6;if(c.hp<=0)killCommon(c,true,false);}}
  for(const s of specials){if(s.dead)continue;const dx=s.x-ent.x,dz=s.z-ent.z,d=Math.hypot(dx,dz);if(d<2.6&&(dx*fx+dz*fz)/(d||1)>.2){s.stag=1;s.pvx=dx/d*4;s.pvz=dz/d*4;if(s.state==='leap'){s.state='approach';s.cd=3;s.vy=0;}if(ent.pulledBy===s)releaseTongue(s);}}}
 function freshInp(b){const inp=b.inp;if(!inp||performance.now()-(b.inpAt||0)>400)return {mx:0,mz:0,y:b.yaw,p:b.pitch||0,fire:0,use:0,sprint:0,row:0,turn:0,cut:''};return inp;}
 function updateNetSurvivor(b,dt){const inp=freshInp(b);
@@ -2965,7 +3003,7 @@ function updateNetSurvivor(b,dt){const inp=freshInp(b);
  if(inp.use){const u=useTargets(b);if(u&&u.fix)channelFix(b,u.bike,dt);else b.fixT=0;if(u&&u.revive&&canRevive(u.revive)){const v=u.revive,left=limbsLeft(v);
   if(left.length){if(inp.cut&&left.includes(inp.cut))v.bite=inp.cut;else if(!v.bite||lostOf(v).includes(v.bite))markBite(v);b.cutChoice=v.bite;}
   else b.cutChoice=(inp.cut==='head'&&SAFES[safeIndex]&&!b.cargo)?'head':(LIMBS.includes(inp.cut)?inp.cut:'armL');
-  b.revVic=v;b.revT=(b.revT||0)+dt;poseLimbs(v);if(b.revT>=2.5){finishRevive(v,b);b.revT=0;b.revVic=null;b.cutChoice=null;}}else{b.revT=0;b.revVic=null;b.cutChoice=null;}}else{if(cutOk(inp.cut)){const u=useTargets(b);if(u&&u.revive&&limbsLeft(u.revive).includes(inp.cut)){u.revive.bite=inp.cut;poseLimbs(u.revive);}}b.revT=0;b.revVic=null;b.cutChoice=null;}
+  b.revVic=v;b.revT=(b.revT||0)+dt;poseLimbs(v);if(b.revT>=2.5){finishRevive(v,b);b.revT=0;b.revVic=null;b.cutChoice=null;}}else{b.revT=0;b.revVic=null;b.cutChoice=null;}tickAllyHold(b,dt,!(b.revT>0)&&!(b.fixT>0));}else{if(cutOk(inp.cut)){const u=useTargets(b);if(u&&u.revive&&limbsLeft(u.revive).includes(inp.cut)){u.revive.bite=inp.cut;poseLimbs(u.revive);}}b.revT=0;b.revVic=null;b.cutChoice=null;tickAllyHold(b,dt,false);}
  b.moveSpd=Math.hypot(b.vx||0,b.vz||0);b.phase=(b.phase||0)+dt*8*Math.min(1,b.moveSpd/3);placeBot(b);if(w)setGun(b,w.type);}
 function slotPack(ent,slot){const w=ent===player?curW():(ent.net?entW(ent):{type:ent.w,mag:ent.mag,res:-1});
  return {slot,name:ent===player?NET.name:ent.name,col:ent===player?'#6ec1ff':ent.col,bot:ent===player||ent.net?0:1,
@@ -2986,7 +3024,7 @@ function applyHead(ent,s){if(!ent||!s)return;ent.headless=!!s.head;const mask=s.
 function bindAllCargo(){const all=[player,...bots];for(const ent of all){const slot=ent._cg;ent.cargo=(typeof slot==='number'&&slot>=0)?entBySlot(slot):null;}
  for(const ent of all)ent.loose=!!(ent.headless&&!holderOf(ent));poseCargo();}
 function buildSnap(){const slots=[slotPack(player,0)];bots.forEach((b,i)=>slots.push(slotPack(b,i+1)));
- const c=[];let nearSwim=0;for(const z of commons){if(z.swim&&z.dead)continue;const pose=z.state==='sob'?1:z.state==='headwait'?2:z.state==='headwalk'?3:z.state==='swim'?4:z.state==='climb'?5:z.state==='jump'?6:z.state==='grab'?7:0;if(pose===4){if(Math.hypot(z.x-player.x,z.z-player.z)>18||nearSwim>=100)continue;nearSwim++;}else if(z.dead&&Math.hypot(z.x-player.x,z.z-player.z)>36)continue;c.push([z.id,nq(z.x),nq(z.z),nq(z.yaw),Math.round(z.hp),z.dead?1:0,z.state==='rush'?1:0,nq(z.fall||0),z.shirt,z.pants,z.skin,nq(z.y),pose]);}
+ const c=[];let nearSwim=0;for(const z of commons){if(z.swim&&z.dead)continue;const pose=z.state==='sob'?1:z.state==='headwait'?2:z.state==='headwalk'?3:z.state==='swim'?4:z.state==='climb'?5:z.state==='jump'?6:z.state==='grab'?7:0;if(pose===4){if(Math.hypot(z.x-player.x,z.z-player.z)>18||nearSwim>=100)continue;nearSwim++;}else if(z.dead&&!z.looseT&&Math.hypot(z.x-player.x,z.z-player.z)>36)continue;c.push([z.id,nq(z.x),nq(z.z),nq(z.yaw),Math.round(z.hp),z.dead?1:0,z.state==='rush'?1:0,nq(z.fall||0),z.shirt,z.pants,z.skin,nq(z.y),pose,z.ally&&!z.dead?1:0]);}
  const s=[];for(const sp of specials){let vs=-1;if(sp.vic===player)vs=0;else if(sp.vic){const i=bots.indexOf(sp.vic);if(i>=0)vs=i+1;}s.push([sp.id,sp.type,nq(sp.x),nq(sp.z),nq(sp.y),nq(sp.yaw),Math.round(sp.hp),sp.dead?1:0,sp.state,vs]);}
  return {t:'snap',seq:++NET.seq,slots,c,s,doors:DOOR_IDS.map(id=>doors[id]?1:0),safe:safeIndex,items:items.map(i=>i.taken?'1':'0').join(''),
   obj:S.obj,objT:$('obj').textContent||'',phase:S.phase,riding:S.riding?1:0,lobby:S.inLobby?1:0,elev:S.elevT<0?-1:Math.max(0,Math.ceil(30-(S.t-S.elevT))),elevA:S.elevArrived?1:0,
@@ -3006,7 +3044,7 @@ function syncCommons(list){if(!NET.commonsReady){commons.length=0;NET.cmap.clear
  const seen=new Set();
  for(const row of list){const [id,x,z,yaw,hp,dead,rush,fall,shirt,pants,skin,y]=row;const hasY=row.length>11&&Number.isFinite(+y);const pose=row.length>12?row[12]|0:0;const posed=pose===1?'sob':pose===2?'headwait':pose===3?'headwalk':pose===4?'swim':pose===5?'climb':pose===6?'jump':pose===7?'grab':'';const inWater=pose>=4&&pose<=7;seen.add(id);let c=NET.cmap.get(id);
   if(!c){c={id,x,z,y:hasY?+y:groundAt(x,z),yaw,hp,dead:!!dead,deathT:0,fall:fall||0,state:posed||(rush?'rush':'wander'),shirt,pants,skin,phase:Math.random()*6,mv:0,swipe:0,stag:0,hitT:0,noHead:pose>=2&&pose<=3,swim:inWater?1:0,tx:x,tz:z,ty:hasY?+y:null,tyaw:yaw};commons.push(c);NET.cmap.set(id,c);}
-  c.tx=x;c.tz=z;c.ty=hasY?+y:null;c.tyaw=yaw;c.hp=hp;if(dead&&!c.dead)c.deathT=0;c.dead=!!dead;c.swim=inWater?1:0;if(posed){c.state=posed;c.noHead=pose>=2&&pose<=3;}else{c.state=rush?'rush':'wander';if(!dead)c.noHead=false;}c.fall=fall||0;if(Math.hypot(c.x-x,c.z-z)>4){c.x=x;c.z=z;if(hasY)c.y=+y;}}
+  c.tx=x;c.tz=z;c.ty=hasY?+y:null;c.tyaw=yaw;c.hp=hp;if(dead&&!c.dead)c.deathT=0;c.dead=!!dead;c.ally=row.length>13&&row[13]===1&&!dead;c.swim=inWater?1:0;if(posed){c.state=posed;c.noHead=pose>=2&&pose<=3;}else{c.state=rush?'rush':'wander';if(!dead)c.noHead=false;}c.fall=fall||0;if(Math.hypot(c.x-x,c.z-z)>4){c.x=x;c.z=z;if(hasY)c.y=+y;}}
  for(const [id,c] of [...NET.cmap])if(!seen.has(id)){NET.cmap.delete(id);const i=commons.indexOf(c);if(i>=0)commons.splice(i,1);}}
 function syncSpecials(list){const seen=new Set();
  for(const row of list){const [id,type,x,z,y,yaw,hp,dead,state,vicSlot]=row;seen.add(id);let s=NET.smap.get(id);
@@ -3220,7 +3258,7 @@ function autopilot(dt){AP.mv=[0,0];AP.fire=false;AP.revive=false;AP.useCd-=dt;AP
  // combat: shoot nearest visible threat
  let tgt=null,bd=18;const pin=player.pinnedBy||player.pulledBy;if(pin)tgt=pin;
  else{for(const s of specials)if(!s.dead){const d=Math.hypot(s.x-player.x,s.z-player.z);if(d<bd&&losClear(player.x,player.z,s.x,s.z)){bd=d;tgt=s;}}
-  if(!tgt)for(const z of commons)if(!z.dead&&z.state==='rush'){const d=Math.hypot(z.x-player.x,z.z-player.z);if(d<bd&&losClear(player.x,player.z,z.x,z.z)){bd=d;tgt=z;}}}
+  if(!tgt)for(const z of commons)if(!z.dead&&!z.ally&&z.state==='rush'){const d=Math.hypot(z.x-player.x,z.z-player.z);if(d<bd&&losClear(player.x,player.z,z.x,z.z)){bd=d;tgt=z;}}}
  if(player.pinnedBy){if(AP.shoveCd<=0){AP.shoveCd=.55;shove();}return;}
  if(tgt){const ty=(specials.includes(tgt)?specY(tgt)+1.1:tgt.y+1.25);const dx=tgt.x-player.x,dz=tgt.z-player.z,dy=ty-player.y;player.yaw=Math.atan2(-dx,-dz);player.pitch=Math.atan2(dy,Math.hypot(dx,dz));const dd=Math.hypot(dx,dz);const block=bots.some(b=>{const bx=b.x-player.x,bz=b.z-player.z,bd=Math.hypot(bx,bz);return bd<dd&&bd>0.1&&(bx*dx+bz*dz)/(bd*dd)>0.96;});AP.fire=!block&&!AP.lastFire;AP.lastFire=AP.fire;if(Math.hypot(dx,dz)<1.6&&AP.shoveCd<=0){AP.shoveCd=.55;shove();}}
  if(player.hp<45&&player.kit&&S.healT<=0&&!tgt)S.healT=3;
@@ -3242,7 +3280,7 @@ window.__game={autopilot,update,updateCamera,fire,AP,useTargets,moveEnt,collide,
  setAuto(on,god){AP.on=on;S.god=!!god;},
  holdFire(on){mouseDown=!!on;},
  holdShove(on){mouseRight=!!on;},
- frontKick,buildSnap,syncCommons,smoothRemote,playNetEvent,rollKick,
+ frontKick,buildSnap,syncCommons,smoothRemote,playNetEvent,rollKick,makePile,pileMetrics,
  forceKick(k){kickForce=k;},
  keyOf(id){return bindCode(id);},
  setKey(id,code){assignKey(id,code);return bindCode(id);},
