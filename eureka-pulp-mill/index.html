@@ -102,6 +102,11 @@ body.touching #pinmsg{font-size:18px;padding:0 16px;box-sizing:border-box}
  #roomcode{font-size:32px;letter-spacing:4px}
 }
 #dead h1,#done h1{font-size:52px}
+#dead.screen{overflow:auto;align-items:flex-start;padding:28px 0 32px}
+#dead h1{font-size:40px;letter-spacing:3px}
+#dead h2{margin-bottom:4px}
+#dead table.stats{margin:6px auto}
+#dead .card{padding-top:8px;padding-bottom:16px}
 @media (max-width:640px),(max-height:430px){
  .controls{display:none}
  .touchhelp{display:block;font-size:14px;line-height:1.4;margin:8px auto 12px;max-width:420px}
@@ -128,6 +133,8 @@ button.chip:disabled{opacity:.55;cursor:default}
 button.alt.off,#ffplay.off{background:#5c2a24}
 button.alt.off:hover,#ffplay.off:hover{background:#7a3a32}
 button.big:disabled,button.alt:disabled{opacity:.55;cursor:default}
+#deadchoices{display:flex;flex-direction:column;gap:10px;align-items:stretch;margin:8px auto 0;max-width:480px}
+#deadchoices button.big{letter-spacing:1px;font-size:16px;padding:12px 14px}
 body.downed #tbtns button[data-act="shove"],body.downed #tbtns button[data-act="heal"]{opacity:.35}
 body.touching #sound{left:8px;bottom:auto;top:calc(286px + env(safe-area-inset-top));width:min(46vw,210px)}
 body.touching #sound input{width:72px}
@@ -273,7 +280,7 @@ body.touching #ffplay{left:8px;bottom:auto;top:calc(330px + env(safe-area-inset-
  <button class="big alt" id="keyreset" type="button">RESET</button>
  <button class="big" id="keydone" type="button">DONE</button>
 </div></div>
-<div id="dead" class="screen hidden"><div class="card"><h1>YOU DIED</h1><h2 id="deadsub">THE MILL KEPT ANOTHER ONE</h2><div id="deadstats"></div><button class="big" id="restartbtn">RESTART CHAPTER</button></div></div>
+<div id="dead" class="screen hidden"><div class="card"><h1>YOU DIED</h1><h2 id="deadsub">THE MILL KEPT ANOTHER ONE</h2><div id="deadstats"></div><div id="deadchoices"><button class="big" id="saferestart" type="button">LAST SAFE ROOM</button><button class="big alt" id="restartbtn" type="button">START AT THE BEGINNING</button></div></div></div>
 <div id="done" class="screen hidden"><div class="card"><div class="kicker">CHOPPER AWAY</div><h1>CHAPTER COMPLETE</h1><h2>EUREKA · PULP MILL</h2><div id="donestats"></div><button class="big" id="againbtn">PLAY AGAIN</button></div></div>
 <div id="sound" class="hidden"><button type="button" id="bgtoggle2">Background</button><input id="bgplay" type="range" min="0" max="100" value="70" aria-label="Background volume"><span id="bglabel2">70%</span></div>
 <button type="button" id="ffplay" class="alt hidden">Friendly fire: On</button>
@@ -2068,13 +2075,47 @@ function useTargets(ent){const self=ent||player;const out=[];const yaw=self.yaw|
 function useAction(){const u=useTargets();if(u&&u.act)u.act();}
 function tryOpen(id){if(doors[id])return;if(id==='shop'){doors.shop=true;flowDirty=true;SFX.door();feed('The auto shop door is up.','#fd8');if(S.nuns==='wait')beginNuns();if(!S.toldPart)explainParts();S.nuns='shop';fillShop();nunObjective();return;}if(id==='gate'){openGate();return;}if(!DOOR_LABEL[id])return;doors[id]=true;flowDirty=true;SFX.door();feed(DOOR_LABEL[id].replace('Open the ','The ')+' is open.','#fd8');S.dirOn=true;DIR.waves.push({t:S.t+1,n:80});}
 function inSafe(ent,s){const tx=Math.floor(ent.x/T),tz=Math.floor(ent.z/T);return tx>=s.x0&&tx<=s.x1&&tz>=s.z0&&tz<=s.z1&&charAt(tx,tz)==='K';}
+let checkpoint=null;
+function packInv(inv){const pistol={type:'pistol',mag:inv&&inv.pistol?inv.pistol.mag|0:15};
+ let primary=null;if(inv&&inv.primary&&WEAP[inv.primary.type]){const w=inv.primary;primary={type:w.type,mag:w.mag|0,res:w.res===Infinity?-1:w.res|0,bottomless:w.bottomless?1:0,laser:w.laser?1:0};}
+ return {primary,pistol};}
+function unpackInv(p){const pistol={type:'pistol',mag:p&&p.pistol?p.pistol.mag|0:15,res:Infinity};
+ let primary=null;if(p&&p.primary&&WEAP[p.primary.type]){const w=p.primary;primary={type:w.type,mag:w.mag|0,res:w.res<0?Infinity:w.res|0,bottomless:!!w.bottomless,laser:!!w.laser};}
+ return {primary,pistol};}
+function rememberSafe(){const s=SAFES[safeIndex-1];if(!s)return;const spot=safeSpot(s);
+ checkpoint={name:s.name,index:safeIndex,obj:S.obj,doors:DOOR_IDS.map(id=>doors[id]?1:0),items:items.map(it=>it.taken?1:0),inv:packInv(player.inv),slot:player.slot,kit:player.kit?1:0,
+  nuns:S.nuns,fate:S.nunFate||'',nunT:+S.nunT||0,parts:S.parts|0,told:S.toldPart?1:0,shop:S.shopUp?1:0,
+  bridge:S.bridge==='fall'?1:S.bridge==='swim'?2:0,bridgeT:+S.bridgeT||0,
+  boat:BOAT.show?[BOAT.x,BOAT.z,BOAT.yaw,BOAT.beached?1:0]:null,
+  bikes:bikes.map(b=>(b.fixed?1:0)|(b.sunk?2:0)),x:spot.x,z:spot.z,yaw:player.yaw};}
+function closedSafeName(){if(checkpoint&&checkpoint.name)return checkpoint.name;if(safeIndex>0&&SAFES[safeIndex-1])return SAFES[safeIndex-1].name;return '';}
+function nunStillEarly(n){return n==='wait'||n==='meet'||n==='need'||n==='shop'||n==='parts';}
+function roomStands(room){const spots=[];for(let z=room.z0;z<=room.z1;z++)for(let x=room.x0;x<=room.x1;x++)if(charAt(x,z)==='K')spots.push({x:(x+.5)*T,z:(z+.5)*T});if(!spots.length)spots.push(safeSpot(room));return spots;}
+function standHuman(ent,x,z,yaw){ent.x=x;ent.z=z;ent.yaw=yaw;ent.vx=0;ent.vz=0;ent.down=false;ent.hp=100;ent.zipU=null;ent.bike=null;ent.boatSeat=null;ent.pinnedBy=null;ent.pulledBy=null;ent.air=false;ent.avy=0;ent.avx=0;ent.avz=0;
+ if(ent===player){ent.y=groundAt(x,z)+1.62;ent.pitch=0.04;poseOwnArms();}else placeBot(ent);}
+function applyCheckpoint(cp){if(!cp)return;const room=SAFES[(cp.index|0)-1];if(!room)return;
+ safeIndex=cp.index|0;DOOR_IDS.forEach((id,i)=>{doors[id]=!!(cp.doors&&cp.doors[i]);});
+ items.forEach((it,i)=>{const taken=!!(cp.items&&cp.items[i]);it.taken=taken;it.g.visible=!taken;});
+ player.inv=unpackInv(cp.inv);player.slot=cp.slot==='primary'&&player.inv.primary?'primary':'pistol';player.kit=!!cp.kit;poseOwnArms();
+ S.obj=cp.obj|0;S.parts=cp.parts|0;S.toldPart=!!cp.told;S.shopUp=!!cp.shop;
+ bikes.forEach((b,i)=>{const f=(cp.bikes&&cp.bikes[i])|0;b.fixed=!!(f&1);b.sunk=!!(f&2);b.sinking=false;b.rider=-1;b.spd=0;poseBike(b);});
+ if(cp.bridge){if(S.bridge==='up')collapseBridge(true);S.bridge='swim';S.bridgeT=Math.max(+cp.bridgeT||0,FALL_END);S.bridgeSplash=true;poseBridge(S.bridgeT);
+  const shore=(BR_B-0.4)*T;if(cp.boat){BOAT.show=true;BOAT.beached=!!cp.boat[3];BOAT.x=cp.boat[0];BOAT.z=cp.boat[1];BOAT.yaw=cp.boat[2];}else{BOAT.show=true;BOAT.beached=true;BOAT.x=shore;BOAT.z=14.5;BOAT.yaw=0;}
+  BOAT.vx=0;BOAT.stroke=0;BOAT.seats=[-1,-1,-1,-1];if(BOAT.g)BOAT.g.visible=true;player.boatSeat=null;for(const b of bots)b.boatSeat=null;poseBoat(0);S.swimOn=false;
+  if(nunStillEarly(cp.nuns)){S.nuns=cp.nuns||'wait';S.nunFate='';S.nunT=0;}else{S.nuns='sunk';S.nunFate='';S.nunT=0;}}
+ else{S.nuns=cp.nuns||'wait';S.nunFate=cp.fate||'';S.nunT=+cp.nunT||0;if(S.nunFate==='grow'||S.nunFate==='chase')nuns.forEach(hulkTint);}
+ const stands=roomStands(room),yaw=cp.yaw||0;standHuman(player,stands[0].x,stands[0].z,yaw);
+ bots.forEach((b,i)=>{const s=stands[Math.min(i+1,stands.length-1)];standHuman(b,s.x,s.z,yaw);});
+ S.dirOn=true;DIR.nextHorde=S.t+4;DIR.pressT=0.3;DIR.relaxUntil=S.t+3;DIR.mode='BUILD-UP';
+ recomputeRoute();flowDirty=false;flowTile=tileOf(player);flow=dijkstra([flowTile]);introGen++;
+ feedLines.length=0;feed('<b>SAFE ROOM</b> — '+cp.name,'#9f9');bark(null,room.line,'safe'+room.name,99);nunObjective();$('obj').textContent=OBJ[S.obj]||'';updateCamera(0);}
 function closeSafe(){const s=SAFES[safeIndex];if(!s)return;if(NET.role==='off'){if(!inSafe(player,s))return;}else{const living=livingHumans();if(!living.length||!living.every(h=>inSafe(h,s))){feed('The whole team has to be in the safe room.','#fd8');return;}}
  for(const h of [player,...bots])if(h.cargo&&inSafe(h,s))tryDeliver(h);
  const spot=safeSpot(s),stood=new Set();
  for(const h of [player,...bots]){if(!h.down)continue;if(h.headless||!limbsLeft(h).length){h.x=spot.x;h.z=spot.z;if(h.mesh)h.mesh.g.position.set(h.x,groundAt(h.x,h.z),h.z);clearCargoOf(h);reviveOneLimb(h,null,'armR',h===player?100:40);stood.add(h);}
   else if(h!==player){h.down=false;h.hp=40;h.bite=null;poseLimbs(h);stood.add(h);}}
  doors[s.inn]=false;doors[s.out]=true;flowDirty=true;safeIndex++;recomputeRoute();player.hp=100;for(const b of bots){if(!b.down&&!stood.has(b))b.hp=Math.max(b.hp,80);}for(const c of commons)if(!c.dead&&inSafe(c,s))killCommon(c,false,false);
- DIR.relaxUntil=S.t+8;DIR.mode='RELAX';setObj(s.nextObj);feed('<b>SAFE ROOM</b> — '+s.name,'#9f9');bark(null,s.line,'safe'+s.name,99);SFX.door();}
+ DIR.relaxUntil=S.t+8;DIR.mode='RELAX';setObj(s.nextObj);rememberSafe();feed('<b>SAFE ROOM</b> — '+s.name,'#9f9');bark(null,s.line,'safe'+s.name,99);SFX.door();}
 function openGate(quiet){if(doors.gate)return;if(LAYOUT==='town'&&!quiet&&S.nuns!=='done'&&S.nuns!=='sunk'){if(S.nuns==='wait')beginNuns();feed('The nuns have the gate. The bikes have to move first.','#fd8');return;}doors.gate=true;flowDirty=true;SFX.door(FIN.gateX,FIN.gateZ);if(quiet)return;S.alarmT=S.t;SFX.alarm(14);setObj(7);feed('<b>The gate gives.</b> Everything on the bridge heard it.','#f66');bark(null,'So much for quiet. Cookhouse is on the other side.','gate',99);
  S.dirOn=true;DIR.waves.push({t:S.t+1,n:260},{t:S.t+7,n:340},{t:S.t+14,n:260},{t:S.t+6,special:'hunter'});DIR.relaxUntil=0;DIR.mode='PEAK';}
 function callHeli(){if(S.elevT>=0)return;S.elevT=S.t;setObj(10);doorMeshes.btn.material=mat(0x22ff44,{emissive:0x116622});SFX.ding(FIN.callX,FIN.callZ);feed('Mayday received. The chopper is <b>30 seconds</b> out. Hold the roof.','#fd8');bark(null,'I hear rotors! Keep them off the stairs!','heli',99);
@@ -2542,10 +2583,13 @@ function applyLayout(next){if(NET.role==='client'||(next!=='town'&&next!=='linea
 function paintRestart(){const host=NET.role==='host',client=NET.role==='client';
  const label=host?'RESTART WITH EVERYONE':client?'WAITING ON THE HOST':'RESTART CHAPTER';
  const again=host?'RESTART WITH EVERYONE':client?'WAITING ON THE HOST':'PLAY AGAIN';
- const dead=$('restartbtn'),done=$('againbtn'),pause=$('pausereset');
- if(dead){dead.textContent=label;dead.disabled=client;dead.title=client?'The host restarts this room.':'';}
+ const begin=host?'START OVER WITH EVERYONE':client?'WAITING ON THE HOST':'START AT THE BEGINNING';
+ const dead=$('restartbtn'),done=$('againbtn'),pause=$('pausereset'),safe=$('saferestart');
+ const room=closedSafeName();
+ if(dead){dead.textContent=begin;dead.disabled=client;dead.title=client?'The host restarts this room.':'';}
  if(done){done.textContent=again;done.disabled=client;done.title=client?'The host restarts this room.':'';}
- if(pause){pause.textContent=label;pause.disabled=client;pause.title=client?'The host restarts this room.':'';}}
+ if(pause){pause.textContent=label;pause.disabled=client;pause.title=client?'The host restarts this room.':'';}
+ if(safe){safe.disabled=client||!room;safe.textContent=client?'WAITING ON THE HOST':room?('LAST SAFE ROOM — '+room):'NO SAFE ROOM CLOSED';safe.title=client?'The host restarts this room.':room?('Continue from '+room+'.'):'Close a safe room and it will be here.';}}
 function setFF(on){if(NET.role==='client')return;NET.ff=!!on;try{localStorage.setItem('eureka-ff',NET.ff?'1':'0');}catch(e){}paintFF();
  if(NET.role==='host'){const msg={t:'ff',on:NET.ff?1:0};for(const c of NET.conns.values())if(c.open)c.send(msg);}}
 function adoptFF(on){NET.ff=!!on;paintFF();}
@@ -2555,7 +2599,7 @@ function resetBotBody(b,i){freshBody(b);const sp=BOT_SPAWN[i];b.x=sp[0]*T;b.z=sp
  if(b.net){b.inv={pistol:{type:'pistol',mag:15,res:Infinity},primary:b.botW?{type:b.botW,mag:WEAP[b.botW].mag,res:WEAP[b.botW].res}:null};b.wep=b.inv.primary?'primary':'pistol';setGun(b,b.wep==='primary'?b.botW:'pistol');}
  else{b.inv=null;b.wep='primary';b.w=b.botW;b.mag=b.w==='shotgun'?8:50;b.shownW=null;setGun(b,b.botW);if(b.botName&&b.name!==b.botName)retag(b,b.botName,b.botCol);}
  if(b.mesh){b.mesh.b.rotation.x=0;if(b.tag)b.tag.material.color.setHex(0xffffff);}placeBot(b);}
-function resetChapter(remote){introGen++;restoreSpan();S.phase='play';S.t=0;S.obj=0;S.kills=0;S.skills=0;S.heads=0;S.dmg=0;S.ff=0;S.shots=0;S.hits=0;S.alarmT=-1;S.elevT=-1;S.elevArrived=false;S.inElevT=0;S.riding=false;S.rideT=0;S.inLobby=false;S.lobbyHorde=false;S.biledT=0;S.healT=0;S.revT=0;S.revBot=null;S.cut=null;S.shake=0;S.fade=0;S.dirOn=false;S.complete=false;S.lowHpT=0;S.fly=false;S.endPack=null;S.spotted={};if(COOPTEST)S.god=true;else if(!remote)S.god=false;
+function resetChapter(remote,skipIntro){introGen++;restoreSpan();S.phase='play';S.t=0;S.obj=0;S.kills=0;S.skills=0;S.heads=0;S.dmg=0;S.ff=0;S.shots=0;S.hits=0;S.alarmT=-1;S.elevT=-1;S.elevArrived=false;S.inElevT=0;S.riding=false;S.rideT=0;S.inLobby=false;S.lobbyHorde=false;S.biledT=0;S.healT=0;S.revT=0;S.revBot=null;S.cut=null;S.shake=0;S.fade=0;S.dirOn=false;S.complete=false;S.lowHpT=0;S.fly=false;S.endPack=null;S.spotted={};if(COOPTEST)S.god=true;else if(!remote)S.god=false;
  player.x=4.5*T;player.z=8.5*T;player.y=groundAt(4.5*T,8.5*T)+1.62;player.yaw=-Math.PI/2;player.pitch=0.04;player.hp=100;player.down=false;freshBody(player);player.lost=[];player.bite=null;player.kit=false;player.zipU=null;player.inv={primary:null,pistol:{type:'pistol',mag:15,res:Infinity}};player.slot='pistol';player.fireCd=0;player.reloadT=0;player.shoveCd=0;player.lastShove=-9;player.kickCd=0;player.trig=false;player.bob=0;player.vx=0;player.vz=0;player.pinnedBy=null;player.pulledBy=null;player.pinShoves=0;player.flash=false;player.spread=0;player.crumbs=[];player.crumbT=0;player.hurtT=0;player.burnT=0;poseOwnArms();
  for(const id of DOOR_IDS)doors[id]=false;if(doorMeshes.btn)doorMeshes.btn.material=mat(0xff3311,{emissive:0x661100});
  for(const it of items){it.taken=false;it.g.visible=true;}clearSpecials();commons.length=0;clearGrabSlots();
@@ -2564,17 +2608,20 @@ function resetChapter(remote){introGen++;restoreSpan();S.phase='play';S.t=0;S.ob
  safeIndex=0;recomputeRoute();flowDirty=true;flowTile=-1;feedLines.length=0;for(const k in barkCd)delete barkCd[k];renderFeed();
  $('dead').classList.add('hidden');$('done').classList.add('hidden');$('pause').classList.add('hidden');$('hud').classList.remove('hidden');$('title').classList.add('hidden');$('lobby').classList.add('hidden');$('fade').style.opacity='0';$('obj').textContent=OBJ[0];
  NET.paused=false;mouseDown=false;mouseRight=false;keys={};S.started=true;document.body.classList.remove('downed');
- if(remote)feed('The host restarted the chapter.','#fd8');else if(NET.role!=='client')queueIntro();
+ if(remote){if(!skipIntro)feed('The host restarted the chapter.','#fd8');}else if(!skipIntro&&NET.role!=='client')queueIntro();
  syncTouch();paintSound();paintFF();paintRestart();if(!remote)lock();}
-function hostRestart(){if(NET.role!=='host')return;resetChapter(false);NET.round=(NET.round||0)+1;const msg={t:'restart',round:NET.round,ff:NET.ff?1:0,swarm:NET.swarm};for(const c of NET.conns.values())if(c.open)c.send(msg);NET.lastSnap=0;if(NET.flush)NET.flush();}
-function onRestartClick(){if(NET.role==='client')return;if(NET.role==='off'){location.reload();return;}hostRestart();}
+function hostRestart(mode){if(NET.role!=='host')return;const cp=mode==='safe'&&checkpoint?checkpoint:null;if(!cp)checkpoint=null;resetChapter(false,!!cp);if(cp)applyCheckpoint(cp);
+ NET.round=(NET.round||0)+1;const msg={t:'restart',round:NET.round,ff:NET.ff?1:0,swarm:NET.swarm,mode:cp?'safe':'start'};if(cp)msg.cp=cp;for(const c of NET.conns.values())if(c.open)c.send(msg);NET.lastSnap=0;if(NET.flush)NET.flush();}
+function onRestartClick(){if(NET.role==='client')return;if(NET.role==='off'){location.reload();return;}hostRestart('start');}
+function onBeginRestart(){if(NET.role==='client')return;if(NET.role==='host'){hostRestart('start');return;}checkpoint=null;resetChapter(false);}
+function onSafeRestart(){if(NET.role==='client'||!checkpoint)return;if(NET.role==='host'){hostRestart('safe');return;}const cp=checkpoint;resetChapter(false,true);applyCheckpoint(cp);}
 function startGame(){initAudio();if(AU.ctx&&AU.ctx.state==='suspended')AU.ctx.resume();$('title').classList.add('hidden');$('hud').classList.remove('hidden');S.phase='play';S.started=true;if(COOPTEST)S.god=true;setObj(0);$('obj').textContent=OBJ[0];
  if(NET.role!=='client')queueIntro();
  player.yaw=-Math.PI/2;player.pitch=0.04;syncTouch();paintSound();paintFF();paintRestart();lock();if(NET.role!=='off')$('netbadge').classList.remove('hidden');}
 function backToTitle(){if(NET.role==='off'){location.reload();return;}const u=new URL(location.href);u.search='';location.href=u.pathname;}
 $('playbtn').onclick=startGame;
 $('resumebtn').onclick=()=>{$('pause').classList.add('hidden');NET.paused=false;S.phase='play';syncTouch();paintFF();paintSound();lock();};
-$('restartbtn').onclick=$('againbtn').onclick=$('pausereset').onclick=onRestartClick;
+$('restartbtn').onclick=onBeginRestart;$('saferestart').onclick=onSafeRestart;$('againbtn').onclick=$('pausereset').onclick=onRestartClick;
 $('ffbtn').onclick=$('ffplay').onclick=$('ffpause').onclick=toggleFF;
 document.querySelectorAll('button.chip[data-layout]').forEach(el=>el.addEventListener('click',()=>applyLayout(el.dataset.layout)));
 document.querySelectorAll('input.swarm').forEach(el=>el.addEventListener('input',()=>setSwarm(Number(el.value))));
@@ -2958,7 +3005,7 @@ function onClientMsg(m){if(!m||typeof m!=='object')return;NET.msgAt=performance.
  if(m.t==='ff')adoptFF(!!m.on);
  if(m.t==='swarm')adoptSwarm(m.n);
  if(m.t==='layout'){reloadForLayout(m.layout,m.room||NET.room);return;}
- if(m.t==='restart'){resetChapter(true);if(m.ff!=null)adoptFF(!!m.ff);if(m.swarm!=null)adoptSwarm(m.swarm);}
+ if(m.t==='restart'){const cp=m.mode==='safe'&&m.cp?m.cp:null;checkpoint=cp;resetChapter(true,!!cp);if(cp)applyCheckpoint(cp);if(m.ff!=null)adoptFF(!!m.ff);if(m.swarm!=null)adoptSwarm(m.swarm);}
  if(m.t==='start')startCoopMatch();
  if(m.t==='snap')applySnap(m);
  if(m.t==='pong'&&NET.pingT)NET.ping=Math.max(0,Math.round(performance.now()-NET.pingT));}
@@ -3071,6 +3118,10 @@ window.__game={autopilot,update,updateCamera,fire,AP,useTargets,moveEnt,collide,
  setFF,ff(){return !!NET.ff;},
  layout:LAYOUT,H,setSwarm,swarm(){return NET.swarm;},linkFor,applyLayout,
  restart(){onRestartClick();},
+ die(){die();},
+ resumeSafe(){onSafeRestart();},
+ restartBegin(){onBeginRestart();},
+ checkpoint(){return checkpoint;},
  reload(){startReload();},
  fakeRoom(){NET.role='host';NET.room='TEST';NET.ff=storedFF();NET._sent=[];NET.conns.set('fake',{open:true,send(m){NET._sent.push(m);}});paintFF();paintRestart();return NET.room;},
  asClient(){NET.role='client';paintFF();paintRestart();},
