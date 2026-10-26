@@ -2237,9 +2237,9 @@ function updateCommon(c,dt){c.hitT=Math.max(0,c.hitT-dt);
 function zBodyR(e){return e.type?SPEC[e.type].r:.36;}
 function zAnchored(e){return (e.type==='hunter'&&e.state==='pin')||(e.type==='smoker'&&e.state==='pull');}
 function kickPosed(e){return e.state==='sob'||e.state==='headwait'||e.state==='headwalk';}
-/* A heap of dead commons becomes one mound. The center is a plain cloth mass; real-sized heads and limbs stick out of the outside only. */
+/* A heap of dead commons becomes one mound. Real-sized heads and limbs cover the outside thick enough that the cloth barely shows. */
 let pileScan=0,pileSeq=1,PILE_MOUND=null,PILE_PLUG=null,PILE_TEX=null;
-const BIT_MAX=300;
+const BIT_MAX=900;
 const _bit=new THREE.Object3D(),_bitCol=new THREE.Color(),_blood=new THREE.Color(0x4a1010);
 _bit.rotation.order='YXZ';
 function pileMetrics(count,x,z){const g=bodyY(x,z);const ceil=ceilAt(x,z);const room=ceil==null?120:Math.max(0.8,ceil-g);
@@ -2257,18 +2257,18 @@ function pileHash(n){n=Math.imul(n|0,0x7feb352d);n=Math.imul(n^(n>>>15),0x846ca6
 function pileBitsN(p){const midR=Math.max(.8,(p.sealed?0.9:0.72)*p.r);
  const around=Math.max(5,Math.min(14,Math.round(Math.PI*2*midR/1.15)));
  const rise=Math.max(2,Math.min(p.sealed?5:10,Math.round(Math.max(p.h,1)/.9)));
- return Math.max(12,Math.min(100,around*rise));}
+ return Math.max(36,Math.min(300,around*rise*3));}
 function pileRadAt(t,sealed){return sealed?1-.14*t:Math.sqrt(Math.max(0,1-t));}
 function putBit(mesh,i,x,y,z,rx,ry,rz,sx,sy,sz,hex,blood){_bit.position.set(x,y,z);_bit.rotation.set(rx,ry,rz);_bit.scale.set(sx,sy,sz);_bit.updateMatrix();mesh.setMatrixAt(i,_bit.matrix);
  _bitCol.setHex(hex);_bitCol.multiplyScalar(.74);if(blood>0)_bitCol.lerp(_blood,blood);mesh.setColorAt(i,_bitCol);}
-function posePileBits(p){const n=pileBitsN(p),mesh=p.bits,span=p.sealed?0.78:0.66,t0=Math.max(.07,.42/Math.max(p.h,.3));let i=0;
+function posePileBits(p){const n=pileBitsN(p),mesh=p.bits,span=p.sealed?0.9:0.88,t0=Math.max(.04,.22/Math.max(p.h,.3));let i=0;
  for(let s=0;s<n;s++){const h=pileHash(p.id*131+s*17+9);
-  const yaw=pileHash(p.id*3+1)*6.2831853+s*2.399963229728653+(h-.5)*.4;
-  let t=t0+Math.pow((s+.5)/n,p.h>6?1:.85)*span+(pileHash(p.id*17+s*5)-.5)*.035;
-  t=Math.max(t0,Math.min(p.sealed?0.86:0.74,t));
+  const yaw=pileHash(p.id*3+1)*6.2831853+s*2.399963229728653+(h-.5)*.55;
+  let t=t0+(s+.5)/n*span+(pileHash(p.id*17+s*5)-.5)*.02;
+  t=Math.max(t0,Math.min(p.sealed?0.96:0.94,t));
   const R=pileRadAt(t,p.sealed)*p.r,ox=Math.sin(yaw),oz=Math.cos(yaw),px=p.x+ox*R,py=p.g+t*p.h,pz=p.z+oz*R;
   const shirt=SHIRTS[(pileHash(p.id*11+s*3)*SHIRTS.length)|0],skin=SKINS[(pileHash(p.id*19+s*7)*SKINS.length)|0],pants=PANTS[(pileHash(p.id*23+s*9)*PANTS.length)|0];
-  const blood=h<.22?.62:h<.48?.26:0,twist=(pileHash(p.id*29+s)-.5)*1.15,mode=s%3,hang=h*.25,poke=.16+h*.42;
+  const blood=h<.22?.62:h<.48?.26:0,twist=(pileHash(p.id*29+s)-.5)*1.15,mode=s%3,hang=h*.25,poke=.02+pileHash(p.id*41+s*13)*.55;
   if(mode===1)putBit(mesh,i++,px+ox*(.28+poke),py-.08,pz+oz*(.28+poke),-1.25-hang,yaw+twist,twist*.5,.17,.84,.18,pants,blood);
   else putBit(mesh,i++,px+ox*(.06+poke*.35),py+.05,pz+oz*(.06+poke*.35),-.55-h*.25,yaw,twist*.22,.5,.4,.28,shirt,blood*.65);
   putBit(mesh,i++,px+ox*(.34+poke),py+.16,pz+oz*(.34+poke),-.55,yaw+twist*.55,twist*.45,.25,.28,.26,skin,blood*.4);
