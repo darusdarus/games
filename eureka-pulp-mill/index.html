@@ -1244,7 +1244,7 @@ const BIKE_TOP=16,SWIM_MAX=16,SWIM_ALIVE=6;
 function bikeSpots(){return [7.25,7.85,8.45,9.05].map(z=>({x:143.15*T,z:z*T}));}
 function nunQuiet(){return S.nuns==='meet'||S.nuns==='need'||S.nuns==='shop'||S.nuns==='parts'||S.nuns==='flee'||S.nuns==='ride';}
 function nunCalm(){return S.nuns==='meet'||S.nuns==='need'||S.nuns==='shop'||S.nuns==='parts';}
-function nunObjective(){if(LAYOUT!=='town')return;if(S.bridge!=='up'&&(S.nuns==='ride'||S.nuns==='flee'||S.nuns==='sunk'))return;const t={meet:'The nuns at the gate. Their bikes will not start.',need:'Get a part from the auto shop, south of the nuns.',shop:'Clear the auto shop and take the parts.',parts:'Bring the parts back. Hold to fix each bike.',flee:'The horde is behind you. Take a bike. Leave the nuns.',ride:'Ride the bridge. W drives. A and D turn.'}[S.nuns];if(t)$('obj').textContent=t;}
+function nunObjective(){if(LAYOUT!=='town')return;if(S.nunFate==='yell'){$('obj').textContent='The nuns yell: Help, no.';return;}if(S.nunFate==='swarm'){$('obj').textContent='A swarm devours the nuns.';return;}if(S.nunFate==='grow'||S.nunFate==='chase'){$('obj').textContent='The nuns are enormous. They are coming for you.';return;}if(S.bridge!=='up'&&(S.nuns==='ride'||S.nuns==='flee'||S.nuns==='sunk'))return;const t={meet:'The nuns at the gate. Their bikes will not start.',need:'Get a part from the auto shop, south of the nuns.',shop:'Clear the auto shop and take the parts.',parts:'Bring the parts back. Hold to fix each bike.',flee:'The horde is behind you. Take a bike. Leave the nuns.',ride:'Ride the bridge. W drives. A and D turn.'}[S.nuns];if(t)$('obj').textContent=t;}
 function shopLive(){let n=0;for(const c of commons)if(c.shop&&!c.dead)n++;return n;}
 function shopClear(){return S.shopUp&&shopLive()===0;}
 function poseBike(b){if(!b||!b.g)return;const y=standY(b.x,b.z)-(b.sinking?(b.sink||0):0);b.g.visible=!b.sunk;b.g.position.set(b.x,y,b.z);b.g.rotation.set(0,b.yaw+Math.PI,b.fixed?Math.sin(S.t*16)*(b.spd>2?0.02:0.008):0.2);const spin=b.spin||0;if(b.wheels)for(const w of b.wheels)w.rotation.x=Math.PI/2+spin;}
@@ -1259,13 +1259,47 @@ function buildNuns(){if(LAYOUT==='linear')return;const spots=bikeSpots();const c
   const m=makeHuman({shirt:0x141414,pants:0x101010,skin:0xc89a78,hair:0xf4f4f4,arms:0xc89a78});
   box(.34,.2,.34,0xf7f7f7,0,.2,0,m.head);box(.3,.36,.12,0x111111,0,.16,-.14,m.head);
   const tag=nameSprite(names[i],'#f4f4f4');tag.position.y=2.2;m.g.add(tag);scene.add(m.g);
-  const nun={name:names[i],x:spots[i].x-1.15,z:spots[i].z,mesh:m,g:m.g};nuns.push(nun);nun.g.position.set(nun.x,groundAt(nun.x,nun.z),nun.z);nun.g.rotation.y=Math.PI/2;}}
-function tickNuns(){if(!nuns.length||S.phase==='title')return;const panic=S.nuns==='flee'||S.nuns==='ride'||S.nuns==='sunk';
- nuns.forEach((n,i)=>{const k=Math.sin(S.t*(panic?12:5.5)+i*1.3);n.g.position.set(n.x,bodyY(n.x,n.z),n.z);n.g.rotation.y=Math.PI/2;n.mesh.b.rotation.x=.62+k*.1;n.mesh.b.rotation.z=panic?Math.sin(S.t*8+i)*.12:0;n.mesh.armR.rotation.x=-1.15+k*.45;n.mesh.armL.rotation.x=-.55;n.mesh.legL.rotation.x=.15;n.mesh.legR.rotation.x=-.05;});}
-function resetNuns(){S.nuns='wait';S.parts=0;S.fixT=0;S.fixBike=-1;S.toldPart=false;S.partNag=0;S.shopUp=false;S.swimOn=false;S.swimMade=0;S.swimT=0;S.swimTold=false;player.bike=null;
+  const nun={name:names[i],x:spots[i].x-1.15,z:spots[i].z,mesh:m,g:m.g,tag,smashT:0};nuns.push(nun);nun.g.position.set(nun.x,groundAt(nun.x,nun.z),nun.z);nun.g.rotation.y=Math.PI/2;}}
+function speakHelp(){if(AU.muted||typeof speechSynthesis==='undefined')return;try{const u=new SpeechSynthesisUtterance('Help, no');u.rate=1.08;u.pitch=1.45;u.volume=1;const voices=speechSynthesis.getVoices?speechSynthesis.getVoices():[];const v=voices.find(x=>/female|woman|samantha|victoria|zira/i.test(x.name));if(v)u.voice=v;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}
+function nunHome(){return {x:143.15*T,z:8.15*T};}
+function riderFar(){if(player.bike==null)return false;const h=nunHome();return Math.hypot(player.x-h.x,player.z-h.z)>12;}
+function feastAt(n){let made=0;for(let k=0;k<24&&made<8;k++){const c=spawnCommon(n.x+rand(-1.3,1.3),n.z+rand(-.9,.9),false);if(!c)continue;c.feast=1;c.hp=30;c.speed=1.2;made++;}
+ for(let i=0;i<20;i++)PBlood.emit(n.x,bodyY(n.x,n.z)+1.1,n.z,rand(-2.2,2.2),rand(.2,2.6),rand(-2.2,2.2),rand(.4,.9),.32,.16,.5,.05,.02,.95,8);SFX.splat(n.x,n.z);}
+function hulkTint(n){if(n.tinted)return;n.tinted=true;n.g.traverse(o=>{if(!o.isMesh||!o.material||!o.material.color)return;if(o.material.color.getHex()!==0xc89a78)return;o.material=o.material.clone();o.userData.skin=1;o.material.color.setHex(0x3f8f32);o.material.emissive.setHex(0x12300c);});}
+function clearHulk(n){if(!n.tinted)return;n.tinted=false;n.g.traverse(o=>{if(!o.userData||!o.userData.skin||!o.material)return;o.material.color.setHex(0xc89a78);o.material.emissive.setHex(0x000000);});}
+function beginDevour(){S.nunFate='swarm';S.nunT=0;if(NET.role!=='client'){for(const n of nuns)feastAt(n);if(SFX.horde)SFX.horde();}feed('<b>A swarm devours the nuns.</b>','#f66',8);}
+function beginHulk(){S.nunFate='grow';S.nunT=0;if(NET.role!=='client')for(const c of commons)if(c.feast&&!c.dead)killCommon(c,false,false);
+ for(const n of nuns){n.g.visible=true;hulkTint(n);for(let i=0;i<16;i++)PBlood.emit(n.x,bodyY(n.x,n.z)+1,n.z,rand(-3,3),rand(1,6),rand(-3,3),rand(.5,1.1),.4,.2,.45,.2,.05,.95,8);}
+ feed('<b>The nuns rise.</b> They are enormous.','#f66',8);SFX.splat(player.x,player.z);if(SFX.horde)SFX.horde();}
+function tossPlayer(n){const dx=player.x-n.x,dz=player.z-n.z,d=Math.hypot(dx,dz)||1;if(player.bike!=null)leaveBike(player);
+ player.air=true;player.avx=dx/d*14;player.avz=dz/d*14;player.avy=18;player.ay=bodyY(player.x,player.z);
+ hurtPlayer(36);S.shake=1.15;SFX.splat(player.x,player.z);SFX.kick(player.x,player.z);feed('<b>A giant nun smashes you into the air.</b>','#f66',6);}
+function tickToss(dt){if(!player.air)return;player.avy-=KICK_G*dt;player.ay+=player.avy*dt;player.avx*=Math.exp(-dt*.35);player.avz*=Math.exp(-dt*.35);moveEnt(player,player.avx*dt,player.avz*dt,.35);player.vx=player.avx;player.vz=player.avz;const g=bodyY(player.x,player.z);if(player.ay<=g&&player.avy<=0){player.air=false;player.ay=g;player.avy=0;player.avx=0;player.avz=0;player.vx=0;player.vz=0;player.y=g+1.62;S.shake=Math.max(S.shake||0,.5);SFX.splat(player.x,player.z);}}
+function nunSmash(n){if(n.g.scale.x<6||(n.smashT||0)>S.t||player.air||player.down)return;const reach=2.2+4.2*(n.g.scale.x/10);
+ const d=Math.hypot(player.x-n.x,player.z-n.z);if(d<=reach){n.smashT=S.t+1.7;tossPlayer(n);return;}
+ for(const b of bots){if(b.down||b.bike==null)continue;if(Math.hypot(b.x-n.x,b.z-n.z)>reach)continue;n.smashT=S.t+1.2;leaveBike(b);hurtSurvivor(b,28);SFX.splat(b.x,b.z);return;}}
+function stepNunFate(dt){if(S.phase!=='play')return;if(!S.nunFate){if(S.nuns!=='ride'||!riderFar())return;S.nunFate='yell';S.nunT=0;S.nunYell=-1;speakHelp();return;}
+ S.nunT+=dt;
+ if(S.nunFate==='yell'){const i=Math.floor(S.nunT/0.26);if(i!==S.nunYell&&i>=0&&i<nuns.length){S.nunYell=i;const n=nuns[i];feed('<b style="color:#f4f4f4">'+n.name+':</b> Help, no!','#f4f4f4',7);SFX.scream(n.x,n.z);}if(S.nunT>=1.2)beginDevour();}
+ else if(S.nunFate==='swarm'&&S.nunT>=3.1)beginHulk();
+ else if(S.nunFate==='grow'&&S.nunT>=1.25)S.nunFate='chase';}
+function poseNun(n,i){const fate=S.nunFate||'';const giant=fate==='grow'||fate==='chase';const panic=fate==='yell'||fate==='swarm'||S.nuns==='flee'||S.nuns==='ride'||S.nuns==='sunk';
+ const sc=giant?(fate==='grow'?1+9*clamp(S.nunT/1.25,0,1):10):1;n.g.scale.set(sc,sc,sc);
+ const gy=bodyY(n.x,n.z)-0.43*(sc-1);n.g.position.set(n.x,gy,n.z);
+ if(n.tag){if(!n.tag.userData.bw){n.tag.userData.bw=n.tag.scale.x;n.tag.userData.bh=n.tag.scale.y;}n.tag.scale.set(n.tag.userData.bw/sc,n.tag.userData.bh/sc,1);}
+ const k=Math.sin(S.t*(giant?7:panic?12:5.5)+i*1.3);
+ if(giant){n.g.rotation.y=n.yaw||0;n.mesh.b.rotation.x=.35+Math.abs(k)*.25;n.mesh.b.rotation.z=0;n.mesh.armR.rotation.x=-1.7+k*.5;n.mesh.armL.rotation.x=-1.55-k*.4;n.mesh.legL.rotation.x=k*.8;n.mesh.legR.rotation.x=-k*.8;}
+ else if(fate==='swarm'){n.g.rotation.y=Math.PI/2;n.mesh.b.rotation.x=1.2;n.mesh.b.rotation.z=Math.sin(S.t*14+i)*.2;n.mesh.armR.rotation.x=-.4;n.mesh.armL.rotation.x=-.2;n.mesh.legL.rotation.x=.4;n.mesh.legR.rotation.x=.2;n.g.position.y=gy-.15;}
+ else{n.g.rotation.y=Math.PI/2;n.mesh.b.rotation.x=.62+k*.1;n.mesh.b.rotation.z=panic?Math.sin(S.t*8+i)*.12:0;n.mesh.armR.rotation.x=-1.15+k*.45;n.mesh.armL.rotation.x=-.55;n.mesh.legL.rotation.x=.15;n.mesh.legR.rotation.x=-.05;}}
+function tickNuns(dt){if(!nuns.length||S.phase==='title')return;stepNunFate(dt||0);
+ const giant=S.nunFate==='grow'||S.nunFate==='chase';
+ if(giant){for(const n of nuns){const dx=player.x-n.x,dz=player.z-n.z,d=Math.hypot(dx,dz)||1;const sp=S.nunFate==='chase'?48:6+n.g.scale.x;if(d>4.8)moveEnt(n,dx/d*sp*(dt||0),dz/d*sp*(dt||0),.9);n.yaw=Math.atan2(dx,dz);if(S.nunFate==='chase')nunSmash(n);}
+  for(let i=0;i<nuns.length;i++)for(let j=i+1;j<nuns.length;j++){const a=nuns[i],c=nuns[j];let dx=c.x-a.x,dz=c.z-a.z,d=Math.hypot(dx,dz);if(d>=2.8||d<1e-4)continue;dx/=d;dz/=d;const p=(2.8-d)*Math.min((dt||0)*6,.45);a.x-=dx*p;a.z-=dz*p;c.x+=dx*p;c.z+=dz*p;collide(a,.9);collide(c,.9);}}
+ nuns.forEach(poseNun);}
+function resetNuns(){S.nuns='wait';S.nunFate='';S.nunT=0;S.nunYell=-1;S.parts=0;S.fixT=0;S.fixBike=-1;S.toldPart=false;S.partNag=0;S.shopUp=false;S.swimOn=false;S.swimMade=0;S.swimT=0;S.swimTold=false;player.bike=null;player.air=false;player.avy=0;player.avx=0;player.avz=0;
  for(const b of bots){b.bike=null;b.fixT=0;}
  const spots=bikeSpots();bikes.forEach((b,i)=>{b.x=spots[i].x;b.z=spots[i].z;b.yaw=-Math.PI/2;b.spd=0;b.fixed=false;b.sunk=false;b.sinking=false;b.sink=0;b.rider=-1;b.spin=0;poseBike(b);});
- nuns.forEach((n,i)=>{n.x=spots[i].x-1.15;n.z=spots[i].z;n.g.visible=true;});}
+ nuns.forEach((n,i)=>{n.x=spots[i].x-1.15;n.z=spots[i].z;n.yaw=Math.PI/2;n.smashT=0;n.g.visible=true;n.g.scale.set(1,1,1);clearHulk(n);});}
 function calmApproach(){const x=143*T,z=8.5*T;for(const c of commons){if(c.dead||c.shop)continue;if(Math.hypot(c.x-x,c.z-z)<58){c.calm=1;c.state='wander';c.target=null;c.wdx=0;c.wdz=0;}}}
 function beginNuns(){if(LAYOUT!=='linear'&&S.nuns==='wait'&&S.bridge==='up'&&NET.role!=='client'){let hit=false;const near=e=>{const tx=Math.floor(e.x/T),tz=Math.floor(e.z/T);return tx>=140&&tx<=146&&tz>=6&&tz<=15;};if(near(player))hit=true;if(!hit)for(const b of bots)if(b.net&&near(b))hit=true;if(!hit)return;S.nuns='meet';calmApproach();feed('<b style="color:#f4f4f4">Sister Agnes:</b> Hold on. These four will not turn over, and it has gone quiet behind you. Do not waste it.','#f4f4f4',10);nunObjective();}}
 function fillShop(){if(S.shopUp||LAYOUT==='linear'||NET.role==='client')return;S.shopUp=true;const tiles=[];for(let x=146;x<=150;x++)for(let z=14;z<=17;z++)tiles.push([x,z]);
@@ -1281,7 +1315,7 @@ function channelFix(ent,idx,dt){const b=bikes[idx];if(!b||b.fixed||b.sunk||ent.d
  if(ent===player){S.fixT+=dt;S.fixBike=idx;if(S.fixT>=2){S.fixT=0;finishFix(idx);}}else{ent.fixT=(ent.fixT||0)+dt;if(ent.fixT>=2){ent.fixT=0;finishFix(idx);}}}
 function mountFollowers(){if(NET.role==='client')return;for(const bot of bots){if(bot.net||bot.down||bot.bike!=null)continue;const i=bikes.findIndex(b=>b.fixed&&!b.sunk&&!b.sinking&&b.rider<0);if(i<0)return;bikes[i].rider=bots.indexOf(bot)+1;bot.bike=i;}}
 function mountBike(ent,i){if(!ent||ent.down||ent.bike!=null)return;if(S.nuns!=='flee'&&S.nuns!=='ride')return;const b=bikes[i];if(!b||!b.fixed||b.sunk||b.sinking||b.rider>=0)return;
- b.rider=ent===player?0:bots.indexOf(ent)+1;if(b.rider<0)return;ent.bike=i;ent.vx=0;ent.vz=0;
+ b.rider=ent===player?0:bots.indexOf(ent)+1;if(b.rider<0)return;ent.bike=i;ent.x=b.x;ent.z=b.z;ent.vx=0;ent.vz=0;
  if(ent===player){player.yaw=b.yaw;S.nuns='ride';feed('<b>On the bike.</b> It will go. W drives, A and D turn. Leave the nuns.','#9cf',8);nunObjective();mountFollowers();}}
 function leaveBike(ent){if(!ent||ent.bike==null)return;const b=bikes[ent.bike];ent.bike=null;if(b&&b.rider===(ent===player?0:bots.indexOf(ent)+1))b.rider=-1;}
 function dumpRider(b){const ent=b.rider>=0?entBySlot(b.rider):null;b.sinking=true;b.sink=0;b.spd=0;b.rider=-1;if(ent){ent.bike=null;ent.vx=0;ent.vz=0;if(ent===player&&S.nuns!=='sunk'){S.nuns='sunk';feed('<b>You are off the bike.</b> It is going under. Get in the skiff.','#9cf',8);if(OBJ[12])$('obj').textContent=OBJ[12];}}}
@@ -1289,8 +1323,8 @@ function aiSteer(ent,b){const lead=player.bike!=null?bikes[player.bike]:null;let
  if(lead&&lead!==b){destX=lead.x-3.2-(ent.slot||0);destZ=lead.z+((ent.slot||0)-1)*.65;}
  const dx=destX-b.x,dz=destZ-b.z,d=Math.hypot(dx,dz)||1;const want=Math.atan2(-dx/d,-dz/d);let diff=want-b.yaw;while(diff>Math.PI)diff-=Math.PI*2;while(diff<-Math.PI)diff+=Math.PI*2;
  return {th:Math.abs(diff)>1.15?.4:1,tn:clamp(diff/.7,-1,1)};}
-function bikeInput(ent){if(NET.paused)return {th:0,tn:0};if(ent===player){const back=actionDown('back')?.4:0;return {th:(actionDown('forward')?1:0)-back,tn:(actionDown('right')?1:0)-(actionDown('left')?1:0)};}
- if(ent.net&&ent.inp)return {th:clamp(+ent.inp.row||0,-.4,1),tn:clamp(+ent.inp.turn||0,-1,1)};return aiSteer(ent,bikes[ent.bike]);}
+function bikeInput(ent){if(NET.paused)return {th:0,tn:0};if(ent===player){const back=actionDown('back')?.4:0;return {th:(actionDown('forward')?1:0)-back,tn:(actionDown('left')?1:0)-(actionDown('right')?1:0)};}
+ if(ent.net&&ent.inp)return {th:clamp(+ent.inp.row||0,-.4,1),tn:-clamp(+ent.inp.turn||0,-1,1)};return aiSteer(ent,bikes[ent.bike]);}
 function tickBikes(dt){if(!bikes.length)return;const auth=NET.role!=='client';
  for(const b of bikes){if(b.sunk){b.g.visible=false;continue;}
   if(b.sinking){b.sink=(b.sink||0)+dt*1.5;poseBike(b);if(b.sink>2.8){b.sunk=true;b.g.visible=false;}continue;}
@@ -2072,6 +2106,7 @@ function placeBot(b){const m=b.mesh;if(b.zipU!=null){const p=zipPos(b.zipU);b.x=
 
 /* ---- commons update ---- */
 function updateCommon(c,dt){c.hitT=Math.max(0,c.hitT-dt);
+ if(c.feast&&!c.dead){c.y=standY(c.x,c.z);c.phase+=dt*9;c.mv=1.5;c.swipe=.25;c.yaw+=dt*2.4;return;}
  if(c.dead){c.deathT+=dt;c.fall=Math.min(1,c.fall+dt*2.6);c.flying=false;const gnd=corpseRestY(c);
   if(c.y>gnd+0.04){c.fvy=(c.fvy||0)-KICK_G*dt;c.y+=c.fvy*dt;if(c.deathT<3)moveEnt(c,(c.fvx||0)*dt,(c.fvz||0)*dt,.3);if(c.y<=gnd){c.y=gnd;c.fvy=0;c.fvx=0;c.fvz=0;}}
   else{c.y=gnd;c.fvy=0;}return;}
@@ -2238,7 +2273,8 @@ function update(dt){S.t+=dt;
   let vx=f*_d.x+st*rx,vy=f*_d.y+up,vz=f*_d.z+st*rz,l=Math.hypot(vx,vy,vz);const fspd=actionDown('sprint')?42:22;
   if(l>0){vx=vx/l*fspd;vy=vy/l*fspd;vz=vz/l*fspd;}else vx=vy=vz=0;
   player.x+=vx*dt;player.y=clamp(player.y+vy*dt,.4,90);player.z+=vz*dt;player.vx=vx;player.vz=vz;}
- else{player.vx=lerp(player.vx,mx*spd,1-Math.exp(-dt*12));player.vz=lerp(player.vz,mz*spd,1-Math.exp(-dt*12));
+  else if(player.air)tickToss(dt);
+  else{player.vx=lerp(player.vx,mx*spd,1-Math.exp(-dt*12));player.vz=lerp(player.vz,mz*spd,1-Math.exp(-dt*12));
   if(!pinned&&!player.down&&!seated&&!zipping&&player.bike==null)moveEnt(player,player.vx*dt,player.vz*dt,.35);if(zipping)tickZip(player,dt);}
  const mvs=Math.hypot(player.vx,player.vz);player.bob+=dt*mvs*1.9;
  player.crumbT-=dt;if(player.crumbT<=0){player.crumbT=.6;player.crumbs.push([player.x,player.z]);if(player.crumbs.length>20)player.crumbs.shift();}
@@ -2265,12 +2301,12 @@ function update(dt){S.t+=dt;
  // ----- AI -----
  directorUpdate(dt);
  for(const c of commons)updateCommon(c,dt);
- for(let i=commons.length-1;i>=0;i--){const c=commons[i];const far=Math.hypot(c.x-player.x,c.z-player.z);if(c.dead&&(c.deathT>48||(c.deathT>8&&far>68)))commons.splice(i,1);else if(!c.dead&&flow[tileOf(c)]>=INF&&!S.riding&&far>60)commons.splice(i,1);}
+ for(let i=commons.length-1;i>=0;i--){const c=commons[i];const far=Math.hypot(c.x-player.x,c.z-player.z);if(c.dead&&(c.deathT>48||(c.deathT>8&&far>68)))commons.splice(i,1);else if(!c.dead&&!c.feast&&flow[tileOf(c)]>=INF&&!S.riding&&far>60)commons.splice(i,1);}
  {const dead=commons.filter(c=>c.dead);if(dead.length>100){dead.sort((a,b)=>(Math.hypot(b.x-player.x,b.z-player.z)+b.deathT*2)-(Math.hypot(a.x-player.x,a.z-player.z)+a.deathT*2));for(let k=0;k<dead.length-100;k++){const i=commons.indexOf(dead[k]);if(i>=0)commons.splice(i,1);}}}
  for(const s of specials)updateSpecial(s,dt);
  separateCommons();
  for(let i=specials.length-1;i>=0;i--){const s=specials[i];const far=Math.hypot(s.x-player.x,s.z-player.z);if(s.dead&&(s.deathT>48||(s.deathT>8&&far>68))){scene.remove(s.mesh.g);if(s.mesh.tongue)scene.remove(s.mesh.tongue);specials.splice(i,1);}}
- beginNuns();tickNuns();tickBikes(dt);tickSwimSpawn(dt);nunObjective();
+ beginNuns();tickNuns(dt);tickBikes(dt);tickSwimSpawn(dt);nunObjective();
  if(!S.riding)for(const b of bots)updateBot(b,dt);
  if(NET.role!=='client'){tryDeliver(player);for(const b of bots)if(!b.down)tryDeliver(b);}
  // ----- triggers / objectives -----
@@ -2368,7 +2404,8 @@ function updateCamera(dt){const pinned=!!player.pinnedBy;const low=pinned||playe
  else if(swim){const e=S.bridge==='fall'?fallEase(S.bridgeT,spanDelay(player.x)):1;gy=lerp(bridgeDeckY(Math.floor(player.x/T)),WATER,e);eye=lerp(1.62,0.62,e);bob=e*Math.sin(S.t*2.2)*.04;}
  else if(!S.fly)gy=standY(player.x,player.z);
  const ty=gy+eye+bob;
- if(!S.fly)player.y=lerp(player.y,ty,1-Math.exp(-dt*16));camera.position.set(player.x,player.y,player.z);
+ if(player.air){player.y=player.ay+1.28;player.pitch=lerp(player.pitch,player.avy>2?.55:.12,1-Math.exp(-dt*3));}
+ else if(!S.fly)player.y=lerp(player.y,ty,1-Math.exp(-dt*16));camera.position.set(player.x,player.y,player.z);
  if(player.zipU==null&&gy>18){camera.position.x+=Math.sin(S.t*1.6)*0.05;camera.position.z+=Math.cos(S.t*1.3)*0.03;}
  if(S.shake>0){camera.position.x+=rand(-S.shake,S.shake);camera.position.y+=rand(-S.shake,S.shake);S.shake=Math.max(0,S.shake-dt*.4);}
  camera.rotation.set(player.pitch+(pinned?.5:0),player.yaw,pinned?Math.sin(S.t*20)*.05:0);
@@ -2410,7 +2447,7 @@ function updateHud(dt){flashT=Math.max(0,flashT-dt*1.6);if(goreT>0){goreT-=dt;if
   let act='Healing...';if(S.fixT>0&&!(S.healT>0)&&!(S.revT>0))act='Fixing the bike...';else if(!(S.healT>0)){const vic=S.revBot;if(vic&&!limbsLeft(vic).length)act=S.cut==='head'?'Cutting off the head...':'Bringing them back with one limb...';else act='Cutting off the bitten '+(vic&&vic.bite?LIMB_NAME[vic.bite]:'limb')+'...';}
   $('bartxt').textContent=act;}else bar.classList.add('hidden');
  document.body.classList.toggle('downed',!!player.down&&S.phase==='play');
- const bayMsg=player.bike!=null?'W DRIVES · A/D TURNS':player.boatSeat!=null?(paddleLocked()?'SHOOTING — OARS ARE UP':'W ROWS · A/D TURNS — FOUR OARS'):(chAt(player)==='U'?(S.bridge==='fall'?'THE SPAN IS GOING':(BOAT.show?'GET IN THE BOAT — E':'SWIM — SAMOA SHORE')):'');
+ const bayMsg=player.air?'THROWN':player.bike!=null?'W DRIVES · A/D TURNS':player.boatSeat!=null?(paddleLocked()?'SHOOTING — OARS ARE UP':'W ROWS · A/D TURNS — FOUR OARS'):(chAt(player)==='U'?(S.bridge==='fall'?'THE SPAN IS GOING':(BOAT.show?'GET IN THE BOAT — E':'SWIM — SAMOA SHORE')):'');
  const downRoom=SAFES[safeIndex]&&SAFES[safeIndex].name;
  const downMsg=player.down?(player.headless?('HEADLESS — get the head to '+(downRoom||'the safe room')):(limbsLeft(player).length?('DOWN — bite on the '+(LIMB_NAME[player.bite]||'limb')+'. You can still shoot'):(downRoom?('DOWN — cut off the head for '+downRoom+', or bring you back with one limb. You can still shoot'):'DOWN — a teammate can bring you back with one limb. You can still shoot'))):'';
  $('pinmsg').innerHTML=player.pinnedBy?(document.body.classList.contains('touching')?'HUNTER! MASH SHOVE (':'HUNTER! MASH '+keyLabel(bindCode('shove'))+' TO SHOVE (')+player.pinShoves+'/5)':player.pulledBy?'SMOKER TONGUE! SHOOT IT!':downMsg||bayMsg||(S.biledT>0?'<span style="color:#cf6">BILED — THE HORDE CAN SMELL YOU</span>':'');}
@@ -2805,7 +2842,7 @@ function clientUpdate(dt){S.t+=dt;player.fireCd=Math.max(0,player.fireCd-dt);pla
  const rowing=player.boatSeat!=null&&BOAT.show,biking=player.bike!=null,drive=biking||(rowing&&!paddleLocked());
  const back=biking?(actionDown('back')?.4:0):(actionDown('back')?1:0);
  sendInput(dt,{mx,mz,sprint,fire:wantFire,use:actionDown('use')&&!NET.paused&&!player.down,row:drive?((actionDown('forward')?1:0)-back):0,turn:drive?((actionDown('right')?1:0)-(actionDown('left')?1:0)):0});
- tickNuns();tickBikes(dt);nunObjective();smoothRemote(dt);updateFx(dt,region());}
+ tickNuns(dt);tickBikes(dt);nunObjective();smoothRemote(dt);updateFx(dt,region());}
 function sendInput(dt,st){NET.acc=(NET.acc||0)+dt;if(NET.acc<1/20&&!NET.edges.length)return;NET.acc=0;
  const msg={t:'in',seq:++NET.iseq,y:player.yaw,p:player.pitch,mx:+st.mx||0,mz:+st.mz||0,sprint:st.sprint?1:0,fire:st.fire?1:0,use:st.use?1:0,row:+st.row||0,turn:+st.turn||0,cut:cutOk(S.cut)?S.cut:'',edges:NET.edges.splice(0,NET.edges.length)};
  if(NET.conn&&NET.conn.open)NET.conn.send(msg);}
@@ -2983,7 +3020,8 @@ window.__game={autopilot,update,updateCamera,fire,AP,useTargets,moveEnt,collide,
  asClient(){NET.role='client';paintFF();paintRestart();},
  sent(){return NET._sent||[];},
  simulate(sec){const dt=1/30,n=Math.round(sec*30);for(let i=0;i<n&&S.phase==='play';i++){if(NET.role==='client'){clientUpdate(dt);updateCamera(dt);}else{if(AP.on)autopilot(dt);updateCamera(dt);update(dt);}}updateCamera(1/30);updateHud(1);
-  return {t:+S.t.toFixed(1),phase:S.phase,obj:S.obj,objText:OBJ[S.obj],safe:safeIndex,hp:Math.round(player.hp),pos:[+(player.x/T).toFixed(1),+(player.z/T).toFixed(1)],tile:chAt(player),kills:S.kills,skills:S.skills,commons:aliveCommons(),specials:specials.filter(s=>!s.dead).map(s=>s.type+':'+s.state),bots:bots.map(b=>b.name+':'+Math.round(b.hp)+(b.down?'D':'')+(b.boatSeat!=null?'B':'')+(b.zipU!=null?'Z':'')),dmg:Math.round(S.dmg),ff:S.ff,dir:DIR.mode,bridge:S.bridge,bridgeT:+S.bridgeT.toFixed(2),y:+player.y.toFixed(2),seat:player.boatSeat,zip:player.zipU==null?-1:+player.zipU.toFixed(2),boat:BOAT.show?[+BOAT.x.toFixed(1),+BOAT.z.toFixed(1),+BOAT.yaw.toFixed(2),BOAT.oars.length,BOAT.beached?1:0]:null,nuns:S.nuns,parts:S.parts|0,bike:player.bike,swim:swimAlive(),fixed:bikes.filter(b=>b.fixed).length};},
+  return {t:+S.t.toFixed(1),phase:S.phase,obj:S.obj,objText:OBJ[S.obj],safe:safeIndex,hp:Math.round(player.hp),pos:[+(player.x/T).toFixed(1),+(player.z/T).toFixed(1)],tile:chAt(player),kills:S.kills,skills:S.skills,commons:aliveCommons(),specials:specials.filter(s=>!s.dead).map(s=>s.type+':'+s.state),bots:bots.map(b=>b.name+':'+Math.round(b.hp)+(b.down?'D':'')+(b.boatSeat!=null?'B':'')+(b.zipU!=null?'Z':'')),dmg:Math.round(S.dmg),ff:S.ff,dir:DIR.mode,bridge:S.bridge,bridgeT:+S.bridgeT.toFixed(2),y:+player.y.toFixed(2),seat:player.boatSeat,zip:player.zipU==null?-1:+player.zipU.toFixed(2),boat:BOAT.show?[+BOAT.x.toFixed(1),+BOAT.z.toFixed(1),+BOAT.yaw.toFixed(2),BOAT.oars.length,BOAT.beached?1:0]:null,nuns:S.nuns,parts:S.parts|0,bike:player.bike,swim:swimAlive(),fixed:bikes.filter(b=>b.fixed).length,nunFate:S.nunFate||'',nunScale:nuns[0]?+nuns[0].g.scale.x.toFixed(2):0,air:!!player.air,ay:+(player.ay||0).toFixed(2),yaw:+player.yaw.toFixed(3),byaw:player.bike!=null&&bikes[player.bike]?+bikes[player.bike].yaw.toFixed(3):null,feast:commons.filter(c=>c.feast&&!c.dead).length,objNow:$('obj').textContent};},
+ armBikes(){if(!bikes.length)return null;S.nuns='ride';openGate(true);bikes.forEach(b=>{b.fixed=true;b.sunk=false;b.sinking=false;b.rider=-1;});player.bike=null;mountBike(player,0);return {nuns:S.nuns,bike:player.bike,yaw:+player.yaw.toFixed(3),gate:!!doors.gate};},
  lookAt(x,y,z){const dx=x-player.x,dz=z-player.z;player.yaw=Math.atan2(-dx,-dz);player.pitch=Math.atan2(y-player.y,Math.hypot(dx,dz));updateCamera(1);},
  teleport(tx,tz){player.zipU=null;player.x=(tx+.5)*T;player.z=(tz+.5)*T;player.y=groundAt(player.x,player.z)+1.6;updateCamera(1);},
  ride(){beginZip(player);},
