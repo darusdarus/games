@@ -1686,7 +1686,9 @@ function aliveCommons(){let n=0;for(const c of commons)if(!c.dead)n++;return n;}
 function swarmMul(){return clamp(NET.swarm,0,200)/100;}
 function seedCommons(){const scale=swarmMul(),n=Math.round(START_COMMONS.length*scale);
  for(let i=0;i<n;i++){const [x,z]=START_COMMONS[i%START_COMMONS.length];const spot=concealTile(x,z,i)||hiddenNear(x,z,14,i);if(spot)spawnCommon(spot.x,spot.z,false);}
- if(LAYOUT==='town')for(const [x,z] of [[132,17],[135,11],[134,13],[140,13],[141,17],[140,21],[143,21]])if(isWalk(x,z))spawnCommon((x+.5)*T,(z+.5)*T,false);}
+ if(LAYOUT==='town'){for(const [x,z] of [[132,17],[135,11],[134,13],[140,13],[141,17],[140,21],[143,21]])if(isWalk(x,z))spawnCommon((x+.5)*T,(z+.5)*T,false);
+  const road=[];for(let x=12;x<=16;x++)for(let z=7;z<=9;z++)road.push([x,z]);for(let z=12;z<=21;z++)road.push([17,z]);for(let x=19;x<=34;x++)road.push([x,20]);
+  let pack=0;for(const [x,z] of road){if(pack>=28||!isWalk(x,z))continue;const d=Math.hypot((x+.5)*T-player.x,(z+.5)*T-player.z);if(d<14)continue;if(spawnCommon((x+rand(.3,.7))*T,(z+rand(.3,.7))*T,false))pack++;}}}
 function spawnCommon(x,z,alert,target){if(aliveCommons()>=MAXC)return null;if(!isWalk(Math.floor(x/T),Math.floor(z/T)))return null;
  const c={id:++ENTID,x,z,y:groundAt(x,z),yaw:rand(0,6.28),hp:75,dead:false,deathT:0,fall:0,state:alert?'rush':'wander',target:null,atk:rand(.2,.55),phase:rand(0,6),wt:0,wdx:0,wdz:0,stag:0,pvx:0,pvz:0,shirt:pick(SHIRTS),pants:pick(PANTS),skin:pick(SKINS),speed:rand(5.8,7.2),swipe:0,chk:rand(0,.3),groanT:rand(4,16),hitT:0,mv:0};
  if(alert)c.target=target||chooseTarget(c);commons.push(c);return c;}
@@ -1827,7 +1829,7 @@ function damageSpecial(s,dmg,head,byPlayer){if(s.dead)return;s.hp-=head?dmg*2:dm
  if(s.hp<=0)killSpecial(s,byPlayer);}
 
 /* ---- AI Director ---- */
-const DIR={intensity:0,mode:'BUILD-UP',relaxUntil:0,nextSpecial:0,nextHorde:0,spawnT:0,waves:[],queue:['smoker','boomer','hunter'],peakT:0};
+const DIR={intensity:0,mode:'BUILD-UP',relaxUntil:0,nextSpecial:0,nextHorde:0,spawnT:0,pressT:0.4,waves:[],queue:['smoker','boomer','hunter'],peakT:0};
 function survivorEyes(){const eyes=[{x:player.x,y:player.y,z:player.z}];
  for(const b of bots){const feet=standY(b.x,b.z);eyes.push({x:b.x,y:feet+(b.down?0.32:1.55),z:b.z});}
  return eyes;}
@@ -1855,26 +1857,38 @@ function hordeSpots(need){const spots=[];const seen=new Uint8Array(N);
  if(spots.length*COVER_CAP<need)add(1,120,4,130,COVER);
  if(spots.length<6)add(2,48,5,48,spawnTiles.hotel.concat(spawnTiles.lobby));
  return spots;}
-function retireFar(){if(S.riding)return;for(let i=commons.length-1;i>=0;i--){const c=commons[i];if(c.dead||c.feast||c.swim||c.seen)continue;const far=Math.hypot(c.x-player.x,c.z-player.z),fd=flow[tileOf(c)];if(far>78||fd>=INF&&far>60)commons.splice(i,1);}}
-function spawnHorde(n,target){n=Math.round(n*swarmMul());if(n<=0)return 0;retireFar();SFX.horde();DIR.peakT=S.t;const cap=Math.min(n,MAXC-aliveCommons());const spots=hordeSpots(cap);let made=0,tries=0,salt=0;const load=new Map();
- while(made<cap&&tries++<Math.max(cap*16,32)){let spot=null,tile=null;if(spots.length){for(let s=0;s<spots.length;s++){const cand=spots[(Math.random()*spots.length)|0];if((load.get(cand.i)||0)>=COVER_CAP)continue;tile=cand;break;}if(!tile)break;spot=concealTile(tile.x,tile.z,salt++);}else spot=pickSpawn(4,48,false)||pickSpawn(2,80,false);
+function retireFar(room){if(S.riding)return;for(let i=commons.length-1;i>=0;i--){const c=commons[i];if(c.dead||c.feast||c.swim||c.seen)continue;const far=Math.hypot(c.x-player.x,c.z-player.z),fd=flow[tileOf(c)];if(far>150||fd>=INF&&far>60)commons.splice(i,1);}
+ const need=(room||0)+aliveCommons()-(MAXC-120);if(need<=0)return;const far=[];
+ for(let i=0;i<commons.length;i++){const c=commons[i];if(c.dead||c.feast||c.swim||c.seen)continue;const d=Math.hypot(c.x-player.x,c.z-player.z);if(d>70)far.push([d,i]);}
+ far.sort((a,b)=>b[0]-a[0]);const drop=new Set();for(let k=0;k<far.length&&k<need;k++)drop.add(far[k][1]);if(!drop.size)return;
+ for(let i=commons.length-1;i>=0;i--)if(drop.has(i))commons.splice(i,1);}
+function streetTiles(){const fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw),front=[],side=[];
+ for(const t of approachSpots(5,34)){const dx=(t.x+.5)*T-player.x,dz=(t.z+.5)*T-player.z,d=Math.hypot(dx,dz);if(d<16||d>36)continue;((dx*fx+dz*fz)/d>0.2?front:side).push(t);}
+ if(front.length>=8)return front;const both=front.concat(side);if(both.length>=6)return both;
+ const wide=[];for(const t of approachSpots(4,52)){const d=Math.hypot((t.x+.5)*T-player.x,(t.z+.5)*T-player.z);if(d>=9&&d<=46)wide.push(t);}return wide;}
+function streetPack(n){n=Math.round(n);if(n<=0)return 0;retireFar(n);const cap=Math.min(n,MAXC-aliveCommons());if(cap<=0)return 0;const tiles=streetTiles();if(!tiles.length)return 0;const piles=new Map();let made=0,guard=0;
+ while(made<cap&&guard++<cap*4){const t=tiles[(Math.random()*tiles.length)|0];if((piles.get(t.i)||0)>=12)continue;const c=spawnCommon((t.x+rand(.2,.8))*T,(t.z+rand(.2,.8))*T,true);if(!c)break;piles.set(t.i,(piles.get(t.i)||0)+1);made++;}
+ if(made>24)SFX.horde();return made;}
+function spawnHorde(n,target){n=Math.round(n*swarmMul());if(n<=0)return 0;retireFar(n);SFX.horde();DIR.peakT=S.t;const cap=Math.min(n,MAXC-aliveCommons());const closetCap=Math.min(cap,Math.max(40,Math.round(cap*.35)));const spots=hordeSpots(closetCap);let made=0,tries=0,salt=0;const load=new Map();
+ while(made<closetCap&&tries++<Math.max(closetCap*16,32)){let spot=null,tile=null;if(spots.length){for(let s=0;s<spots.length;s++){const cand=spots[(Math.random()*spots.length)|0];if((load.get(cand.i)||0)>=COVER_CAP)continue;tile=cand;break;}if(!tile)break;spot=concealTile(tile.x,tile.z,salt++);}else spot=pickSpawn(4,48,false)||pickSpawn(2,80,false);
   if(!spot||!holds(spot.x,spot.z)){if(!spots.length)break;continue;}if(spawnCommon(spot.x,spot.z,true,target)){made++;if(tile)load.set(tile.i,(load.get(tile.i)||0)+1);}}
- if(made<cap){let tiles=approachSpots(6,40);if(tiles.length*16<cap-made)tiles=tiles.concat(approachSpots(4,72));const piles=new Map();let guard=0;
-  while(made<cap&&tiles.length&&guard++<cap*6){const t=tiles[(Math.random()*tiles.length)|0];if((piles.get(t.i)||0)>=16)continue;const c=spawnCommon((t.x+rand(.18,.82))*T,(t.z+rand(.18,.82))*T,true,target);if(!c)break;piles.set(t.i,(piles.get(t.i)||0)+1);made++;}}
+ if(made<cap){let tiles=streetTiles().concat(approachSpots(5,42));if(tiles.length*8<cap-made)tiles=tiles.concat(approachSpots(4,64));const piles=new Map();let guard=0;
+  while(made<cap&&tiles.length&&guard++<cap*6){const t=tiles[(Math.random()*tiles.length)|0];if((piles.get(t.i)||0)>=14)continue;const c=spawnCommon((t.x+rand(.18,.82))*T,(t.z+rand(.18,.82))*T,true,target);if(!c)break;piles.set(t.i,(piles.get(t.i)||0)+1);made++;}}
  return made;}
 function directorUpdate(dt){DIR.intensity=Math.max(0,DIR.intensity-dt*(S.t-DIR.peakT>6?5:1.5));
  if(DIR.intensity>220&&DIR.mode!=='RELAX'){DIR.mode='RELAX';DIR.relaxUntil=S.t+6;}
  if(DIR.mode==='RELAX'&&S.t>DIR.relaxUntil)DIR.mode='BUILD-UP';
  if(DIR.mode!=='RELAX')DIR.mode=(S.t-DIR.peakT<12||DIR.intensity>70)?'PEAK':'BUILD-UP';
  for(const w of DIR.waves)if(!w.done&&S.t>=w.t){w.done=true;if(w.special)spawnSpecial(w.special);else spawnHorde(w.n);}
- if(!S.dirOn||S.riding||nunCalm()||swimFight())return;
+ if(!S.dirOn||S.riding||S.nuns==='meet'||swimFight())return;
  const relax=DIR.mode==='RELAX';
  DIR.spawnT-=dt;const want=Math.round((S.inLobby?52:74)*swarmMul());
- if(!relax&&DIR.spawnT<=0){DIR.spawnT=0.16;let wand=0;for(const c of commons)if(!c.dead&&c.state==='wander')wand++;if(wand<want){const sp=pickSpawn(6,32,true)||pickSpawn(4,48,false);if(sp)spawnCommon(sp.x,sp.z,false);}}
+ if(!relax&&DIR.spawnT<=0){DIR.spawnT=0.16;let wand=0;for(const c of commons)if(!c.dead&&c.state==='wander')wand++;if(wand<want){const sp=pickSpawn(6,32,true)||pickSpawn(4,48,false);if(sp)spawnCommon(sp.x,sp.z,false);else{const ap=approachSpots(8,36);if(ap.length){const t=ap[(Math.random()*ap.length)|0];spawnCommon((t.x+rand(.25,.75))*T,(t.z+rand(.25,.75))*T,false);}}}}
  const alive=specials.filter(s=>!s.dead).length;
  if(!relax&&S.t>DIR.nextSpecial&&alive<4){const type=DIR.queue.length?DIR.queue.shift():pick(['boomer','hunter','smoker']);if(spawnSpecial(type))DIR.nextSpecial=S.t+rand(14,22);else DIR.queue.unshift(type);}
+ DIR.pressT-=dt;if(DIR.pressT<=0){DIR.pressT=relax?5:2.8;let close=0;for(const c of commons)if(!c.dead&&!c.swim&&Math.hypot(c.x-player.x,c.z-player.z)<18)close++;const goal=Math.round((relax?14:28)*swarmMul());if(close<goal)streetPack(Math.min(relax?12:18,goal-close));}
  const eventOn=S.alarmT>0&&S.t-S.alarmT<25||S.elevT>0&&!S.elevArrived;
- if(!relax&&!eventOn&&S.t>DIR.nextHorde){spawnHorde(Math.floor(rand(380,620)));DIR.nextHorde=S.t+rand(24,36);feed('<i>You hear a horde coming...</i>','#e99');}}
+ if(!relax&&!eventOn&&S.t>DIR.nextHorde){let close=0;for(const c of commons)if(!c.dead&&!c.swim&&Math.hypot(c.x-player.x,c.z-player.z)<18)close++;if(close>40)DIR.nextHorde=S.t+10;else{spawnHorde(Math.floor(rand(160,240)));DIR.nextHorde=S.t+rand(18,26);feed('<i>You hear a horde coming...</i>','#e99');}}}
 
 /* ---- shooting ---- */
 const _o=new THREE.Vector3(),_d=new THREE.Vector3(),_e=new THREE.Vector3(),_r=new THREE.Vector3(),_u=new THREE.Vector3();
@@ -2052,7 +2066,7 @@ function useTargets(ent){const self=ent||player;const out=[];const yaw=self.yaw|
  if(self!==player)offerDown(player);for(const b of bots)offerDown(b);
  out.sort((a,b)=>a.d-b.d);return out[0]||null;}
 function useAction(){const u=useTargets();if(u&&u.act)u.act();}
-function tryOpen(id){if(doors[id])return;if(id==='shop'){doors.shop=true;flowDirty=true;SFX.door();feed('The auto shop door is up.','#fd8');if(S.nuns==='wait')beginNuns();if(!S.toldPart)explainParts();S.nuns='shop';fillShop();nunObjective();return;}if(id==='gate'){openGate();return;}if(!DOOR_LABEL[id])return;doors[id]=true;flowDirty=true;SFX.door();feed(DOOR_LABEL[id].replace('Open the ','The ')+' is open.','#fd8');S.dirOn=true;DIR.waves.push({t:S.t+1,n:200});}
+function tryOpen(id){if(doors[id])return;if(id==='shop'){doors.shop=true;flowDirty=true;SFX.door();feed('The auto shop door is up.','#fd8');if(S.nuns==='wait')beginNuns();if(!S.toldPart)explainParts();S.nuns='shop';fillShop();nunObjective();return;}if(id==='gate'){openGate();return;}if(!DOOR_LABEL[id])return;doors[id]=true;flowDirty=true;SFX.door();feed(DOOR_LABEL[id].replace('Open the ','The ')+' is open.','#fd8');S.dirOn=true;DIR.waves.push({t:S.t+1,n:80});}
 function inSafe(ent,s){const tx=Math.floor(ent.x/T),tz=Math.floor(ent.z/T);return tx>=s.x0&&tx<=s.x1&&tz>=s.z0&&tz<=s.z1&&charAt(tx,tz)==='K';}
 function closeSafe(){const s=SAFES[safeIndex];if(!s)return;if(NET.role==='off'){if(!inSafe(player,s))return;}else{const living=livingHumans();if(!living.length||!living.every(h=>inSafe(h,s))){feed('The whole team has to be in the safe room.','#fd8');return;}}
  for(const h of [player,...bots])if(h.cargo&&inSafe(h,s))tryDeliver(h);
@@ -2342,7 +2356,7 @@ function update(dt){S.t+=dt;
  // ----- AI -----
  directorUpdate(dt);
  for(const c of commons)updateCommon(c,dt);
- for(let i=commons.length-1;i>=0;i--){const c=commons[i];const far=Math.hypot(c.x-player.x,c.z-player.z);const fd=flow[tileOf(c)];if(c.dead&&c.swim&&c.deathT>1.5)commons.splice(i,1);else if(c.dead&&(c.deathT>48||(c.deathT>8&&far>68)))commons.splice(i,1);else if(!c.dead&&!c.feast&&!c.swim&&!c.seen&&!S.riding&&(far>78||fd>=INF&&far>60))commons.splice(i,1);}
+ for(let i=commons.length-1;i>=0;i--){const c=commons[i];const far=Math.hypot(c.x-player.x,c.z-player.z);const fd=flow[tileOf(c)];if(c.dead&&c.swim&&c.deathT>1.5)commons.splice(i,1);else if(c.dead&&(c.deathT>48||(c.deathT>8&&far>68)))commons.splice(i,1);else if(!c.dead&&!c.feast&&!c.swim&&!c.seen&&!S.riding&&(far>150||fd>=INF&&far>60))commons.splice(i,1);}
  {const dead=commons.filter(c=>c.dead);if(dead.length>100){dead.sort((a,b)=>(Math.hypot(b.x-player.x,b.z-player.z)+b.deathT*2)-(Math.hypot(a.x-player.x,a.z-player.z)+a.deathT*2));for(let k=0;k<dead.length-100;k++){const i=commons.indexOf(dead[k]);if(i>=0)commons.splice(i,1);}}}
  for(const s of specials)updateSpecial(s,dt);
  separateCommons();
@@ -2352,7 +2366,7 @@ function update(dt){S.t+=dt;
  if(NET.role!=='client'){tryDeliver(player);for(const b of bots)if(!b.down)tryDeliver(b);}
  // ----- triggers / objectives -----
  const reg=region();
- if(S.obj===1&&!S.dirOn&&player.x>16*T){player.flash=true;S.dirOn=true;DIR.nextSpecial=S.t+16;DIR.nextHorde=S.t+12;bark(null,'Trinity is behind us. First safe room is Redwood Acres.','town',99);}
+ if(S.obj===1&&!S.dirOn&&player.x>16*T){player.flash=true;S.dirOn=true;DIR.nextSpecial=S.t+8;DIR.nextHorde=S.t+4;DIR.pressT=0.3;bark(null,'Trinity is behind us. First safe room is Redwood Acres.','town',99);}
  if(!S.dirOn&&S.t>40&&player.x>16*T)S.dirOn=true;
  if(reg==='sky')bark(null,'Redwood Sky Walk. A hundred feet up, and the deck keeps turning.','sky',99);
  else if(reg==='zoo')bark(null,'Sequoia Park Zoo. Otters, the bear, the aviary. Stay out of the pens.','zoo',99);
@@ -2380,7 +2394,7 @@ function endRide(){S.riding=false;S.inLobby=true;S.shake=0;
  doors.g=true;flowDirty=true;flow=dijkstra([tileOf(player)]);flowTile=tileOf(player);setObj(9);SFX.ding(36*T,33*T);
  setTimeout(()=>$('fade').style.opacity=0,AUTOTEST?0:300);
  for(let i=0;i<9;i++){const sp=pickSpawn(6,40,false);if(sp)spawnCommon(sp.x,sp.z,false);}
- DIR.nextSpecial=S.t+15;DIR.queue=['boomer','hunter'];DIR.nextHorde=S.t+16;}
+ DIR.nextSpecial=S.t+8;DIR.queue=['boomer','hunter'];DIR.nextHorde=S.t+5;streetPack(120);}
 function completeChapter(){if(S.complete)return;S.complete=true;S.phase='done';
  const inside=bots.filter(b=>!b.down&&Math.hypot(b.x-player.x,b.z-player.z)<30);
  inside.forEach((b,i)=>{b.x=FIN.padX;b.z=FIN.padZ+(i-1)*1.2;b.y=10;placeBot(b);});
@@ -2546,7 +2560,7 @@ function resetChapter(remote){introGen++;restoreSpan();S.phase='play';S.t=0;S.ob
  for(const id of DOOR_IDS)doors[id]=false;if(doorMeshes.btn)doorMeshes.btn.material=mat(0xff3311,{emissive:0x661100});
  for(const it of items){it.taken=false;it.g.visible=true;}clearSpecials();commons.length=0;clearGrabSlots();
  if(remote){NET.cmap.clear();NET.smap.clear();NET.commonsReady=false;}else seedCommons();
- bots.forEach(resetBotBody);resetNuns();DIR.intensity=0;DIR.mode='BUILD-UP';DIR.relaxUntil=0;DIR.nextSpecial=0;DIR.nextHorde=0;DIR.spawnT=0;DIR.waves.length=0;DIR.queue=['smoker','boomer','hunter'];DIR.peakT=0;
+ bots.forEach(resetBotBody);resetNuns();DIR.intensity=0;DIR.mode='BUILD-UP';DIR.relaxUntil=0;DIR.nextSpecial=0;DIR.nextHorde=0;DIR.spawnT=0;DIR.pressT=0.4;DIR.waves.length=0;DIR.queue=['smoker','boomer','hunter'];DIR.peakT=0;
  safeIndex=0;recomputeRoute();flowDirty=true;flowTile=-1;feedLines.length=0;for(const k in barkCd)delete barkCd[k];renderFeed();
  $('dead').classList.add('hidden');$('done').classList.add('hidden');$('pause').classList.add('hidden');$('hud').classList.remove('hidden');$('title').classList.add('hidden');$('lobby').classList.add('hidden');$('fade').style.opacity='0';$('obj').textContent=OBJ[0];
  NET.paused=false;mouseDown=false;mouseRight=false;keys={};S.started=true;document.body.classList.remove('downed');
