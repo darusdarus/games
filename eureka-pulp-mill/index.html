@@ -1633,7 +1633,7 @@ const WEAP={pistol:{name:'Pistol',mag:15,dmg:34,rate:.17,spread:.012,pellets:1,r
  smg:{name:'SMG',mag:50,res:650,dmg:20,rate:.075,spread:.03,pellets:1,reload:2.0,auto:true}};
 const S={phase:'title',t:0,obj:0,kills:0,skills:0,heads:0,dmg:0,ff:0,shots:0,hits:0,alarmT:-1,elevT:-1,elevArrived:false,inElevT:0,riding:false,rideT:0,inLobby:false,lobbyHorde:false,biledT:0,healT:0,revT:0,revBot:null,cut:null,shake:0,fade:0,god:false,dirOn:false,complete:false,lowHpT:0,intro:0,started:false,spotted:{},bridge:'up',bridgeT:0,bridgeSplash:false,nuns:'wait',parts:0,fixT:0,fixBike:-1,toldPart:false,partNag:0,shopUp:false,swimOn:false,swimMade:0,swimT:0,swimTold:false};
 const player={x:4.5*T,z:8.5*T,y:1.6,yaw:-Math.PI/2,pitch:0.02,hp:100,down:false,lost:[],bite:null,headless:false,cargo:null,credits:[],loose:false,dropX:0,dropZ:0,kit:false,boatSeat:null,zipU:null,bike:null,inv:{primary:null,pistol:{type:'pistol',mag:15,res:Infinity}},slot:'pistol',fireCd:0,reloadT:0,shoveCd:0,lastShove:-9,kickCd:0,trig:false,bob:0,vx:0,vz:0,pinnedBy:null,pulledBy:null,pinShoves:0,flash:false,spread:0,crumbs:[],crumbT:0,hurtT:0,burnT:0};
-const commons=[],specials=[],bots=[],items=[];
+const commons=[],specials=[],bots=[],items=[],piles=[];
 let ENTID=0;
 const MAXC=2300,MAXI=2100;
 const SHIRTS=[0x6b5a3a,0x3a4a6b,0x7a2a2a,0x8e8a7c,0x2a2a2a,0x4a6a4a,0x7a5a7a,0x9a7a4a,0x5a3a2a,0xb8b0a0],PANTS=[0x2a2a35,0x3a3228,0x1f2a3a,0x4a4038,0x262626],SKINS=[0x8a9a7a,0x9a9282,0x7a8670,0xa09080];
@@ -2044,10 +2044,12 @@ function frontKick(ent){if(!ent||ent.down||(ent.pinnedBy&&!ent.pinnedBy.dead))re
  for(const c of commons)if(!c.dead&&inKickCone(ent,c.x,c.z,2.5))hit.push(c);
  for(const s of specials)if(!s.dead&&inKickCone(ent,s.x,s.z,2.8))hit.push(s);
  const corpses=kickCorpseTargets(ent);
- if(!hit.length&&!corpses.length)return;
+ const mounds=piles.filter(p=>pileInKick(ent,p));
+ if(!hit.length&&!corpses.length&&!mounds.length)return;
  if(hit.length){const kind=rollKick();for(const z of hit)applyKick(z,ent,kind);}
  for(const e of corpses)shoveCorpse(e,ent);
- if(corpses.length&&ent===player&&!bodiesTold){bodiesTold=true;feed('Kicked the bodies clear. A piled doorway stays shut until you do.','#fd8');}}
+ let shed=0;for(const p of mounds)shed+=shedPile(p,ent);
+ if((corpses.length||shed)&&ent===player&&!bodiesTold){bodiesTold=true;feed('Bodies came off the pile. Kick it again to break more loose.','#fd8');}}
 
 /* ---- zipline. Feet ride zipPos. The cable and trolley sit 1.15 above that. ---- */
 function zipPos(u){const t=Math.max(0,Math.min(1,u)),s=Math.sin(t*Math.PI);return {x:ZIP_A.x+(ZIP_B.x-ZIP_A.x)*t,y:ZIP_A.y+(ZIP_B.y-ZIP_A.y)*t-s*2.8,z:ZIP_A.z+(ZIP_B.z-ZIP_A.z)*t};}
@@ -2235,52 +2237,132 @@ function updateCommon(c,dt){c.hitT=Math.max(0,c.hitT-dt);
 function zBodyR(e){return e.type?SPEC[e.type].r:.36;}
 function zAnchored(e){return (e.type==='hunter'&&e.state==='pin')||(e.type==='smoker'&&e.state==='pull');}
 function kickPosed(e){return e.state==='sob'||e.state==='headwait'||e.state==='headwalk';}
-function corpseR(e){return e.type?SPEC[e.type].r*0.9:.4;}
-function corpseH(e){return e.type?(e.type==='boomer'?.62:.46):.4;}
-function corpseReady(e){if(!e||!e.dead||e.flying)return false;return e.type?e.deathT>0.2:(e.fall||0)>0.2;}
-function slumpOf(e){return ((((e.id||1)*17)%100)/100-.5)*.9;}
-function fallCap(e){const base=e.type?groundAt(e.x,e.z):bodyY(e.x,e.z);const lean=.58+(((e.id||1)*13)%100)/100*.28;return (e.y||0)>base+.25?Math.min(lean,.55):lean;}
-function doorishAt(x,z){const tx=Math.floor(x/T),tz=Math.floor(z/T);if(charAt(tx,tz)==='D')return true;return charAt(tx+1,tz)==='D'||charAt(tx-1,tz)==='D'||charAt(tx,tz+1)==='D'||charAt(tx,tz-1)==='D';}
-function noClimbAt(x,z){return ceilAt(x,z)!=null||doorishAt(x,z);}
+/* A heap of dead commons becomes one mound. The mesh stays near 300 triangles no matter how many bodies are in it. */
+let pileScan=0,pileSeq=1,PILE_MOUND=null,PILE_PLUG=null,PILE_TEX=null;
+function pileMetrics(count,x,z){const g=bodyY(x,z);const ceil=ceilAt(x,z);const room=ceil==null?120:Math.max(0.8,ceil-g);
+ const raw=0.5*Math.pow(Math.max(1,count),0.7);const sealed=ceil!=null&&raw+1.75>=room;
+ const h=sealed?room:Math.min(raw,120);const r=Math.min(14,0.75+Math.pow(Math.max(1,count),0.4)*0.62);
+ return {g,h,r,sealed,room,raw};}
+function pileTex(){if(PILE_TEX)return PILE_TEX;
+ const shirts=['#6b5a3a','#3a4a6b','#7a2a2a','#8e8a7c','#2a2a2a','#4a6a4a','#7a5a7a','#9a7a4a','#5a3a2a','#b8b0a0'];
+ const pants=['#2a2a35','#3a3228','#1f2a3a','#4a4038','#262626'];
+ const skins=['#8a9a7a','#9a9282','#7a8670','#a09080'];
+ PILE_TEX=canvasTex(512,512,(g,w,h)=>{g.fillStyle='#3a2e28';g.fillRect(0,0,w,h);
+  for(let i=0;i<42;i++){const x=(i*97)%w,y=(i*53)%h,ang=((i*47)%100)/100*Math.PI;
+   g.save();g.translate(x,y);g.rotate(ang);
+   g.fillStyle=pants[i%pants.length];g.fillRect(-46,-8,34,9);g.fillRect(-46,3,34,9);
+   g.fillStyle=shirts[i%shirts.length];g.fillRect(-14,-16,40,32);
+   g.fillStyle=skins[i%skins.length];g.fillRect(24,-11,18,22);
+   g.fillStyle='rgba(110,16,12,0.72)';g.fillRect(-6,-6,16,12);g.restore();}
+  g.fillStyle='rgba(70,8,8,0.38)';
+  for(let i=0;i<16;i++){g.beginPath();g.ellipse((i*80)%w,(i*63)%h,22+(i%5)*8,10+(i%4)*5,(i%7)*.4,0,6.3);g.fill();}});
+ PILE_TEX.wrapS=PILE_TEX.wrapT=THREE.RepeatWrapping;return PILE_TEX;}
+function addPileBox(positions,uvs,indices,cx,cy,cz,sx,sy,sz,yaw){const hx=sx/2,hy=sy/2,hz=sz/2,c=Math.cos(yaw),s=Math.sin(yaw);
+ const corners=[[-hx,-hy,-hz],[hx,-hy,-hz],[hx,hy,-hz],[-hx,hy,-hz],[-hx,-hy,hz],[hx,-hy,hz],[hx,hy,hz],[-hx,hy,hz]];
+ const base=positions.length/3;
+ for(const p of corners){const x=cx+p[0]*c-p[2]*s,y=cy+p[1],z=cz+p[0]*s+p[2]*c;positions.push(x,y,z);uvs.push(x*1.4+0.5,y*1.4);}
+ const faces=[[0,1,2,3],[5,4,7,6],[4,0,3,7],[1,5,6,2],[3,2,6,7],[4,5,1,0]];
+ for(const f of faces)indices.push(base+f[0],base+f[1],base+f[2],base+f[0],base+f[2],base+f[3]);}
+function pileGeo(kind){const segs=12,positions=[],uvs=[],indices=[];
+ if(kind==='mound'){const rings=6;positions.push(0,1,0);uvs.push(.5,.5);const ringAt=[0];let v=1;
+  for(let k=1;k<=rings;k++){ringAt[k]=v;const y=1-k/rings,rad=Math.sqrt(k/rings);
+   for(let s=0;s<segs;s++){const a=s/segs*Math.PI*2;positions.push(Math.cos(a)*rad,y,Math.sin(a)*rad);uvs.push(.5+Math.cos(a)*rad*.5,.5+Math.sin(a)*rad*.5);v++;}}
+  for(let s=0;s<segs;s++)indices.push(0,ringAt[1]+s,ringAt[1]+(s+1)%segs);
+  for(let k=1;k<rings;k++){const a=ringAt[k],b=ringAt[k+1];
+   for(let s=0;s<segs;s++){const s2=(s+1)%segs;indices.push(a+s,b+s,b+s2,a+s,b+s2,a+s2);}}
+  const bot=v;positions.push(0,0,0);uvs.push(.5,.5);v++;
+  for(let s=0;s<segs;s++)indices.push(bot,ringAt[rings]+(s+1)%segs,ringAt[rings]+s);
+  const lumps=[[.12,.46,.04,.52,.2,.26,.4],[-.26,.3,.16,.34,.14,.46,1.1],[.2,.24,-.28,.4,.12,.2,-.5],[-.02,.62,-.08,.2,.16,.2,.2],[.4,.16,.1,.16,.1,.42,.9],[-.38,.18,-.12,.14,.1,.4,-.3],[.02,.12,.4,.44,.1,.18,1.6],[-.16,.38,.3,.28,.12,.22,2.2],[.3,.36,.2,.18,.14,.18,.5],[-.3,.14,.26,.2,.1,.34,-1.1],[.08,.2,-.4,.36,.1,.16,.7],[-.1,.52,.06,.24,.1,.28,-.2],[.26,.08,-.06,.3,.08,.14,2.5]];
+  for(const L of lumps)addPileBox(positions,uvs,indices,L[0],L[1],L[2],L[3],L[4],L[5],L[6]);}
+ else{const stacks=4,ringAt=[];let v=0;
+  for(let k=0;k<=stacks;k++){ringAt[k]=v;const y=k/stacks,rad=1-.14*y;
+   for(let s=0;s<segs;s++){const a=s/segs*Math.PI*2;positions.push(Math.cos(a)*rad,y,Math.sin(a)*rad);uvs.push(s/segs,y);v++;}}
+  for(let k=0;k<stacks;k++){const a=ringAt[k],b=ringAt[k+1];
+   for(let s=0;s<segs;s++){const s2=(s+1)%segs;indices.push(a+s,b+s,b+s2,a+s,b+s2,a+s2);}}
+  positions.push(0,0,0);uvs.push(.5,.5);const bc=v++;
+  for(let s=0;s<segs;s++)indices.push(bc,ringAt[0]+(s+1)%segs,ringAt[0]+s);
+  positions.push(0,1,0);uvs.push(.5,1);const tc=v++;const top=ringAt[stacks];
+  for(let s=0;s<segs;s++)indices.push(tc,top+s,top+(s+1)%segs);
+  const lumps=[[.2,.35,.05,.55,.22,.28,.3],[-.25,.55,.12,.4,.18,.3,1],[.15,.72,-.2,.32,.16,.24,-.4],[0,.88,.02,.22,.16,.22,.1],[.55,.28,.08,.16,.12,.4,.8],[-.5,.4,-.1,.16,.12,.38,-.5],[.05,.18,.45,.46,.14,.2,1.4],[-.2,.62,.35,.3,.14,.22,2],[.35,.5,.28,.22,.16,.2,.6],[-.35,.22,.3,.24,.12,.36,-1],[.1,.3,-.48,.4,.12,.18,.9],[-.08,.78,.1,.26,.12,.3,-.2],[.3,.12,-.1,.32,.1,.16,2.4],[-.42,.48,.22,.2,.14,.28,.2],[.42,.66,-.22,.18,.14,.26,-1.3]];
+  for(const L of lumps)addPileBox(positions,uvs,indices,L[0],L[1],L[2],L[3],L[4],L[5],L[6]);}
+ const geo=new THREE.BufferGeometry();
+ geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+ geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
+ geo.setIndex(indices);geo.computeVertexNormals();return geo;}
+function moundGeo(){return PILE_MOUND||(PILE_MOUND=pileGeo('mound'));}
+function plugGeo(){return PILE_PLUG||(PILE_PLUG=pileGeo('plug'));}
+function refreshPile(p){const m=pileMetrics(p.count,p.x,p.z);p.g=m.g;p.h=m.h;p.r=m.r;p.sealed=m.sealed;p.room=m.room;
+ const geo=p.sealed?plugGeo():moundGeo();
+ if(!p.mesh){const map=pileTex().clone();map.wrapS=map.wrapT=THREE.RepeatWrapping;map.colorSpace=THREE.SRGBColorSpace;map.needsUpdate=true;
+  p.mesh=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({map}));p.mesh.name='corpse-pile';p.mesh.frustumCulled=false;scene.add(p.mesh);}
+ else if(p.mesh.geometry!==geo)p.mesh.geometry=geo;
+ const tile=3.2;p.mesh.material.map.repeat.set(Math.max(1,p.r*2/tile),Math.max(1,(p.r+p.h)/tile));
+ p.mesh.position.set(p.x,p.g,p.z);p.mesh.scale.set(p.r,Math.max(.15,p.h),p.r);}
+function makePile(x,z,count,id){const p={id:id==null?pileSeq++:id|0,x,z,count:count|0,mesh:null,g:0,h:1,r:1,sealed:false};if(id!=null)pileSeq=Math.max(pileSeq,(id|0)+1);refreshPile(p);piles.push(p);return p;}
+function destroyPile(p,idx){if(p.mesh){scene.remove(p.mesh);if(p.mesh.material){if(p.mesh.material.map)p.mesh.material.map.dispose();p.mesh.material.dispose();}}
+ const i=idx!=null?idx:piles.indexOf(p);if(i>=0)piles.splice(i,1);}
+function pileTop(p,x,z){if(!p||p.sealed)return -1;const d=Math.hypot(x-p.x,z-p.z);if(d>=p.r)return -1;const u=d/p.r;return p.g+p.h*(1-u*u);}
+function drawPiles(){for(const p of piles)refreshPile(p);}
+function pileInKick(ent,p){const dx=p.x-ent.x,dz=p.z-ent.z,d=Math.hypot(dx,dz);if(d<0.35)return true;
+ const rimX=p.x-dx/d*Math.min(p.r,d),rimZ=p.z-dz/d*Math.min(p.r,d);return inKickCone(ent,rimX,rimZ,3.2);}
+function shedSpot(p,ux,uz){for(const dist of [p.r+.45,p.r*.55,.4]){const x=p.x+ux*dist,z=p.z+uz*dist;if(isWalk(Math.floor(x/T),Math.floor(z/T)))return {x,z};}
+ if(isWalk(Math.floor(p.x/T),Math.floor(p.z/T)))return {x:p.x,z:p.z};return null;}
+function makeShedCorpse(x,z){const c={id:++ENTID,x,z,y:bodyY(x,z)+.45,yaw:rand(0,6.28),hp:0,dead:true,deathT:.5,fall:.15,state:'wander',target:null,atk:0,phase:rand(0,6),wt:0,wdx:0,wdz:0,stag:0,pvx:0,pvz:0,shirt:pick(SHIRTS),pants:pick(PANTS),skin:pick(SKINS),speed:0,swipe:0,chk:9,groanT:99,hitT:0,mv:0,looseT:2.8,slideT:.9,flying:false,fvx:0,fvz:0,fvy:2.2};
+ commons.push(c);return c;}
+function shedPile(p,ent){const n=Math.min(p.count,Math.max(4,Math.min(10,Math.round(p.count*.2))));
+ const fx=-Math.sin(ent.yaw),fz=-Math.cos(ent.yaw);let made=0;
+ for(let i=0;i<n;i++){const fan=(i-(n-1)/2)*.22;let dx=fx-fz*fan,dz=fz+fx*fan,len=Math.hypot(dx,dz)||1;dx/=len;dz/=len;
+  const spot=shedSpot(p,dx,dz);if(!spot)continue;const c=makeShedCorpse(spot.x,spot.z);const spd=8+Math.random()*3;
+  c.fvx=dx*spd;c.fvz=dz*spd;c.fvy=2.2;c.yaw=Math.atan2(dx,dz);
+  for(let k=0;k<3;k++)PBlood.emit(c.x,c.y+.2,c.z,dx*2+rand(-1,1),rand(.4,1.6),dz*2+rand(-1,1),rand(.28,.5),.2,.1,.45,.04,.02,.9,7);
+  made++;}
+ p.count-=made;refreshPile(p);if(p.count<=0)destroyPile(p);return made;}
+function settledLoose(c){return !!(c&&c.dead&&!c.swim&&!c.flying&&!c.type&&(c.fall||0)>.85&&(c.deathT||0)>.45&&(c.slideT||0)<=0&&(c.looseT||0)<=0);}
+function absorbSettled(){const eaten=new Set();
+ for(const c of commons){if(!settledLoose(c))continue;let best=null,bd=1e9;
+  for(const p of piles){const d=Math.hypot(c.x-p.x,c.z-p.z);if(d<p.r+.8&&d<bd){bd=d;best=p;}}
+  if(!best)continue;const n=best.count,nx=(best.x*n+c.x)/(n+1),nz=(best.z*n+c.z)/(n+1);
+  if(isWalk(Math.floor(nx/T),Math.floor(nz/T))){best.x=nx;best.z=nz;}best.count=n+1;refreshPile(best);eaten.add(c);}
+ const loose=commons.filter(c=>settledLoose(c)&&!eaten.has(c));const used=new Set();
+ for(let i=0;i<loose.length;i++){if(used.has(loose[i]))continue;const cluster=[loose[i]];used.add(loose[i]);let grew=true;
+  while(grew){grew=false;for(const o of loose){if(used.has(o))continue;for(const m of cluster){if(Math.hypot(o.x-m.x,o.z-m.z)<=1.15){cluster.push(o);used.add(o);grew=true;break;}}}}
+  if(cluster.length<2)continue;let sx=0,sz=0;for(const c of cluster){sx+=c.x;sz+=c.z;eaten.add(c);}
+  const n=cluster.length;let x=sx/n,z=sz/n;if(!isWalk(Math.floor(x/T),Math.floor(z/T))){x=cluster[0].x;z=cluster[0].z;}makePile(x,z,n);}
+ if(eaten.size){for(let i=commons.length-1;i>=0;i--)if(eaten.has(commons[i]))commons.splice(i,1);}}
+function gluePiles(){let changed=true;
+ while(changed){changed=false;
+  for(let i=0;i<piles.length&&!changed;i++)for(let j=i+1;j<piles.length;j++){const a=piles[i],b=piles[j];
+   if(Math.hypot(a.x-b.x,a.z-b.z)>=a.r+b.r-0.05)continue;
+   const n=a.count+b.count;let x=(a.x*a.count+b.x*b.count)/n,z=(a.z*a.count+b.z*b.count)/n;const bigger=a.count>=b.count?a:b;
+   if(!isWalk(Math.floor(x/T),Math.floor(z/T))){x=bigger.x;z=bigger.z;}a.x=x;a.z=z;a.count=n;refreshPile(a);destroyPile(b,j);changed=true;break;}}}
+function tickPiles(dt){for(const p of piles)refreshPile(p);pileScan-=dt;if(pileScan>0)return;pileScan=.2;absorbSettled();gluePiles();}
+function syncPiles(list){const seen=new Set();
+ for(const row of list){const id=row[0]|0,x=+row[1],z=+row[2],count=row[3]|0;seen.add(id);let p=null;for(const q of piles)if(q.id===id){p=q;break;}
+  if(!p)makePile(x,z,count,id);else{p.x=x;p.z=z;p.count=count;refreshPile(p);}}
+ for(let i=piles.length-1;i>=0;i--)if(!seen.has(piles[i].id))destroyPile(piles[i],i);}
 function nearestOpenDoor(x,z){const tx=Math.floor(x/T),tz=Math.floor(z/T);let best=null,bd=1e9;
  for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){const id=doorId(tx+dx,tz+dz);if(!id||!doors[id])continue;const cx=(tx+dx+.5)*T,cz=(tz+dz+.5)*T,d=Math.hypot(cx-x,cz-z);if(d<bd){bd=d;best={x:cx,z:cz};}}
  return best;}
 function nudgeDoor(e,dt){if(e.swim||(e.slideT||0)>0)return;const spot=nearestOpenDoor(e.x,e.z);if(!spot)return;const dx=spot.x-e.x,dz=spot.z-e.z,d=Math.hypot(dx,dz);if(d<0.08)return;const step=Math.min(d,.9*dt);moveEnt(e,dx/d*step,dz/d*step,e.type?.35:.3);}
-function settleCorpse(e,dt,radius){e.deathT+=dt;e.flying=false;
- if(!e.type){const cap=fallCap(e);if((e.slideT||0)>0)e.fall=Math.max(.12,(e.fall||0)-dt*1.6);else e.fall=(e.fall||0)<cap?Math.min(cap,(e.fall||0)+dt*2.6):Math.max(cap,(e.fall||0)-dt*1.1);}
+function settleCorpse(e,dt,radius){e.deathT+=dt;e.flying=false;if((e.looseT||0)>0)e.looseT-=dt;
+ if(!e.type)e.fall=Math.min(1,(e.fall||0)+dt*((e.slideT||0)>0?1.5:2.8));
  if((e.slideT||0)<=0&&e.deathT<1.2)nudgeDoor(e,dt);
  const gnd=corpseRestY(e);const sliding=(e.slideT||0)>0||(e.deathT<3&&Math.hypot(e.fvx||0,e.fvz||0)>.05);
  if(e.y>gnd+0.04){e.fvy=(e.fvy||0)-KICK_G*dt;e.y+=e.fvy*dt;
   if(sliding){moveEnt(e,(e.fvx||0)*dt,(e.fvz||0)*dt,radius);const damp=Math.exp(-dt*1.5);e.fvx*=damp;e.fvz*=damp;if((e.slideT||0)>0)e.slideT-=dt;}
   if(e.y<=gnd){e.y=gnd;e.fvy=0;}}
  else{e.y=gnd;e.fvy=0;if(sliding){moveEnt(e,(e.fvx||0)*dt,(e.fvz||0)*dt,radius);const damp=Math.exp(-dt*1.5);e.fvx*=damp;e.fvz*=damp;if((e.slideT||0)>0)e.slideT-=dt;if((e.slideT||0)<=0&&Math.hypot(e.fvx||0,e.fvz||0)<.4){e.fvx=0;e.fvz=0;e.slideT=0;}}}}
-let corpseCellT=-1,corpseCells=null;
-function corpseGrid(){if(corpseCells&&corpseCellT===S.t)return corpseCells;corpseCellT=S.t;const m=new Map();
- const add=e=>{if(!corpseReady(e))return;const k=((e.x/T)|0)+','+((e.z/T)|0);let b=m.get(k);if(!b)m.set(k,b=[]);b.push(e);};
- for(const c of commons)add(c);for(const s of specials)add(s);corpseCells=m;return m;}
-function jamCount(tx,tz){if(charAt(tx,tz)!=='D')return 0;const g=corpseGrid();let n=0;
- for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){const b=g.get((tx+dx)+','+(tz+dz));if(!b)continue;for(const e of b){if((e.slideT||0)<=0&&Math.floor(e.x/T)===tx&&Math.floor(e.z/T)===tz)n++;}}
- return n;}
-function ejectJam(e){const tx=Math.floor(e.x/T),tz=Math.floor(e.z/T);if(jamCount(tx,tz)<2)return false;let best=null,bd=1e9;
- for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=tx+dx,nz=tz+dz;if(!isWalk(nx,nz))continue;if(charAt(nx,nz)==='D'&&jamCount(nx,nz)>=2)continue;const cx=(nx+.5)*T,cz=(nz+.5)*T,d=Math.hypot(cx-e.x,cz-e.z);if(d<bd){bd=d;best={nx,nz};}}
- if(!best)return false;if(best.nx!==tx)e.x=best.nx>tx?(tx+1)*T+.05:tx*T-.05;else e.z=best.nz>tz?(tz+1)*T+.05:tz*T-.05;return true;}
 function pushesCorpses(e){if(!e||e.dead||e.flying||e.swim||e.boatSeat!=null||e.bike!=null||e.zipU!=null)return false;if(e===player&&S.fly)return false;return true;}
-function pushCorpses(e,r){if(!pushesCorpses(e))return;ejectJam(e);if(!noClimbAt(e.x,e.z))return;const g=corpseGrid();const tx=Math.floor(e.x/T),tz=Math.floor(e.z/T);
- for(let pass=0;pass<2;pass++){for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){const b=g.get((tx+dx)+','+(tz+dz));if(!b)continue;
-  for(const c of b){if(c===e||(c.slideT||0)>0)continue;const br=doorishAt(c.x,c.z)?.72:.46,need=br+r*.85;let ddx=e.x-c.x,ddz=e.z-c.z,d=Math.hypot(ddx,ddz);if(d>=need)continue;if(d<1e-4){ddx=1;ddz=0;d=1;}e.x+=ddx/d*(need-d);e.z+=ddz/d*(need-d);}}}
- ejectJam(e);}
-function standY(x,z){let y=bodyY(x,z);if(noClimbAt(x,z))return y;
- const add=e=>{if(!corpseReady(e)||noClimbAt(e.x,e.z))return;const base=e.type?groundAt(e.x,e.z):bodyY(e.x,e.z);const rise=(e.y-base)+corpseH(e);if(rise<=0.04)return;const r=corpseR(e)+Math.max(0,rise-corpseH(e))*0.9;const d=Math.hypot(e.x-x,e.z-z);if(d>=r)return;const top=base+rise*(1-d/r);if(top>y)y=top;};
- for(const c of commons)add(c);for(const s of specials)add(s);return y;}
+function pushCorpses(e,r){if(!pushesCorpses(e))return;
+ for(const p of piles){if(!p.sealed)continue;let dx=e.x-p.x,dz=e.z-p.z,d=Math.hypot(dx,dz);const need=p.r+r*.5;if(d>=need)continue;
+  if(d<1e-4){dx=1;dz=0;d=1;}const nx=e.x+dx/d*(need-d),nz=e.z+dz/d*(need-d),ox=e.x,oz=e.z;e.x=nx;e.z=nz;
+  if(!isWalk(Math.floor(e.x/T),Math.floor(e.z/T))){e.x=ox;e.z=oz;e.x=nx;if(!isWalk(Math.floor(e.x/T),Math.floor(e.z/T)))e.x=ox;e.z=nz;if(!isWalk(Math.floor(e.x/T),Math.floor(e.z/T)))e.z=oz;}}}
+function standY(x,z){let y=bodyY(x,z);
+ for(const p of piles){const top=pileTop(p,x,z);if(top>y)y=top;}
+ const step=e=>{if(!e||!e.dead||e.flying||e.swim||(e.slideT||0)>0)return;if(e.type?e.deathT<.35:(e.fall||0)<.8)return;const d=Math.hypot(e.x-x,e.z-z);if(d>=.55)return;const base=e.type?groundAt(e.x,e.z):bodyY(e.x,e.z);const top=base+.28*(1-d/.55);if(top>y)y=top;};
+ for(const c of commons)step(c);for(const s of specials)step(s);return y;}
 function corpseRestY(e){const base=e.type?groundAt(e.x,e.z):bodyY(e.x,e.z);let y=base;
- const consider=o=>{if(o===e||!corpseReady(o)||(o.id||0)>=(e.id||0))return;const d=Math.hypot(o.x-e.x,o.z-e.z);const need=(corpseR(e)+corpseR(o))*0.9;if(d>=need)return;const top=o.y+corpseH(o)*(d<need*0.45?1:(1-d/need));if(top>y)y=top;};
- for(const c of commons)consider(c);for(const s of specials)consider(s);
- const cap=base+2.5;if(y<=cap)return y;
- if(doorishAt(e.x,e.z))return cap;
- if(e.y<=cap+0.2){let sx=0,sz=0,n=0;const push=o=>{if(o===e||!o.dead)return;const dx=e.x-o.x,dz=e.z-o.z,d=Math.hypot(dx,dz)||1;if(d>corpseR(e)+corpseR(o))return;sx+=dx/d;sz+=dz/d;n++;};
-  for(const c of commons)push(c);for(const s of specials)push(s);
-  if(n){const l=Math.hypot(sx,sz)||1;e.x+=sx/l*0.35;e.z+=sz/l*0.35;collide(e,e.type?0.35:0.3);}}
- return cap;}
+ for(const p of piles){const top=pileTop(p,e.x,e.z);if(top>y)y=top;}return y;}
 function separateCommons(){const a=[];for(const c of commons)if(!c.dead&&!c.flying&&!c.swim&&c.seen)a.push(c);for(const s of specials)if(!s.dead&&!s.flying)a.push(s);
  const n=a.length;if(!n)return;const cell=2,blocked=new Uint8Array(n);
  const relax=(placeY)=>{const buckets=new Map();
@@ -2312,8 +2394,8 @@ function separateCommons(){const a=[];for(const c of commons)if(!c.dead&&!c.flyi
  for(const s of specials){if(s.dead||s.flying||!s.mesh)continue;s.mesh.g.position.set(s.x,s.y,s.z);}}
 const _root=new THREE.Matrix4(),_R=new THREE.Matrix4(),_P=new THREE.Matrix4(),_M=new THREE.Matrix4(),_c=new THREE.Color();
 function drawCommons(){let n=0;const list=[];for(const c of commons)list.push(c);list.sort((a,b)=>{const p=c=>c.dead?4:(c.state==='grab'||c.state==='climb')?0:c.state==='jump'?1:c.swim?2:3;return p(a)-p(b);});for(const c of list){if(n>=MAXI)break;const rush=!c.dead&&c.state==='rush'&&c.stag<=0;
- _root.makeRotationY(c.yaw);if(c.dead){_R.makeRotationX(-c.fall*1.48);_root.multiply(_R);_R.makeRotationZ(slumpOf(c));_root.multiply(_R);}else if(c.state==='sob'){_R.makeRotationX(-1.35);_root.multiply(_R);}else if(c.state==='grab'){_R.makeRotationX(.95);_root.multiply(_R);}else if(c.state==='jump'){_R.makeRotationX(-.55);_root.multiply(_R);}else if(c.state==='swim'){_R.makeRotationX(1.05);_root.multiply(_R);}else if(c.state==='climb'){_R.makeRotationX(-.2-Math.min(1,c.climb||0)*.4);_root.multiply(_R);}else if(c.flying){_R.makeRotationX(-1.1);_root.multiply(_R);}else if(rush&&c.mv>1){_R.makeRotationX(.2);_root.multiply(_R);}else if(c.stag>0){_R.makeRotationX(-.35);_root.multiply(_R);}
- _root.setPosition(c.x,c.y+(c.dead?c.fall*.12:0)+(!c.dead&&c.state==='sob'?-.22:0)+(c.state==='swim'?-.2:0),c.z);const sw=Math.sin(c.phase),mvk=Math.min(1,c.mv/2.5);
+ _root.makeRotationY(c.yaw);if(c.dead){_R.makeRotationX(-c.fall*1.57);_root.multiply(_R);}else if(c.state==='sob'){_R.makeRotationX(-1.35);_root.multiply(_R);}else if(c.state==='grab'){_R.makeRotationX(.95);_root.multiply(_R);}else if(c.state==='jump'){_R.makeRotationX(-.55);_root.multiply(_R);}else if(c.state==='swim'){_R.makeRotationX(1.05);_root.multiply(_R);}else if(c.state==='climb'){_R.makeRotationX(-.2-Math.min(1,c.climb||0)*.4);_root.multiply(_R);}else if(c.flying){_R.makeRotationX(-1.1);_root.multiply(_R);}else if(rush&&c.mv>1){_R.makeRotationX(.2);_root.multiply(_R);}else if(c.stag>0){_R.makeRotationX(-.35);_root.multiply(_R);}
+ _root.setPosition(c.x,c.y+(c.dead?.03:0)+(!c.dead&&c.state==='sob'?-.22:0)+(c.state==='swim'?-.2:0),c.z);const sw=Math.sin(c.phase),mvk=Math.min(1,c.mv/2.5);
  for(let k=0;k<6;k++){const p=PARTS[k];let rot=0;
   if(k===2)rot=c.dead?-1.05:rush?-1.35+sw*.2-c.swipe*2:-.1+sw*.3*mvk;
   if(k===3)rot=c.dead?-.8:rush?-1.45-sw*.2-c.swipe*1.5:-.1-sw*.3*mvk;
@@ -2337,7 +2419,7 @@ function vicOf(s){if(NET.role!=='host')return player;
  if(s.vic&&!s.vic.down&&Math.hypot(s.vic.x-s.x,s.vic.z-s.z)<bd+3)best=s.vic;
  s.vic=best;return best;}
 function updateSpecial(s,dt){const m=s.mesh;s.hitT=Math.max(0,s.hitT-dt);
- if(s.dead){settleCorpse(s,dt,.35);const lean=s.y>groundAt(s.x,s.z)+.25?-.72:-1.05;m.b.rotation.x=lerp(m.b.rotation.x,lean,dt*5);m.g.rotation.x=0;m.g.rotation.z=slumpOf(s);m.g.position.set(s.x,s.y,s.z);m.g.visible=true;return;}
+ if(s.dead){settleCorpse(s,dt,.35);m.b.rotation.x=lerp(m.b.rotation.x,-1.5,dt*6);m.g.rotation.x=0;m.g.rotation.z=0;m.g.position.set(s.x,s.y,s.z);m.g.visible=true;return;}
  if(kickPosed(s)){tickKickPose(s,dt,standY,.35);poseKickSpecial(s);if(s.state==='sob'&&(s.sobSnd||0)<=S.t){s.sobSnd=S.t+rand(1.2,1.8);SFX.sob(s.x,s.z);}return;}
  if(s.flying){const phase=tickFlight(s,dt,.35,groundAt);if(phase==='land'){s.state='approach';s.cd=.4;s.stag=.2;s.vic=s.target||player;m.g.rotation.x=0;m.g.rotation.z=0;}
   m.g.position.set(s.x,s.y,s.z);m.g.rotation.y=s.yaw;if(s.flying){m.g.rotation.x=Math.sin(S.t*7)*.8;m.g.rotation.z=Math.cos(S.t*5)*.35;}return;}
@@ -2438,6 +2520,7 @@ function update(dt){S.t+=dt;
  // ----- AI -----
  directorUpdate(dt);
  for(const c of commons)updateCommon(c,dt);
+ if(NET.role!=='client')tickPiles(dt);
  for(let i=commons.length-1;i>=0;i--){const c=commons[i];const far=Math.hypot(c.x-player.x,c.z-player.z);const fd=flow[tileOf(c)];if(c.dead&&c.swim&&c.deathT>1.5)commons.splice(i,1);else if(c.dead&&(c.deathT>48||(c.deathT>8&&far>68)))commons.splice(i,1);else if(!c.dead&&!c.feast&&!c.swim&&!c.seen&&!S.riding&&(far>150||fd>=INF&&far>60))commons.splice(i,1);}
  {const dead=commons.filter(c=>c.dead);if(dead.length>100){dead.sort((a,b)=>(Math.hypot(b.x-player.x,b.z-player.z)+b.deathT*2)-(Math.hypot(a.x-player.x,a.z-player.z)+a.deathT*2));for(let k=0;k<dead.length-100;k++){const i=commons.indexOf(dead[k]);if(i>=0)commons.splice(i,1);}}}
  for(const s of specials)updateSpecial(s,dt);
@@ -2794,7 +2877,7 @@ function frame(){requestAnimationFrame(frame);const dt=Math.min(.05,clock.getDel
  if(S.phase==='title'){const t=performance.now()/1000;camera.position.set(FIN.padX+14+Math.sin(t*.08)*2,26,FIN.padZ+16);camera.lookAt(FIN.padX,11,FIN.padZ);updateFx(dt,'roof');}
  else{updateCamera(dt);}
  if(window.__sky)window.__sky.position.copy(camera.position);
- drawCommons();if(S.phase==='play'||AUTOTEST)updateHud(dt);for(const b of bots)if(S.phase==='title')placeBot(b);
+ drawCommons();drawPiles();if(S.phase==='play'||AUTOTEST)updateHud(dt);for(const b of bots)if(S.phase==='title')placeBot(b);
  render();}
 frame();
 
@@ -2892,7 +2975,7 @@ function buildSnap(){const slots=[slotPack(player,0)];bots.forEach((b,i)=>slots.
   bridge:S.bridge==='up'?0:S.bridge==='fall'?1:2,bridgeT:nq(S.bridgeT),
   boat:BOAT.show?[nq(BOAT.x),nq(BOAT.z),nq(BOAT.yaw),nq(BOAT.stroke),BOAT.beached?1:0]:null,
   bikes:bikes.map(b=>[nq(b.x),nq(b.z),nq(b.yaw),(b.fixed?1:0)|(b.sunk?2:0)|(b.sinking?4:0),b.rider|0,nq(b.spd||0)]),
-  nun:S.nuns,parts:S.parts|0,swim:S.swimOn?1:0};}
+  nun:S.nuns,parts:S.parts|0,swim:S.swimOn?1:0,piles:piles.map(p=>[p.id,nq(p.x),nq(p.z),p.count|0])};}
 function reloadBlocked(mag){const L=NET.reloadLatch;if(!L||typeof L.mag!=='number')return false;if(L.slot!==player.slot||S.t>L.until||(mag|0)>=L.mag){NET.reloadLatch=null;return false;}return true;}
 function syncInvFrom(me){const pose=NET.poseUntil>S.t;const keepMag=player.reloadT>0||reloadBlocked(me.mag);
  if(me.w==='pistol'||!WEAP[me.w]){if(pose&&NET.poseSlot==='primary')return;player.slot='pistol';if(!keepMag)player.inv.pistol.mag=me.mag|0;return;}
@@ -2951,7 +3034,7 @@ function applySnap(m){NET.snap=m;NET.snaps++;
  if(me){S.revBot=me.rv>=0?entBySlot(me.rv):null;if(S.revBot)poseLimbs(S.revBot);}
  for(const b of bots){b.revVic=(b._rv>=0)?entBySlot(b._rv):null;if(b.revVic)poseLimbs(b.revVic);}
  bindAllCargo();
- syncCommons(m.c||[]);syncSpecials(m.s||[]);
+ syncCommons(m.c||[]);syncSpecials(m.s||[]);if(Array.isArray(m.piles))syncPiles(m.piles);
  for(const e of m.ev||[])playNetEvent(e);
  if(m.ff!=null&&NET.role==='client')adoptFF(!!m.ff);
  if(m.swarm!=null&&NET.role==='client')adoptSwarm(m.swarm);
@@ -2966,7 +3049,7 @@ function smoothRemote(dt){const k=1-Math.exp(-dt*14);
   if(b.down){b.mesh.b.rotation.x=lerp(b.mesh.b.rotation.x,-1.45,dt*5);if(b.tag)b.tag.material.color.setHex(0xff4444);}else{b.mesh.b.rotation.x=lerp(b.mesh.b.rotation.x,0,dt*5);if(b.tag)b.tag.material.color.setHex(0xffffff);}placeBot(b);}
  for(const c of commons){if(c.tx==null)continue;const ox=c.x,oz=c.z;c.x=lerp(c.x,c.tx,k);c.z=lerp(c.z,c.tz,k);c.yaw=lerpAng(c.yaw,c.tyaw||c.yaw,k);c.mv=Math.hypot(c.x-ox,c.z-oz)/Math.max(dt,1e-4);c.phase+=dt*(1.5+c.mv*1.6);c.y=c.ty!=null?lerp(c.y,c.ty,k):bodyY(c.x,c.z);c.flying=!c.dead&&!kickPosed(c)&&c.state!=='swim'&&c.state!=='climb'&&c.state!=='jump'&&c.state!=='grab'&&c.y>bodyY(c.x,c.z)+1.2;if(c.state==='sob'&&(c.sobSnd||0)<=S.t){c.sobSnd=S.t+rand(1.2,1.8);SFX.sob(c.x,c.z);}if(c.dead)c.deathT+=dt;}
  for(const s of specials){if(s.tx==null||!s.mesh)continue;s.x=lerp(s.x,s.tx,k);s.z=lerp(s.z,s.tz,k);if(s.ty!=null)s.y=lerp(s.y,s.ty,k);s.yaw=lerpAng(s.yaw,s.tyaw||s.yaw,k);
-  if(s.dead){s.deathT=(s.deathT||0)+dt;const lean=s.y>groundAt(s.x,s.z)+.25?-.72:-1.05;s.mesh.b.rotation.x=lerp(s.mesh.b.rotation.x,lean,dt*5);s.mesh.g.visible=true;s.mesh.g.rotation.x=0;s.mesh.g.rotation.z=slumpOf(s);s.mesh.g.position.set(s.x,s.y,s.z);continue;}
+  if(s.dead){s.deathT=(s.deathT||0)+dt;s.mesh.b.rotation.x=lerp(s.mesh.b.rotation.x,-1.5,dt*6);s.mesh.g.visible=true;s.mesh.g.rotation.x=0;s.mesh.g.rotation.z=0;s.mesh.g.position.set(s.x,s.y,s.z);continue;}
   if(kickPosed(s)){poseKickSpecial(s);if(s.state==='sob'&&(s.sobSnd||0)<=S.t){s.sobSnd=S.t+rand(1.2,1.8);SFX.sob(s.x,s.z);}if(s.mesh.tongue)s.mesh.tongue.visible=false;continue;}
   poseSpecial(s,dt,s.state==='approach'?3:0);
   if(s.y>groundAt(s.x,s.z)+1.2){s.mesh.g.rotation.x=Math.sin(S.t*7)*.8;s.mesh.g.rotation.z=Math.cos(S.t*5)*.35;}else{s.mesh.g.rotation.x=0;s.mesh.g.rotation.z=0;}
@@ -3133,7 +3216,7 @@ function autopilot(dt){AP.mv=[0,0];AP.fire=false;AP.revive=false;AP.useCd-=dt;AP
   if(nc==='D'&&nid&&!doors[nid]){goal=[(tx+.5+bx*.35)*T,(tz+.5+bz*.35)*T];if(nid==='roof'&&S.elevT<0)goal=[FIN.callX,FIN.callZ];if(Math.hypot(goal[0]-player.x,goal[1]-player.z)<1.5&&AP.useCd<=0){AP.useCd=.8;player.yaw=Math.atan2(-(nx+.5)*T+player.x,-(nz+.5)*T+player.z);useAction();}}
   else{goal=[(nx+.5)*T,(nz+.5)*T];}}
  if(goal){const dx=goal[0]-player.x,dz=goal[1]-player.z,d=Math.hypot(dx,dz);if(d>.15)AP.mv=[dx/d,dz/d];if(!tgt&&d>.3){player.yaw=Math.atan2(-dx,-dz);player.pitch=0;}}}
-window.__game={autopilot,update,updateCamera,fire,AP,useTargets,moveEnt,collide,isWalk,flowStep,groundAt,shotHitT,pointHidden,spawnHorde,hallPics(){let n=0;scene.traverse(m=>{if(m.name==='hallpic')n++;});return n;},cover:()=>COVER.length,coverTiles:()=>COVER,coverStats:()=>COVER_STATS,S,player,bots,commons,specials,doors,items,route,G,T,W,H,applySnap,bikes,nuns,
+window.__game={autopilot,update,updateCamera,fire,AP,useTargets,moveEnt,collide,isWalk,flowStep,groundAt,shotHitT,pointHidden,spawnHorde,hallPics(){let n=0;scene.traverse(m=>{if(m.name==='hallpic')n++;});return n;},cover:()=>COVER.length,coverTiles:()=>COVER,coverStats:()=>COVER_STATS,S,player,bots,commons,specials,piles,doors,items,route,G,T,W,H,applySnap,bikes,nuns,
  hurtPlayer,knockDown,finishRevive,chooseCut,cycleCut,limbsLeft,poseLimbs,poseOwnArms,tryDeliver,closeSafe,
  limbView(ent){const m=ent&&ent.mesh,vis={};if(m)for(const id of LIMBS)vis[id]={limb:!!(m[id]&&m[id].visible),stump:!!(m.stumps&&m.stumps[id]&&m.stumps[id].visible),bite:!!(m.bites&&m.bites[id]&&m.bites[id].visible),sy:m[id]?+m[id].scale.y.toFixed(3):1};const w=curW();return {lost:lostOf(ent).slice(),bite:ent&&ent.bite||null,down:!!(ent&&ent.down),hp:ent?Math.round(ent.hp):0,headless:!!(ent&&ent.headless),cargo:ent&&ent.cargo?(ent.cargo===player?'you':ent.cargo.name):null,credits:(ent&&ent.credits||[]).slice(),loose:!!(ent&&ent.loose),head:!!(m&&m.head&&m.head.visible),headSy:m&&m.head?+m.head.scale.y.toFixed(3):1,neck:!!(m&&m.neck&&m.neck.visible),carry:!!(ent&&ent.headProp&&ent.headProp.visible),vis,hand:!!(w&&vmHands[w.type]&&vmHands[w.type].visible),vmGun:!!(w&&vmModels[w.type]&&vmModels[w.type].visible),vmHead:!!vmHead.visible,gunOnBody:!!(ent&&ent.gun&&ent.mesh&&ent.gun.parent===ent.mesh.b)};},
  start(){startGame();},
@@ -3171,7 +3254,7 @@ window.__game={autopilot,update,updateCamera,fire,AP,useTargets,moveEnt,collide,
   return {t:+S.t.toFixed(1),phase:S.phase,obj:S.obj,objText:OBJ[S.obj],safe:safeIndex,hp:Math.round(player.hp),pos:[+(player.x/T).toFixed(1),+(player.z/T).toFixed(1)],tile:chAt(player),kills:S.kills,skills:S.skills,commons:aliveCommons(),specials:specials.filter(s=>!s.dead).map(s=>s.type+':'+s.state),bots:bots.map(b=>b.name+':'+Math.round(b.hp)+(b.down?'D':'')+(b.boatSeat!=null?'B':'')+(b.zipU!=null?'Z':'')),dmg:Math.round(S.dmg),ff:S.ff,dir:DIR.mode,bridge:S.bridge,bridgeT:+S.bridgeT.toFixed(2),y:+player.y.toFixed(2),seat:player.boatSeat,zip:player.zipU==null?-1:+player.zipU.toFixed(2),boat:BOAT.show?[+BOAT.x.toFixed(1),+BOAT.z.toFixed(1),+BOAT.yaw.toFixed(2),BOAT.oars.length,BOAT.beached?1:0]:null,nuns:S.nuns,parts:S.parts|0,bike:player.bike,swim:swimAlive(),fixed:bikes.filter(b=>b.fixed).length,nunFate:S.nunFate||'',nunScale:nuns[0]?+nuns[0].g.scale.x.toFixed(2):0,air:!!player.air,ay:+(player.ay||0).toFixed(2),yaw:+player.yaw.toFixed(3),byaw:player.bike!=null&&bikes[player.bike]?+bikes[player.bike].yaw.toFixed(3):null,feast:commons.filter(c=>c.feast&&!c.dead).length,swims:commons.filter(c=>c.swim&&!c.dead&&c.state==='swim').length,grabs:commons.filter(c=>c.state==='grab'&&!c.dead).length,climbs:commons.filter(c=>c.state==='climb'&&!c.dead).length,jumps:commons.filter(c=>c.state==='jump'&&!c.dead).length,pin:$('pinmsg').textContent,objNow:$('obj').textContent};},
  armBikes(){if(!bikes.length)return null;S.nuns='ride';openGate(true);bikes.forEach(b=>{b.fixed=true;b.sunk=false;b.sinking=false;b.rider=-1;});player.bike=null;mountBike(player,0);return {nuns:S.nuns,bike:player.bike,yaw:+player.yaw.toFixed(3),gate:!!doors.gate};},
  armBoat(){if(player.bike!=null)leaveBike(player);player.x=(220.5)*T;player.z=(8.5)*T;if(S.bridge==='up')collapseBridge(true);S.bridge='swim';S.bridgeT=4;poseBridge(4);if(!BOAT.show)launchBoat();BOAT.beached=false;BOAT.x=player.x;BOAT.z=17;BOAT.yaw=0;BOAT.vx=0;if(player.boatSeat==null)boardBoat(player);return {seat:player.boatSeat,on:!!S.swimOn,alive:swimAlive(),bridge:S.bridge,made:S.swimMade|0};},
- frame(px,py,pz,lx,ly,lz){camera.position.set(px,py,pz);camera.lookAt(lx,ly,lz);camera.updateMatrixWorld();poseBoat(0);drawCommons();render();},
+ frame(px,py,pz,lx,ly,lz){camera.position.set(px,py,pz);camera.lookAt(lx,ly,lz);camera.updateMatrixWorld();poseBoat(0);drawCommons();drawPiles();render();},
  lookAt(x,y,z){const dx=x-player.x,dz=z-player.z;player.yaw=Math.atan2(-dx,-dz);player.pitch=Math.atan2(y-player.y,Math.hypot(dx,dz));updateCamera(1);},
  teleport(tx,tz){player.zipU=null;player.x=(tx+.5)*T;player.z=(tz+.5)*T;player.y=groundAt(player.x,player.z)+1.6;updateCamera(1);},
  ride(){beginZip(player);},
