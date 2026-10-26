@@ -1,0 +1,10 @@
+---
+description: Merge Eureka Pulp Mill pull requests as soon as the requested work is done
+alwaysApply: true
+---
+
+# Eureka Pulp Mill pull requests
+
+When the user asks for a change to Eureka Pulp Mill, merge that pull request as soon as the work is finished and checked. Do not wait for a separate approval to merge.
+
+This covers `eureka-pulp-mill/` and pull requests whose changes are for that game. Leave other games' pull requests alone unless the user asks to merge those too.
