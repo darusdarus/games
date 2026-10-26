@@ -1283,9 +1283,13 @@ function tossPlayer(n){const dx=player.x-n.x,dz=player.z-n.z,d=Math.hypot(dx,dz)
  player.air=true;player.avx=dx/d*14;player.avz=dz/d*14;player.avy=18;player.ay=bodyY(player.x,player.z);
  hurtPlayer(36);S.shake=1.15;SFX.splat(player.x,player.z);SFX.kick(player.x,player.z);feed('<b>A giant nun smashes you into the air.</b>','#f66',6);}
 function tickToss(dt){if(!player.air)return;player.avy-=KICK_G*dt;player.ay+=player.avy*dt;player.avx*=Math.exp(-dt*.35);player.avz*=Math.exp(-dt*.35);moveEnt(player,player.avx*dt,player.avz*dt,.35);player.vx=player.avx;player.vz=player.avz;const g=bodyY(player.x,player.z);if(player.ay<=g&&player.avy<=0){player.air=false;player.ay=g;player.avy=0;player.avx=0;player.avz=0;player.vx=0;player.vz=0;player.y=g+1.62;S.shake=Math.max(S.shake||0,.5);SFX.splat(player.x,player.z);}}
-function nunSmash(n){if(n.g.scale.x<6||(n.smashT||0)>S.t||player.air||player.down)return;const reach=2.2+4.2*(n.g.scale.x/10);
+function nunSmash(n){if(n.g.scale.x<6||(n.smashT||0)>S.t||player.air||player.down||hulkHeld(n))return;const reach=2.2+4.2*(n.g.scale.x/10);
  const d=Math.hypot(player.x-n.x,player.z-n.z);if(d<=reach){n.smashT=S.t+1.7;tossPlayer(n);return;}
  for(const b of bots){if(b.down||b.bike==null)continue;if(Math.hypot(b.x-n.x,b.z-n.z)>reach)continue;n.smashT=S.t+1.2;leaveBike(b);hurtSurvivor(b,28);SFX.splat(b.x,b.z);return;}}
+let hulkTold=false;
+function hulkBody(n){const sc=n.g&&n.g.scale.x||1;if(S.nunFate!=='chase'||sc<6)return null;const gy=bodyY(n.x,n.z)-0.43*(sc-1);return {r:.48*sc,y0:bodyY(n.x,n.z),y1:gy+1.72*sc,hy:gy+1.55*sc,hr:.2*sc};}
+function hulkHeld(n){return (n.hold||0)>S.t;}
+function holdHulk(n){if(!hulkBody(n))return;n.hold=S.t+.95;if(!hulkTold){hulkTold=true;feed('The shots stop her. Keep firing.','#fd8');}}
 function stepNunFate(dt){if(S.phase!=='play')return;if(!S.nunFate){if(S.nuns!=='ride'||!riderFar())return;S.nunFate='yell';S.nunT=0;S.nunYell=-1;speakHelp();return;}
  S.nunT+=dt;
  if(S.nunFate==='yell'){const i=Math.floor(S.nunT/0.26);if(i!==S.nunYell&&i>=0&&i<nuns.length){S.nunYell=i;const n=nuns[i];feed('<b style="color:#f4f4f4">'+n.name+':</b> Help, no!','#f4f4f4',7);SFX.scream(n.x,n.z);}if(S.nunT>=1.2)beginDevour();}
@@ -1296,18 +1300,19 @@ function poseNun(n,i){const fate=S.nunFate||'';const giant=fate==='grow'||fate==
  const gy=bodyY(n.x,n.z)-0.43*(sc-1);n.g.position.set(n.x,gy,n.z);
  if(n.tag){if(!n.tag.userData.bw){n.tag.userData.bw=n.tag.scale.x;n.tag.userData.bh=n.tag.scale.y;}n.tag.scale.set(n.tag.userData.bw/sc,n.tag.userData.bh/sc,1);}
  const k=Math.sin(S.t*(giant?7:panic?12:5.5)+i*1.3);
- if(giant){n.g.rotation.y=n.yaw||0;n.mesh.b.rotation.x=.35+Math.abs(k)*.25;n.mesh.b.rotation.z=0;n.mesh.armR.rotation.x=-1.7+k*.5;n.mesh.armL.rotation.x=-1.55-k*.4;n.mesh.legL.rotation.x=k*.8;n.mesh.legR.rotation.x=-k*.8;}
+ if(giant){n.g.rotation.y=n.yaw||0;if(hulkHeld(n)){n.mesh.b.rotation.x=.2;n.mesh.b.rotation.z=0;n.mesh.armR.rotation.x=-.55;n.mesh.armL.rotation.x=-.5;n.mesh.legL.rotation.x=.04;n.mesh.legR.rotation.x=-.04;}
+  else{n.mesh.b.rotation.x=.35+Math.abs(k)*.25;n.mesh.b.rotation.z=0;n.mesh.armR.rotation.x=-1.7+k*.5;n.mesh.armL.rotation.x=-1.55-k*.4;n.mesh.legL.rotation.x=k*.8;n.mesh.legR.rotation.x=-k*.8;}}
  else if(fate==='swarm'){n.g.rotation.y=Math.PI/2;n.mesh.b.rotation.x=1.2;n.mesh.b.rotation.z=Math.sin(S.t*14+i)*.2;n.mesh.armR.rotation.x=-.4;n.mesh.armL.rotation.x=-.2;n.mesh.legL.rotation.x=.4;n.mesh.legR.rotation.x=.2;n.g.position.y=gy-.15;}
  else{n.g.rotation.y=Math.PI/2;n.mesh.b.rotation.x=.62+k*.1;n.mesh.b.rotation.z=panic?Math.sin(S.t*8+i)*.12:0;n.mesh.armR.rotation.x=-1.15+k*.45;n.mesh.armL.rotation.x=-.55;n.mesh.legL.rotation.x=.15;n.mesh.legR.rotation.x=-.05;}}
 function tickNuns(dt){if(!nuns.length||S.phase==='title')return;stepNunFate(dt||0);
  const giant=S.nunFate==='grow'||S.nunFate==='chase';
- if(giant){for(const n of nuns){const dx=player.x-n.x,dz=player.z-n.z,d=Math.hypot(dx,dz)||1;const sp=S.nunFate==='chase'?48:6+n.g.scale.x;if(d>4.8)moveEnt(n,dx/d*sp*(dt||0),dz/d*sp*(dt||0),.9);n.yaw=Math.atan2(dx,dz);if(S.nunFate==='chase')nunSmash(n);}
-  for(let i=0;i<nuns.length;i++)for(let j=i+1;j<nuns.length;j++){const a=nuns[i],c=nuns[j];let dx=c.x-a.x,dz=c.z-a.z,d=Math.hypot(dx,dz);if(d>=2.8||d<1e-4)continue;dx/=d;dz/=d;const p=(2.8-d)*Math.min((dt||0)*6,.45);a.x-=dx*p;a.z-=dz*p;c.x+=dx*p;c.z+=dz*p;collide(a,.9);collide(c,.9);}}
+ if(giant){for(const n of nuns){const dx=player.x-n.x,dz=player.z-n.z,d=Math.hypot(dx,dz)||1;n.yaw=Math.atan2(dx,dz);if(hulkHeld(n))continue;const sp=S.nunFate==='chase'?48:6+n.g.scale.x;if(d>4.8)moveEnt(n,dx/d*sp*(dt||0),dz/d*sp*(dt||0),.9);if(S.nunFate==='chase')nunSmash(n);}
+  for(let i=0;i<nuns.length;i++)for(let j=i+1;j<nuns.length;j++){const a=nuns[i],c=nuns[j];if(hulkHeld(a)||hulkHeld(c))continue;let dx=c.x-a.x,dz=c.z-a.z,d=Math.hypot(dx,dz);if(d>=2.8||d<1e-4)continue;dx/=d;dz/=d;const p=(2.8-d)*Math.min((dt||0)*6,.45);a.x-=dx*p;a.z-=dz*p;c.x+=dx*p;c.z+=dz*p;collide(a,.9);collide(c,.9);}}
  nuns.forEach(poseNun);}
 function resetNuns(){clearGrabSlots();S.nuns='wait';S.nunFate='';S.nunT=0;S.nunYell=-1;S.parts=0;S.fixT=0;S.fixBike=-1;S.toldPart=false;S.partNag=0;S.shopUp=false;S.swimOn=false;S.swimMade=0;S.swimT=0;S.swimTold=false;player.bike=null;player.air=false;player.avy=0;player.avx=0;player.avz=0;
  for(const b of bots){b.bike=null;b.fixT=0;}
  const spots=bikeSpots();bikes.forEach((b,i)=>{b.x=spots[i].x;b.z=spots[i].z;b.yaw=-Math.PI/2;b.spd=0;b.fixed=false;b.sunk=false;b.sinking=false;b.sink=0;b.rider=-1;b.spin=0;poseBike(b);});
- nuns.forEach((n,i)=>{n.x=spots[i].x-1.15;n.z=spots[i].z;n.yaw=Math.PI/2;n.smashT=0;n.g.visible=true;n.g.scale.set(1,1,1);clearHulk(n);});}
+ hulkTold=false;nuns.forEach((n,i)=>{n.x=spots[i].x-1.15;n.z=spots[i].z;n.yaw=Math.PI/2;n.smashT=0;n.hold=0;n.g.visible=true;n.g.scale.set(1,1,1);clearHulk(n);});}
 function calmApproach(){const x=143*T,z=8.5*T;for(const c of commons){if(c.dead||c.shop)continue;if(Math.hypot(c.x-x,c.z-z)<58){c.calm=1;c.state='wander';c.target=null;c.wdx=0;c.wdz=0;}}}
 function beginNuns(){if(LAYOUT!=='linear'&&S.nuns==='wait'&&S.bridge==='up'&&NET.role!=='client'){let hit=false;const near=e=>{const tx=Math.floor(e.x/T),tz=Math.floor(e.z/T);return tx>=140&&tx<=146&&tz>=6&&tz<=15;};if(near(player))hit=true;if(!hit)for(const b of bots)if(b.net&&near(b))hit=true;if(!hit)return;S.nuns='meet';calmApproach();feed('<b style="color:#f4f4f4">Sister Agnes:</b> Hold on. These four will not turn over, and it has gone quiet behind you. Do not waste it.','#f4f4f4',10);nunObjective();}}
 function fillShop(){if(S.shopUp||LAYOUT==='linear'||NET.role==='client')return;S.shopUp=true;const tiles=[];for(let x=146;x<=150;x++)for(let z=14;z<=17;z++)tiles.push([x,z]);
@@ -1910,6 +1915,7 @@ function traceShot(o,d,dmg,muzzle,owner,dry){owner=owner||player;const maxT=70;l
  for(const c of commons){if(c.dead)continue;const dx=c.x-o.x,dz=c.z-o.z;if(dx*d.x+dz*d.z<0)continue;const h=commonHit(c);
   let t=raySph(o,d,c.x,h.hy,c.z,h.hr);if(t<best){best=t;hit=c;head=true;kind='c';}t=rayCyl(o,d,c.x,c.z,h.r,h.y0,h.y1);if(t<best){best=t;hit=c;head=false;kind='c';}}
  for(const s of specials){if(s.dead)continue;const sp=SPEC[s.type],y=specY(s);let t=raySph(o,d,s.x,y+sp.hh,s.z,.24);if(t<best){best=t;hit=s;head=true;kind='s';}t=rayCyl(o,d,s.x,s.z,sp.r,y,y+sp.h);if(t<best){best=t;hit=s;head=false;kind='s';}}
+ if(S.nunFate==='chase')for(const n of nuns){const hb=hulkBody(n);if(!hb)continue;const dx=n.x-o.x,dz=n.z-o.z;if(dx*d.x+dz*d.z<0)continue;let t=raySph(o,d,n.x,hb.hy,n.z,hb.hr);if(t<best){best=t;hit=n;head=true;kind='h';}t=rayCyl(o,d,n.x,n.z,hb.r,hb.y0,hb.y1);if(t<best){best=t;hit=n;head=false;kind='h';}}
  if(NET.ff){for(const b of bots){if(b===owner)continue;const t=rayCyl(o,d,b.x,b.z,.28,b.y+(b.down?0:.2),b.y+(b.down?.5:1.75));if(t<best){best=t;hit=b;kind='b';head=false;}}
   if(owner!==player&&!player.down){const t=rayCyl(o,d,player.x,player.z,.28,player.y+(player.down?0:.2),player.y+1.75);if(t<best){best=t;hit=player;kind='p';}}}
  _e.copy(d).multiplyScalar(best).add(o);
@@ -1917,6 +1923,7 @@ function traceShot(o,d,dmg,muzzle,owner,dry){owner=owner||player;const maxT=70;l
  else if(kind==='s'){if(!dry){damageSpecial(hit,dmg,head,true);S.hits++;}else for(let i=0;i<3;i++)PBlood.emit(hit.x,hit.y+1,hit.z,rand(-1,1),rand(0,1.5),rand(-1,1),rand(.3,.6),.2,.1,.5,.04,.02,.9,8);SFX.flesh(hit.x,hit.z);if(owner===player)hitMark();}
  else if(kind==='b'){if(!dry&&!hit.down){const f=Math.max(1,Math.round(dmg*.1));hit.hp=Math.max(1,hit.hp-f);S.ff+=f;bark(hit,pick(['Hey! Watch your fire!','Ow! Friendly fire!','Quit shooting me!']),'ff',4);}}
  else if(kind==='p'){if(!dry){const f=Math.max(1,Math.round(dmg*.1));S.ff+=f;hurtPlayer(f);}}
+ else if(kind==='h'){holdHulk(hit);for(let i=0;i<5;i++)PBlood.emit(_e.x,_e.y,_e.z,rand(-2,2),rand(0,2.4),rand(-2,2),rand(.45,.9),.4,.14,.45,.16,.05,.95,8);SFX.flesh(hit.x,hit.z);if(owner===player)hitMark();}
  else{for(let i=0;i<3;i++)PSpark.emit(_e.x,_e.y,_e.z,rand(-2,2),rand(0,2.5),rand(-2,2),rand(.15,.3),.12,.02,1,.75,.4,1,9);PSmoke.emit(_e.x,_e.y,_e.z,0,.3,0,.8,.15,.6,.5,.48,.44,.4,0);}
  tracer(muzzle,_e);return _e.clone();}
 function beamReach(o,d){return shotHitT(o.x,o.y,o.z,d.x,d.y,d.z,70);}
@@ -1926,12 +1933,15 @@ function traceLaser(o,d,muzzle,owner,dry){owner=owner||player;const reach=beamRe
   add(c,raySph(o,d,c.x,h.hy,c.z,h.hr),true,'c');add(c,rayCyl(o,d,c.x,c.z,h.r,h.y0,h.y1),false,'c');}
  for(const s of specials){if(s.dead)continue;const sp=SPEC[s.type],y=specY(s);
   add(s,raySph(o,d,s.x,y+sp.hh,s.z,.24),true,'s');add(s,rayCyl(o,d,s.x,s.z,sp.r,y,y+sp.h),false,'s');}
+ if(S.nunFate==='chase')for(const n of nuns){const hb=hulkBody(n);if(!hb)continue;const dx=n.x-o.x,dz=n.z-o.z;if(dx*d.x+dz*d.z<0)continue;add(n,raySph(o,d,n.x,hb.hy,n.z,hb.hr),true,'h');add(n,rayCyl(o,d,n.x,n.z,hb.r,hb.y0,hb.y1),false,'h');}
  if(NET.ff){for(const b of bots){if(b===owner||b.down)continue;add(b,rayCyl(o,d,b.x,b.z,.28,b.y+.2,b.y+1.75),false,'b');}
   if(owner!==player&&!player.down)add(player,rayCyl(o,d,player.x,player.z,.28,player.y+.2,player.y+1.75),false,'p');}
  hits.sort((a,b)=>a.t-b.t);let any=false;
- for(const h of hits){if(dry){if(h.kind==='c'||h.kind==='s')any=true;continue;}
+ for(const h of hits){if(h.kind==='h'){holdHulk(h.ent);const p=o.clone().addScaledVector(d,h.t);for(let i=0;i<4;i++)PBlood.emit(p.x,p.y,p.z,rand(-2,2),rand(0,2),rand(-2,2),rand(.4,.8),.35,.12,.4,.12,.04,.9,7);SFX.flesh(h.ent.x,h.ent.z);}
+  if(dry){if(h.kind==='c'||h.kind==='s'||h.kind==='h')any=true;continue;}
   if(h.kind==='c'){if(h.ent.dead)continue;killCommon(h.ent,true,h.head,d);S.hits++;any=true;}
   else if(h.kind==='s'){if(h.ent.dead)continue;killSpecial(h.ent,true);S.hits++;any=true;}
+  else if(h.kind==='h')any=true;
   else if(h.kind==='b'){h.ent.hp=Math.max(1,h.ent.hp-2);S.ff+=2;bark(h.ent,pick(['Hey! Watch your fire!','Ow! Friendly fire!','Quit shooting me!']),'ff',4);}
   else if(h.kind==='p'){S.ff+=2;hurtPlayer(2);}}
  _e.copy(d).multiplyScalar(Math.min(reach,70)).add(o);tracer(muzzle,_e,0xfff4f4,0.08);tracer(muzzle,_e,0xff1a30,0.18);
@@ -3005,7 +3015,7 @@ function syncSpecials(list){const seen=new Set();
  for(const [id,s] of [...NET.smap])if(!seen.has(id)){scene.remove(s.mesh.g);if(s.mesh.tongue)scene.remove(s.mesh.tongue);NET.smap.delete(id);const i=specials.indexOf(s);if(i>=0)specials.splice(i,1);}}
 function playNetEvent(e){if(!e)return;
  if(e.t==='feed'){if(NET.role==='client'&&typeof e.html==='string'&&e.html.indexOf(NET.name)>=0&&e.html.indexOf('SMG is a laser')>=0&&player.inv.primary&&player.inv.primary.laser)return;feedLines.push({html:(e.color?`<span style="color:${e.color}">`:'<span>')+e.html+'</span>',t:e.sec>0?e.sec:6});if(feedLines.length>6)feedLines.shift();renderFeed();return;}
- if(e.t==='shot'){if(e.slot===NET.slot)return;const o=new THREE.Vector3(e.ax,e.ay,e.az),d=new THREE.Vector3(e.dx,e.dy,e.dz);if(!Number.isFinite(d.x))return;const end=o.clone().addScaledVector(d,Math.min(40,shotHitT(o.x,o.y,o.z,d.x,d.y,d.z,40)));if(e.beam){tracer(o,end,0xfff4f4,0.08);tracer(o,end,0xff1a30,0.18);SFX.laser(e.ax,e.az,.6);}else{tracer(o,end,0xffe0a0);if(SFX[e.w])SFX[e.w](e.ax,e.az,.6);}}
+ if(e.t==='shot'){if(e.slot===NET.slot)return;const o=new THREE.Vector3(e.ax,e.ay,e.az),d=new THREE.Vector3(e.dx,e.dy,e.dz);if(!Number.isFinite(d.x))return;const wall=shotHitT(o.x,o.y,o.z,d.x,d.y,d.z,40);if(S.nunFate==='chase')for(const n of nuns){const hb=hulkBody(n);if(!hb)continue;const t=Math.min(raySph(o,d,n.x,hb.hy,n.z,hb.hr),rayCyl(o,d,n.x,n.z,hb.r,hb.y0,hb.y1));if(t<wall)holdHulk(n);}const end=o.clone().addScaledVector(d,Math.min(40,wall));if(e.beam){tracer(o,end,0xfff4f4,0.08);tracer(o,end,0xff1a30,0.18);SFX.laser(e.ax,e.az,.6);}else{tracer(o,end,0xffe0a0);if(SFX[e.w])SFX[e.w](e.ax,e.az,.6);}}
  if(e.t==='sfx'&&SFX[e.n])SFX[e.n](e.x,e.z);
  if(e.t==='gore')bloodSplash(e.x,e.y,e.z,false);
  if(e.t==='head')tossHead(e.x,e.y,e.z,e.vx,e.vy,e.vz);}
