@@ -230,7 +230,7 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
  <p id="phonename">DESK PHONE</p>
  <p id="phonenum">—</p>
  <div id="phonekeys"></div>
- <p id="phonehint">The cops pick up anyone you have thrown in the street. Dial 911. They open the back seat. Debtors' jail is the stop.</p>
+ <p id="phonehint">Press C to call 911. The number pad dials it too, or click the buttons. Debtors' jail is the stop.</p>
 </div>
 <div id="talkdim" class="hidden"></div>
 <div id="panel" class="hidden">
@@ -264,7 +264,7 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
     <li>Five minutes of daylight. Be back inside 3109 before dark.</li>
     <li>They ask about human rights. Wait 1 minute, or send them to debtors' prison.</li>
     <li>E opens the office door and a car. W drives forward. A turns left. D turns right.</li>
-    <li>P opens the phone. Dial 911. The cops take them to debtors' jail.</li>
+    <li>Press C to call 911. The number pad or the mouse can dial it too.</li>
    </ul>
    <button class="big" id="playbtn" type="button">START GAME</button>
   </section>
@@ -319,8 +319,8 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
    <ul>
     <li>Walk into the porch pillar. They ask about their human rights.</li>
     <li>Ask if they have the rent. Wait 1 minute, and they pay.</li>
-    <li>Or send them to debtors' prison. Grab them and throw them into the street.</li>
-    <li>P opens the phone. Dial 911. A missed month cools them off.</li>
+    <li>Or send them to debtors' prison. Press F to pick them up, then press F to throw them into the street.</li>
+    <li>Press C to call 911. The number pad or the mouse can dial it too.</li>
    </ul>
   </section>
   <section>
@@ -3196,7 +3196,7 @@ function landHold(){
   if (!p || !S.haul || S.haul.propId !== p.id || S.haul.stage !== 'drag') return;
   if (onStreet(x, z) && !insideHouse(p, x, z)){
     S.haul.stage = 'call';
-    say(p.resident, p.resident + ' is in the street. Dial 911.');
+    notice('Press C to call 911.');
   } else notice('Throw them into the street.');
 }
 function throwPerson(){
@@ -3213,6 +3213,80 @@ function useGrab(){
   if (S.mode !== 'play' || S.panel || phoneOn || player.down || player.car) return;
   if (player.hold && player.hold.grabbed) throwPerson();
   else tryGrab();
+}
+let haulCueSprite = null;
+let haulCueName = null;
+function ensureHaulCue(){
+  if (haulCueSprite) return haulCueSprite;
+  const c = document.createElement('canvas');
+  c.width = 768; c.height = 160;
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true}));
+  s.scale.set(3.4, 0.72, 1);
+  s.frustumCulled = false;
+  s.userData.canvas = c;
+  s.userData.tex = tex;
+  s.visible = false;
+  scene.add(s);
+  haulCueSprite = s;
+  return s;
+}
+function paintHaulCue(text){
+  const s = ensureHaulCue();
+  if (s.userData.line === text) return;
+  const g = s.userData.canvas.getContext('2d');
+  g.clearRect(0, 0, 768, 160);
+  g.fillStyle = 'rgba(12,10,8,0.94)';
+  g.fillRect(8, 16, 752, 128);
+  g.strokeStyle = '#e4b15a';
+  g.lineWidth = 10;
+  g.strokeRect(8, 16, 752, 128);
+  g.fillStyle = '#fff6dc';
+  g.font = '700 58px system-ui, sans-serif';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText(text, 384, 80);
+  s.userData.tex.needsUpdate = true;
+  s.userData.line = text;
+}
+function restoreHaulName(){
+  if (!haulCueName) return;
+  haulCueName.visible = true;
+  haulCueName = null;
+}
+function tickHaulCue(){
+  const s = ensureHaulCue();
+  const haul = S.haul;
+  const p = haul && haul.stage === 'drag' ? propById(haul.propId) : null;
+  const show = p && p.avatar && S.phase === 'day' && !player.down && !player.car && S.mode === 'play';
+  if (!show){
+    s.visible = false;
+    restoreHaulName();
+    return;
+  }
+  const held = player.hold && player.hold.prop === p && player.hold.grabbed;
+  paintHaulCue(held ? 'Press F to throw.' : 'Press F to pick up.');
+  const w = worldXZ(p.avatar.mesh);
+  const dist = Math.hypot(player.x - w.x, player.z - w.z) || 1;
+  const height = clamp(dist * 0.28, 0.42, 1.15);
+  s.scale.set(height * 4.4, height, 1);
+  s.position.set(w.x, w.y + 2.05 + height * 0.5, w.z);
+  s.visible = true;
+  if (haulCueName !== p.avatar.sprite){
+    restoreHaulName();
+    haulCueName = p.avatar.sprite;
+    if (haulCueName) haulCueName.visible = false;
+  }
+}
+function call911(){
+  phoneDigits = STATION_NO;
+  renderPhone();
+  return placeCall();
+}
+function padDigit(code){
+  if (/^Numpad[0-9]$/.test(code)) return code.slice(6);
+  return '';
 }
 function tickHold(dt){
   const h = player.hold;
@@ -3321,14 +3395,14 @@ function haulPoint(){
       const held = player.hold && player.hold.prop === p && player.hold.grabbed;
       if (!held){
         const w = worldXZ(p.avatar.mesh);
-        return {x:w.x, z:w.z, label:'Grab ' + p.resident};
+        return {x:w.x, z:w.z, label:'Press F to pick up'};
       }
       const curb = nearestCurb(p.door.x, p.door.z);
-      return {x:curb.x, z:curb.z, label:'Throw ' + p.resident + ' into the street'};
+      return {x:curb.x, z:curb.z, label:'Press F to throw'};
     }
     case 'call': {
       const w = worldXZ(p.avatar.mesh);
-      return {x:w.x, z:w.z, label:'Dial 911'};
+      return {x:w.x, z:w.z, label:'Press C to call 911'};
     }
     case 'wagon':
       return {x:JAIL.x, z:JAIL.z, label:'Debtors\' jail'};
@@ -4818,8 +4892,8 @@ function updateHud(){
     el.banner.classList.remove('hidden');
   } else el.banner.classList.add('hidden');
   let hint = 'The gold pin is the next door. Walk into the pillar.';
-  if (S.haul && S.haul.stage === 'drag') hint = 'F grabs. Walk them out. F or the mouse throws them into the street.';
-  else if (S.haul && S.haul.stage === 'call') hint = 'P opens the phone. Dial 911.';
+  if (S.haul && S.haul.stage === 'drag') hint = 'Press F to pick up. Press F to throw them into the street.';
+  else if (S.haul && S.haul.stage === 'call') hint = 'Press C to call 911. The number pad or the mouse can dial it too.';
   else if (S.haul && S.haul.stage === 'wagon') hint = 'The cops are taking them to debtors\' jail.';
   else if (S.rentWait) hint = 'You agreed to wait. The clock keeps running.';
   else if (S.phase === 'day' && !S.offered) hint = 'A Ferndale signing calls late. Finish the gold pin first.';
@@ -4904,11 +4978,16 @@ function updateHud(){
         ? ((TOUCH ? 'USE' : 'E') + '  ' + (ride.traffic ? 'Take car' : ride.label))
         : '';
   let cue = prompt;
-  if (!player.car && S.phase === 'day' && !S.panel && !phoneOn){
+  if (!player.car && S.phase === 'day' && !S.panel && !phoneOn && !(S.haul && S.haul.stage === 'drag')){
+    const haul = S.haul;
     if (player.hold && player.hold.grabbed) cue = (TOUCH ? 'THROW' : 'F') + '  Throw';
-    else if (nearestBody(1.7)){
-      const grab = (TOUCH ? 'GRAB' : 'F') + '  Grab';
-      cue = cue ? cue + '   ·   ' + grab : grab;
+    else {
+      const body = nearestBody(1.7);
+      const calling = haul && haul.stage === 'call' && body && body.prop && body.prop.id === haul.propId;
+      if (body && !calling){
+        const grab = (TOUCH ? 'GRAB' : 'F') + '  Grab';
+        cue = cue ? cue + '   ·   ' + grab : grab;
+      }
     }
   }
   el.prompt.classList.toggle('hidden', !cue);
@@ -5114,6 +5193,7 @@ function update(dt){
   tickAudio(dt);
   tickPlayer(dt);
   tickHold(dt);
+  tickHaulCue();
   tickWagon(dt);
   if (S.phase === 'night') tickZombies(dt);
   tickPorchColumns(dt);
@@ -5501,6 +5581,10 @@ window.__rentor = {
   grab(){ return tryGrab(); },
   throwHold(){ return throwPerson(); },
   dial(n){ phoneDigits = String(n || '').replace(/\D/g, ''); return placeCall(); },
+  haulCue(){
+    const s = haulCueSprite;
+    return {text:s && s.visible ? (s.userData.line || '') : '', stage:S.haul ? S.haul.stage : ''};
+  },
   wagonStep(){ return wagon && wagon.on ? wagon.step : 'idle'; },
   wagonDoor(){
     if (!wagon) return {angle:0, x:0, z:0, yaw:0, step:'idle'};
@@ -5650,8 +5734,15 @@ document.addEventListener('keydown', e => {
   if (phoneOn && !e.repeat){
     if (e.code === 'Escape'){ closePhone(); return; }
     if (e.code === 'Enter' || e.code === 'NumpadEnter'){ placeCall(); return; }
-    if (e.code === 'Backspace'){ phoneDigits = phoneDigits.slice(0, -1); renderPhone(); return; }
+    if (e.code === 'Backspace' || e.code === 'NumpadBackspace'){ phoneDigits = phoneDigits.slice(0, -1); renderPhone(); return; }
     if (/^Digit[0-9]$/.test(e.code)){ pushDigit(e.code.slice(5)); return; }
+    if (padDigit(e.code)){ pushDigit(padDigit(e.code)); return; }
+  }
+  if (!typing && !S.panel && !e.repeat && e.code === 'KeyC'){ call911(); return; }
+  if (!phoneOn && !S.panel && !e.repeat && S.haul && S.haul.stage === 'call' && padDigit(e.code)){
+    openPhone();
+    pushDigit(padDigit(e.code));
+    return;
   }
   if (e.code === 'Escape'){
     if (S.panel) dismissPanel();
