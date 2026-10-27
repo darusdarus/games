@@ -4169,6 +4169,7 @@ function choose(i){
   refreshAvatars();
   maybeOffer();
   updateHud();
+  if (!S.panel && !phoneOn) wantLock();
 }
 function dismissPanel(){
   const spec = S.panel;
