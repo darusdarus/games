@@ -4498,8 +4498,8 @@ const pillarNotes = new Map();
 const pillarHeld = new Set();
 let pillarFloat = '';
 const PILLAR_SHOW = 7;
-const PILLAR_TOUCH = 0.72;
-const PILLAR_REARM = 1.25;
+const PILLAR_TOUCH = 1.6;
+const PILLAR_REARM = 2.3;
 function pillarPhrase(label){
   const head = String(label || '').split(' · ')[0].trim();
   if (!head) return '';
@@ -5189,16 +5189,18 @@ function updateHud(){
     arr.style.transform = 'rotate(' + ang + 'rad)';
     el.compass.append(span, arr);
   }
-  const near = player.car ? null : targets();
-  const ride = player.car ? null : nearestCar(3);
+  const near = player.car || S.panel ? null : targets();
+  const ride = player.car || S.panel ? null : nearestCar(3);
   const pillarCue = !!(pillarFloat && near && near.label.indexOf(pillarFloat.replace(/\.$/, '')) === 0);
-  const prompt = player.car
-    ? ((TOUCH ? 'USE' : 'E') + '  Exit car')
-    : near && !pillarCue
-      ? ((TOUCH ? 'USE' : 'E') + '  ' + near.label)
-      : ride
-        ? ((TOUCH ? 'USE' : 'E') + '  ' + (ride.traffic ? 'Take car' : ride.label))
-        : '';
+  const prompt = S.panel
+    ? ''
+    : player.car
+      ? ((TOUCH ? 'USE' : 'E') + '  Exit car')
+      : near && !pillarCue
+        ? ((TOUCH ? 'USE' : 'E') + '  ' + near.label)
+        : ride
+          ? ((TOUCH ? 'USE' : 'E') + '  ' + (ride.traffic ? 'Take car' : ride.label))
+          : '';
   let cue = prompt;
   if (!player.car && S.phase === 'day' && !S.panel && !phoneOn && !(S.haul && S.haul.stage === 'drag')){
     const haul = S.haul;
