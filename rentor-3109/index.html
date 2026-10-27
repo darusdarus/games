@@ -108,6 +108,13 @@ body.touching #reply,body.touching #reply.docked{right:8px;bottom:calc(220px + e
 .startgrid ul{margin:0 0 14px;padding-left:18px}
 .startgrid li{margin:0 0 6px;font-size:14px;line-height:1.35}
 .startgrid .big{width:100%}
+button.pick{font:inherit;font-family:Palatino,Georgia,serif;font-size:32px;line-height:1.15;width:100%;min-height:148px;padding:28px 16px;background:#f4efe6;color:#1c1915;border:0;border-radius:8px;cursor:pointer}
+button.pick:hover{background:#fffaf3;color:#9a3412}
+#roomcode{font-family:Palatino,Georgia,serif;font-size:clamp(42px,10vw,72px);letter-spacing:.14em;color:#e4b15a;margin:8px 0 4px}
+#roster{list-style:none;padding:0;margin:12px auto;max-width:360px;text-align:left}
+#roster li{background:#f4efe6;color:#1c1915;border-radius:6px;padding:8px 12px;margin:0 0 6px;font-weight:700}
+#multi button.big,#lobby button.big{margin:8px 6px}
+#joincode{letter-spacing:4px;text-transform:uppercase;text-align:center;width:120px}
 @media (max-width:800px){
   .startgrid{grid-template-columns:1fr}
   h1{font-size:52px;letter-spacing:4px}
@@ -258,52 +265,47 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
  <p id="rline"></p>
  <p id="rcue">Click to put this away</p>
 </div>
-<div id="title" class="screen"><div class="card wide">
+<div id="title" class="screen"><div class="card">
  <div class="kicker">3109 H STREET · EUREKA</div>
  <h1>RENTOR</h1>
  <h2>DAY SHIFT</h2>
- <p class="sub">WASD moves. Mouse looks. Shift sprints. Esc closes a note.</p>
  <div class="startgrid">
-  <section>
-   <p class="rule">Single player</p>
-   <h3>Start the day</h3>
-   <ul>
-    <li>Five minutes of daylight. Be back inside 3109 before dark.</li>
-    <li>They ask about human rights. Wait 1 minute, or send them to debtors' prison.</li>
-    <li>E opens the office door and a car. W drives forward. A turns left. D turns right.</li>
-    <li>Press C to call 911. The number pad or the mouse can dial it too.</li>
-   </ul>
-   <button class="big" id="playbtn" type="button">START GAME</button>
-  </section>
-  <section>
-   <p class="rule">Multiplayer</p>
-   <h3>Share the street</h3>
-   <ul>
-    <li>Host a street, or join with a four-letter code.</li>
-    <li>Up to 24 people work the same H Street.</li>
-    <li>The host owns the clock. Friendly fire can stay on or go off.</li>
-    <li>Everyone can drive, collect rent, and dial 911.</li>
-   </ul>
-   <div class="cooprow">
-    <input id="pname" maxlength="16" placeholder="Your name" aria-label="Your name" autocomplete="off">
-    <button class="big alt" id="hostbtn" type="button">HOST STREET</button>
-    <button class="big alt" id="ffbtn" type="button">Friendly fire: On</button>
-    <button class="big alt" id="joinbtn" type="button">JOIN</button>
-   </div>
-   <div class="cooprow hidden" id="joinbox">
-    <input id="joincode" maxlength="4" placeholder="CODE" aria-label="Room code" autocomplete="off">
-    <button class="big alt" id="joingo" type="button">JOIN ROOM</button>
-   </div>
-   <p class="tiny" id="roomhint">The right side is the shared street.</p>
-  </section>
+  <button class="pick" id="playbtn" type="button">Single Player</button>
+  <button class="pick" id="mpbtn" type="button">Multiplayer</button>
  </div>
  <div class="soundrow">
   <button type="button" id="bgbtn">Street noise</button>
   <input id="bgsound" type="range" min="0" max="100" step="1" value="100" aria-label="Street noise volume">
   <span id="bglabel">100%</span>
  </div>
- <p class="touchhelp">Left side moves, right side looks. Walk into a porch pillar to talk. USE opens the office door or a car. GRAB takes a person. PHONE dials 911. Be back at the office before dark.</p>
- <p class="tiny" style="text-align:center">An original sim about the desk at <a href="https://www.rentor.com">Rentor</a>, 3109 H Street, Eureka. Not affiliated with Second Nature or Whimsy Games.</p>
+ <p class="tiny">An original sim about the desk at <a href="https://www.rentor.com">Rentor</a>, 3109 H Street, Eureka. Not affiliated with Second Nature or Whimsy Games.</p>
+</div></div>
+<div id="multi" class="screen hidden"><div class="card">
+ <div class="kicker">3109 H STREET</div>
+ <h2>MULTIPLAYER</h2>
+ <p class="sub">Host a game and give people the code. They come here and click Join.</p>
+ <div class="cooprow">
+  <input id="pname" maxlength="16" placeholder="Your name" aria-label="Your name" autocomplete="off">
+ </div>
+ <button class="big" id="hostbtn" type="button">Host a game</button>
+ <div class="cooprow">
+  <input id="joincode" maxlength="4" placeholder="CODE" aria-label="Room code" autocomplete="off" spellcheck="false">
+  <button class="big alt" id="joinbtn" type="button">Join</button>
+ </div>
+ <p class="tiny" id="roomhint"></p>
+ <button class="big alt" id="mpback" type="button">Back</button>
+</div></div>
+<div id="lobby" class="screen hidden"><div class="card">
+ <div class="kicker">LOBBY</div>
+ <h2 id="lobbyh">YOUR ROOM</h2>
+ <div id="roomcode"></div>
+ <p class="sub" id="lobbylead">Give this code to the people you want on the street.</p>
+ <button class="big alt" id="copycode" type="button">Copy code</button>
+ <ul id="roster"></ul>
+ <button class="big alt" id="ffbtn" type="button">Friendly fire: On</button>
+ <button class="big" id="startlobby" type="button">Start the day</button>
+ <p class="tiny" id="lobbynote"></p>
+ <button class="big alt" id="lobbyleave" type="button">Leave</button>
 </div></div>
 <div id="guide" class="screen hidden"><div class="manual">
  <div class="kicker">3109 H STREET · DESK MANUAL</div>
@@ -505,6 +507,7 @@ function applyTouch(){
   el.touch.classList.toggle('hidden', !TOUCH);
 }
 
+let menu = 'home';
 const S = {
   mode:'title', phase:'day', left:DAY_LEN, month:0, cash:4200, doors:false,
   homeNights:0, caught:0, deaths:0, collected:0, repairs:0, filled:0, correct:0, wrong:0, signed:0, rentIn:0, spent:0,
@@ -4856,7 +4859,10 @@ function setOverlays(){
   const play = S.mode === 'play';
   el.hud.classList.toggle('hidden', !play);
   document.body.classList.toggle('playing', play);
-  el.title.classList.toggle('hidden', S.mode !== 'title');
+  const atTitle = S.mode === 'title';
+  el.title.classList.toggle('hidden', !atTitle || menu !== 'home');
+  $('multi').classList.toggle('hidden', !atTitle || menu !== 'multi');
+  $('lobby').classList.toggle('hidden', !atTitle || menu !== 'lobby');
   el.guide.classList.toggle('hidden', S.mode !== 'guide');
   el.year.classList.toggle('hidden', S.mode !== 'year');
   if (!play){
@@ -5507,6 +5513,87 @@ function makeCode(){
   return s;
 }
 function setRoomHint(s){ const n = $('roomhint'); if (n) n.textContent = s; }
+function lobbyNames(){
+  const names = [net.name + ' (you)'];
+  if (net.role === 'host'){
+    for (const c of net.conns){
+      const p = net.poses.get(c.peer);
+      names.push(p && p.name ? p.name : 'Joining');
+    }
+  } else if (net.role === 'client' && net.latest && Array.isArray(net.latest.people)){
+    for (const p of net.latest.people) names.push((p && p.name) || 'Walker');
+  }
+  return names;
+}
+function paintLobby(note){
+  const codeEl = $('roomcode');
+  if (codeEl) codeEl.textContent = net.code || '';
+  const host = net.role === 'host';
+  const heading = $('lobbyh');
+  if (heading) heading.textContent = host ? 'YOUR ROOM' : 'JOINED';
+  const lead = $('lobbylead');
+  if (lead){
+    lead.textContent = host
+      ? 'Give this code to the people you want on the street. They choose Multiplayer and click Join.'
+      : 'You are in the lobby. The host opens the day.';
+  }
+  const start = $('startlobby');
+  if (start) start.classList.toggle('hidden', !host);
+  const list = $('roster');
+  if (list){
+    list.replaceChildren();
+    for (const name of lobbyNames()){
+      const li = document.createElement('li');
+      li.textContent = name;
+      list.appendChild(li);
+    }
+  }
+  if (typeof note === 'string'){
+    const noteEl = $('lobbynote');
+    if (noteEl) noteEl.textContent = note;
+  }
+}
+function closePeer(){
+  const peer = net.peer;
+  net.peer = null;
+  net.link = null;
+  net.conns = [];
+  net.poses.clear();
+  if (!peer) return;
+  try { peer.destroy(); } catch (err) { errors.push(String(err)); }
+}
+function failRoom(hint){
+  closePeer();
+  net.role = 'solo';
+  net.code = '';
+  net.latest = null;
+  paintFF();
+  menu = 'multi';
+  setRoomHint(hint);
+  if (S.mode === 'title') setOverlays();
+}
+function leaveRoom(){
+  closePeer();
+  net.role = 'solo';
+  net.code = '';
+  net.latest = null;
+  net.warned = false;
+  paintFF();
+  menu = 'multi';
+  setRoomHint('');
+  if (S.mode === 'title') setOverlays();
+}
+function copyCode(){
+  const code = net.code || '';
+  const noteEl = $('lobbynote');
+  if (!code) return;
+  const done = () => { if (noteEl) noteEl.textContent = 'Copied ' + code + '. Send it to them.'; };
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(code).then(done).catch(() => { if (noteEl) noteEl.textContent = 'The code is ' + code + '.'; });
+    return;
+  }
+  done();
+}
 function ensureRemote(p){
   let r = remotes.get(p.id);
   if (!r){
@@ -5569,10 +5656,12 @@ function applyNetWorld(msg){
   if (typeof msg.ff === 'boolean') net.ff = msg.ff;
   paintFF();
   const nextRound = typeof msg.round === 'number' ? msg.round : net.round;
+  const starting = menu === 'lobby' && msg.playing && S.mode === 'title';
   if (nextRound !== net.round){
     net.round = nextRound;
-    if (S.mode === 'play' || S.mode === 'year') resetRun();
-  }
+    if (S.mode === 'play' || S.mode === 'year' || starting) resetRun();
+  } else if (starting) resetRun();
+  if (menu === 'lobby' && S.mode === 'title') paintLobby();
   if (!msg.playing && typeof msg.month === 'number' && msg.month >= 12 && S.mode === 'play'){
     S.month = msg.month;
     yearEnd();
@@ -5595,14 +5684,19 @@ function applyNetWorld(msg){
 function onData(conn, msg){
   if (!msg || typeof msg.t !== 'string') return;
   if (msg.t === 'hello'){
-    conn.send({t:'welcome', left:S.left, phase:S.phase, month:S.month, playing:S.mode === 'play', ff:net.ff});
+    net.poses.set(conn.peer, {id:conn.peer, name:msg.name || 'Walker', x:0, z:-1, yaw:Math.PI, pitch:0});
+    conn.send({t:'welcome', left:S.left, phase:S.phase, month:S.month, playing:S.mode === 'play', ff:net.ff, code:net.code});
+    if (menu === 'lobby') paintLobby();
     return;
   }
   if (msg.t === 'welcome'){
     net.role = 'client';
+    if (typeof msg.code === 'string' && msg.code) net.code = msg.code;
     if (typeof msg.ff === 'boolean') net.ff = msg.ff;
     paintFF();
-    setRoomHint('Joined. The host owns the clock. Up to 24 people.');
+    menu = 'lobby';
+    if (S.mode === 'title') setOverlays();
+    paintLobby(msg.playing ? 'The day is open. Walking in…' : 'Waiting for the host to open the day.');
     return;
   }
   if (msg.t === 'hit'){
@@ -5614,13 +5708,13 @@ function onData(conn, msg){
     return;
   }
   if (msg.t === 'full'){
-    setRoomHint('That street is full (24). You can still work a solo route.');
     toast('That street is full.');
-    net.role = 'solo';
+    failRoom('That street is full (24). Single player still works.');
     return;
   }
   if (msg.t === 'pose'){
     net.poses.set(conn.peer, {id:conn.peer, name:msg.name || 'Walker', x:msg.x, z:msg.z, yaw:msg.yaw, pitch:msg.pitch});
+    if (menu === 'lobby' && S.mode === 'title') paintLobby();
     return;
   }
   if (msg.t === 'world') applyNetWorld(msg);
@@ -5628,6 +5722,7 @@ function onData(conn, msg){
 function dropConn(conn){
   net.conns = net.conns.filter(c => c !== conn);
   net.poses.delete(conn.peer);
+  if (menu === 'lobby' && S.mode === 'title') paintLobby();
 }
 function acceptConn(conn){
   if (net.conns.length >= MAX_PLAYERS - 1){
@@ -5639,6 +5734,7 @@ function acceptConn(conn){
   net.conns.push(conn);
   conn.on('data', data => onData(conn, data));
   conn.on('close', () => dropConn(conn));
+  if (menu === 'lobby' && S.mode === 'title') paintLobby();
 }
 function sendWorld(){
   if (S.mode === 'year') paintAgain();
@@ -5656,6 +5752,7 @@ function sendWorld(){
     });
   }
   syncRemotes(people.filter(p => p.id !== net.id));
+  if (menu === 'lobby' && S.mode === 'title') paintLobby();
 }
 function tickNet(dt){
   tickRemotes(dt);
@@ -5666,11 +5763,14 @@ function tickNet(dt){
   }
   if (net.role !== 'client') return;
   net.silence += dt;
-  if (net.silence > 8 && S.mode === 'play' && !net.warned){
+  if (net.silence > 8 && !net.warned && S.mode === 'play'){
     net.warned = true;
     net.role = 'solo';
     paintFF();
     toast('Lost the street link. Your clock is local now.');
+  } else if (net.silence > 8 && !net.warned && menu === 'lobby' && S.mode === 'title'){
+    net.warned = true;
+    failRoom('Lost the room. Host a game, or join again.');
   }
   net.acc += dt;
   if (net.acc >= 0.1 && net.link && net.link.open){
@@ -5680,58 +5780,66 @@ function tickNet(dt){
 }
 function startHost(){
   net.name = cleanName();
-  if (!window.Peer){ setRoomHint('No street link in this browser. You can still work the route alone.'); return; }
+  if (!window.Peer){ setRoomHint('No street link in this browser. Single player still works.'); return; }
   const code = makeCode();
   net.code = code;
   net.role = 'host';
+  net.warned = false;
   paintFF();
+  menu = 'lobby';
+  setOverlays();
+  paintLobby('Opening the room…');
+  let peer;
   try {
-    net.peer = new window.Peer('rentor3109-' + code, {config:ICE});
+    peer = new window.Peer('rentor3109-' + code, {config:ICE});
   } catch (err) {
     errors.push(String(err));
-    net.role = 'solo';
-    paintFF();
-    setRoomHint('Could not open a room. Solo still works.');
+    failRoom('Could not open a room. Single player still works.');
     return;
   }
-  net.peer.on('open', id => { net.id = id; setRoomHint('Room ' + code + ' · you are the clock · up to 24.'); });
-  net.peer.on('connection', conn => acceptConn(conn));
-  net.peer.on('error', err => {
-    setRoomHint('Could not open a room. Solo still works.');
+  net.peer = peer;
+  peer.on('open', id => { net.id = id; paintLobby('The room is open. Give people the code.'); });
+  peer.on('connection', conn => acceptConn(conn));
+  peer.on('error', err => {
+    if (net.peer !== peer) return;
     errors.push(String(err && err.type || err));
-    net.role = 'solo';
-    paintFF();
+    failRoom('Could not open a room. Single player still works.');
   });
 }
 function startJoin(code){
   const room = (code || '').trim().toUpperCase();
   net.name = cleanName();
-  if (!window.Peer){ setRoomHint('No street link in this browser. You can still work the route alone.'); return; }
+  if (!window.Peer){ setRoomHint('No street link in this browser. Single player still works.'); return; }
   if (!/^[A-Z0-9]{4}$/.test(room)){ setRoomHint('Enter the four-character room code.'); return; }
+  net.code = room;
   net.role = 'client';
+  net.warned = false;
   paintFF();
+  menu = 'lobby';
+  setOverlays();
+  paintLobby('Joining ' + room + '…');
+  let peer;
   try {
-    net.peer = new window.Peer(undefined, {config:ICE});
+    peer = new window.Peer(undefined, {config:ICE});
   } catch (err) {
     errors.push(String(err));
-    net.role = 'solo';
-    paintFF();
-    setRoomHint('Could not join that room. Solo still works.');
+    failRoom('Could not join that room. Single player still works.');
     return;
   }
-  net.peer.on('open', id => {
+  net.peer = peer;
+  peer.on('open', id => {
+    if (net.peer !== peer) return;
     net.id = id;
-    const conn = net.peer.connect('rentor3109-' + room, {reliable:true});
+    const conn = peer.connect('rentor3109-' + room, {reliable:true});
     net.link = conn;
     conn.on('open', () => conn.send({t:'hello', name:net.name}));
     conn.on('data', data => onData(conn, data));
-    conn.on('error', () => { setRoomHint('Could not join that room. Solo still works.'); net.role = 'solo'; paintFF(); });
+    conn.on('error', () => { if (net.peer === peer) failRoom('Could not join that room. Single player still works.'); });
   });
-  net.peer.on('error', err => {
-    setRoomHint('Could not join that room. Solo still works.');
+  peer.on('error', err => {
+    if (net.peer !== peer) return;
     errors.push(String(err && err.type || err));
-    net.role = 'solo';
-    paintFF();
+    failRoom('Could not join that room. Single player still works.');
   });
 }
 function debugPeer(n){
@@ -5935,12 +6043,25 @@ window.__rentor = {
 buildPhoneKeys();
 $('playbtn').addEventListener('click', () => { fresh(); wantLock(); });
 $('guidebtn').addEventListener('click', () => { fresh(); wantLock(); });
+$('mpbtn').addEventListener('click', () => { menu = 'multi'; setRoomHint(''); setOverlays(); });
+$('mpback').addEventListener('click', () => { menu = 'home'; setOverlays(); });
 $('hostbtn').addEventListener('click', startHost);
 $('ffbtn').addEventListener('click', toggleFF);
 $('ffplay').addEventListener('click', toggleFF);
 paintFF();
-$('joinbtn').addEventListener('click', () => $('joinbox').classList.remove('hidden'));
-$('joingo').addEventListener('click', () => startJoin($('joincode').value));
+$('joinbtn').addEventListener('click', () => startJoin($('joincode').value));
+$('joincode').addEventListener('keydown', e => {
+  if (e.code !== 'Enter') return;
+  e.preventDefault();
+  startJoin($('joincode').value);
+});
+$('copycode').addEventListener('click', copyCode);
+$('startlobby').addEventListener('click', () => {
+  if (net.role === 'client') return;
+  fresh();
+  wantLock();
+});
+$('lobbyleave').addEventListener('click', leaveRoom);
 $('againbtn').addEventListener('click', () => {
   if (net.role === 'client') return;
   fresh();
@@ -6004,6 +6125,11 @@ document.addEventListener('keydown', e => {
   const typing = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA');
   if (!typing && e.code === 'KeyM' && !e.repeat) toggleBg();
   keys[e.code] = true;
+  if (S.mode === 'title' && !typing && e.code === 'Escape'){
+    if (menu === 'lobby') leaveRoom();
+    else if (menu === 'multi'){ menu = 'home'; setOverlays(); }
+    return;
+  }
   if (S.mode !== 'play') return;
   if (phoneOn && !e.repeat){
     if (e.code === 'Escape'){ closePhone(); return; }
