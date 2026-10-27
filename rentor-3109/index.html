@@ -89,6 +89,19 @@ canvas{display:block}
 #bannercue,#rcue{margin:10px 0 0;font-size:16px;letter-spacing:.3px;font-weight:650;color:#ffe7b8}
 .screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,rgba(12,16,24,.35),rgba(6,8,12,.88));z-index:10}
 .card{max-width:760px;padding:28px 34px;text-align:center}
+.card.wide{max-width:980px;max-height:calc(100vh - 24px);overflow:auto;text-align:left}
+.card.wide .kicker,.card.wide h1,.card.wide h2,.card.wide .sub{text-align:center}
+.startgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px}
+.startgrid section{background:#f4efe6;color:#1c1915;border-radius:8px;padding:14px 16px 16px}
+.startgrid h3{margin:0 0 8px;font-family:Palatino,Georgia,serif;font-size:26px;letter-spacing:0;color:#9a3412}
+.startgrid .rule{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#9a3412;margin:0 0 4px}
+.startgrid ul{margin:0 0 14px;padding-left:18px}
+.startgrid li{margin:0 0 6px;font-size:14px;line-height:1.35}
+.startgrid .big{width:100%}
+@media (max-width:800px){
+  .startgrid{grid-template-columns:1fr}
+  h1{font-size:52px;letter-spacing:4px}
+}
 .kicker{letter-spacing:4px;font-size:12px;color:#e4b15a}
 h1{font-family:Palatino,"Iowan Old Style",Georgia,serif;font-size:78px;margin:4px 0 0;letter-spacing:10px;font-weight:600}
 h2{margin:0 0 12px;letter-spacing:8px;font-size:18px;font-weight:600;color:#e4b15a}
@@ -124,7 +137,8 @@ body.downed #tbtns button[data-act="shove"]{display:none}
 .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;text-align:left}
 .cols section{background:#f4efe6;color:#1c1915;border-radius:8px;padding:14px 14px 16px;min-height:240px}
 .cols h3{margin:0 0 8px;font-family:Palatino,Georgia,serif;font-size:22px;letter-spacing:0;color:#9a3412}
-.cols p{margin:0 0 10px;font-size:14px;line-height:1.45}
+.cols p,.cols li{margin:0 0 8px;font-size:14px;line-height:1.45}
+.cols ul{margin:0;padding-left:18px}
 .cols .rule{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#9a3412;margin:0 0 4px}
 .cooprow{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
 .cooprow input{font:inherit;padding:10px 12px;border-radius:3px;border:1px solid #444;background:#111;color:#fff;width:140px}
@@ -210,7 +224,7 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
  <p id="phonename">DESK PHONE</p>
  <p id="phonenum">—</p>
  <div id="phonekeys"></div>
- <p id="phonehint">The cops pick up anyone you have thrown in the street. Station 444-0191. They open the back seat. Debtors' jail is the stop.</p>
+ <p id="phonehint">The cops pick up anyone you have thrown in the street. Dial 911. They open the back seat. Debtors' jail is the stop.</p>
 </div>
 <div id="talkdim" class="hidden"></div>
 <div id="panel" class="hidden">
@@ -231,36 +245,52 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
  <p id="rline"></p>
  <p id="rcue">Esc or click closes this</p>
 </div>
-<div id="title" class="screen"><div class="card">
+<div id="title" class="screen"><div class="card wide">
  <div class="kicker">3109 H STREET · EUREKA</div>
  <h1>RENTOR</h1>
  <h2>DAY SHIFT</h2>
- <p class="sub">Five minutes of daylight to work the rent route from 3109 H Street. Collect, repair, fill an empty unit, and answer the lease. The best end to the day is being back inside the office before dark.</p>
- <div class="controls">
-  <div><b>WASD</b>Move</div><div><b>MOUSE</b>Look</div><div><b>SHIFT</b>Sprint</div>
-  <div><b>E</b>Door, car, desk</div><div><b>F</b>Grab, throw</div><div><b>P</b>Phone</div>
-  <div><b>ESC</b>Close notes</div><div><b>CLICK</b>Capture mouse</div>
-  <div><b>M</b>Street noise</div>
+ <p class="sub">WASD moves. Mouse looks. Shift sprints. Esc closes a note.</p>
+ <div class="startgrid">
+  <section>
+   <p class="rule">Single player</p>
+   <h3>Start the day</h3>
+   <ul>
+    <li>Five minutes of daylight. Be back inside 3109 before dark.</li>
+    <li>The gold pin is the next door. Collect the rent, or walk them outside.</li>
+    <li>E opens the office door and a car. W drives forward. A turns left. D turns right.</li>
+    <li>P opens the phone. Dial 911. The cops take them to debtors' jail.</li>
+   </ul>
+   <button class="big" id="playbtn" type="button">START GAME</button>
+  </section>
+  <section>
+   <p class="rule">Multiplayer</p>
+   <h3>Share the street</h3>
+   <ul>
+    <li>Host a street, or join with a four-letter code.</li>
+    <li>Up to 24 people work the same H Street.</li>
+    <li>The host owns the clock. Friendly fire can stay on or go off.</li>
+    <li>Everyone can drive, collect rent, and dial 911.</li>
+   </ul>
+   <div class="cooprow">
+    <input id="pname" maxlength="16" placeholder="Your name" aria-label="Your name" autocomplete="off">
+    <button class="big alt" id="hostbtn" type="button">HOST STREET</button>
+    <button class="big alt" id="ffbtn" type="button">Friendly fire: On</button>
+    <button class="big alt" id="joinbtn" type="button">JOIN</button>
+   </div>
+   <div class="cooprow hidden" id="joinbox">
+    <input id="joincode" maxlength="4" placeholder="CODE" aria-label="Room code" autocomplete="off">
+    <button class="big alt" id="joingo" type="button">JOIN ROOM</button>
+   </div>
+   <p class="tiny" id="roomhint">The right side is the shared street.</p>
+  </section>
  </div>
  <div class="soundrow">
   <button type="button" id="bgbtn">Street noise</button>
   <input id="bgsound" type="range" min="0" max="100" step="1" value="100" aria-label="Street noise volume">
   <span id="bglabel">100%</span>
  </div>
- <p class="touchhelp">Left side moves, right side looks. USE opens a door or a car. GRAB takes a person. PHONE dials the station. The clock never stops while a note is open. Be back at the office before dark.</p>
- <button class="big" id="playbtn" type="button">READ THE DESK MANUAL</button>
- <div class="cooprow">
-  <input id="pname" maxlength="16" placeholder="Your name" aria-label="Your name" autocomplete="off">
-  <button class="big alt" id="hostbtn" type="button">HOST STREET</button>
-  <button class="big alt" id="ffbtn" type="button">Friendly fire: On</button>
-  <button class="big alt" id="joinbtn" type="button">JOIN</button>
- </div>
- <div class="cooprow hidden" id="joinbox">
-  <input id="joincode" maxlength="4" placeholder="CODE" aria-label="Room code" autocomplete="off">
-  <button class="big alt" id="joingo" type="button">JOIN ROOM</button>
- </div>
- <p class="tiny" id="roomhint">Solo, or up to 24 people on the same street.</p>
- <p class="tiny">An original sim about the desk at <a href="https://www.rentor.com">Rentor</a>, 3109 H Street, Eureka. Not affiliated with Second Nature or Whimsy Games.</p>
+ <p class="touchhelp">Left side moves, right side looks. USE opens a door or a car. GRAB takes a person. PHONE dials 911. The clock never stops while a note is open. Be back at the office before dark.</p>
+ <p class="tiny" style="text-align:center">An original sim about the desk at <a href="https://www.rentor.com">Rentor</a>, 3109 H Street, Eureka. Not affiliated with Second Nature or Whimsy Games.</p>
 </div></div>
 <div id="guide" class="screen hidden"><div class="manual">
  <div class="kicker">3109 H STREET · DESK MANUAL</div>
@@ -270,22 +300,32 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
   <section>
    <p class="rule">The route</p>
    <h3>Work the list</h3>
-   <p>Earn the rent. The card at the top names the next stop. The stops card at the upper left shows how many are done, and whether the day is on track. The gold pin on the corner map is the next door, and a line runs from you to it. North is the top of the map. 3109 sits on H Street just south of Harris. F Street, to the west, is Henderson Center. Everding runs south of the office. Esc closes a note.</p>
-   <p>H Street ends at a circle in Ferndale. That is not a place to wait. Turn around. 3109 is south.</p>
+   <ul>
+    <li>The gold pin is the next door. North is the top of the map.</li>
+    <li>3109 is on H Street, just south of Harris.</li>
+    <li>H Street ends in Ferndale. Turn around. 3109 is south.</li>
+    <li>Esc closes a note. The clock keeps running.</li>
+   </ul>
   </section>
   <section>
    <p class="rule">The stops</p>
    <h3>Go inside</h3>
-   <p>Step up to the door and go in. Some homes are ordinary. Some are packed to the ceiling. Look around, then talk. The person stands in the center of the screen. Their answer stays on that card. The street has its own noise. The street slider turns that noise down, or off. A talk is still spoken.</p>
-   <p>Ask for the rent first. They say, what about my human rights. The rent is still due. If they will not pay, grab them, walk them outside, and throw them into the street. P opens the phone. Dial 444-0191. The cops pull up, open the back seat, and take them to debtors' jail.</p>
-   <p>A missed month cools them off. Another one and they leave, and the unit sits vacant until you place someone new.</p>
+   <ul>
+    <li>E opens a door. Ask for the rent first.</li>
+    <li>If they will not pay, grab them and throw them into the street.</li>
+    <li>P opens the phone. Dial 911. The cops take them to debtors' jail.</li>
+    <li>A missed month cools them off. Another one and the unit goes empty.</li>
+   </ul>
   </section>
   <section>
    <p class="rule">The desk</p>
    <h3>Answer, then drive</h3>
-   <p>The question at the door is the work. A sound answer keeps the home. A costly one comes out of the drawer.</p>
-   <p>Henry's desk opens the north listings. One stop is an owner who still runs the building alone. Listen before you name a fee. The signature is a management agreement.</p>
-   <p>The company car is out front. Get in, and get out the same way. Any empty car on the street can be taken. The far end of H Street is a drive.</p>
+   <ul>
+    <li>A sound answer keeps the home. A costly one comes out of the drawer.</li>
+    <li>Henry's desk opens the north listings.</li>
+    <li>E gets in the company car. W drives forward.</li>
+    <li>A turns the wheels left. D turns them right.</li>
+   </ul>
   </section>
  </div>
  <button class="big" id="guidebtn" type="button">OPEN THE OFFICE</button>
@@ -361,7 +401,7 @@ const JAIL = {x:-58, z:28, door:null, cell:null};
 const DISTRICT_ROADS = [];
 const districtPlaced = [];
 const ROAD_KEEP = [];
-const STATION_NO = '4440191';
+const STATION_NO = '911';
 
 const QUESTIONS = [
   p => ({title:'Paint', body:`${p.resident} wants the south bedroom a deep red before family visits. The lease requires written approval, and the unit was just turned in warm white.`, choices:[
@@ -630,8 +670,16 @@ function plane(w, h, tex, x, y, z, ry){
 
 const solids = [];
 function addSolid(minx, minz, maxx, maxz){ solids.push({minx, minz, maxx, maxz}); }
+const officeDoor = {open:false, angle:0, leaves:[]};
+function officeDoorHit(x, z, r){
+  if (officeDoor.angle > 0.7) return false;
+  const minx = -1.5, maxx = 1.5, minz = 1.95, maxz = 2.4;
+  const cx = clamp(x, minx, maxx), cz = clamp(z, minz, maxz);
+  return (x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r;
+}
 function hits(x, z, r, ignoreCar){
   if (x < -160 || x > 118 || z < -74 || z > 226) return true;
+  if (officeDoorHit(x, z, r)) return true;
   for (const s of solids){
     const cx = clamp(x, s.minx, s.maxx), cz = clamp(z, s.minz, s.maxz);
     if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r) return true;
@@ -673,6 +721,10 @@ function rayAABB2(ox, oz, dx, dz, s){
 }
 function raySolidDist(ox, oz, dx, dz, maxD){
   let best = maxD;
+  if (officeDoor.angle <= 0.7){
+    const t = rayAABB2(ox, oz, dx, dz, {minx:-1.5, minz:1.95, maxx:1.5, maxz:2.4});
+    if (t >= 0 && t < best) best = t;
+  }
   for (const s of solids){
     const t = rayAABB2(ox, oz, dx, dz, s);
     if (t >= 0 && t < best) best = t;
@@ -687,8 +739,6 @@ function loadTex(url){
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   return t;
 }
-const officeTex = loadTex('../eureka-pulp-mill/tex/office.jpg');
-officeTex.anisotropy = maxAniso;
 function markTex(t){
   t.colorSpace = THREE.SRGBColorSpace;
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
@@ -1527,11 +1577,13 @@ function trimBox(w, h, d, c, x, y, z, parent){
   m.castShadow = false;
   return m;
 }
-function makeWheel(x, y, z, parent){
+function makeWheel(x, y, z, parent, steers){
+  const hub = new THREE.Group();
+  hub.position.set(x, y, z);
+  parent.add(hub);
   const axle = new THREE.Group();
-  axle.position.set(x, y, z);
   axle.rotation.z = Math.PI / 2;
-  parent.add(axle);
+  hub.add(axle);
   const tire = new THREE.Group();
   axle.add(tire);
   const rubber = meshOf(wheelGeo, tireMat, 0, 0, 0, tire);
@@ -1555,7 +1607,7 @@ function makeWheel(x, y, z, parent){
   cap.castShadow = false;
   const caliper = trimBox(0.07, 0.05, 0.12, 0xb23a2e, 0.22, 0, 0.05, axle);
   caliper.rotation.z = 0.4;
-  return tire;
+  return {tire, hub, steer:!!steers};
 }
 function lampLens(x, y, z, matl, parent, forward){
   const bucket = meshOf(cylGeo24, 0x1a1c20, x, y, z + forward * 0.02, parent);
@@ -1653,10 +1705,10 @@ function buildCarMesh(color){
   addArch(g, -0.98, 0.42, 1.28);
   addArch(g, 0.98, 0.42, 1.28);
   g.userData.wheels = [
-    makeWheel(-0.86, 0.38, -1.28, g),
-    makeWheel(0.86, 0.38, -1.28, g),
-    makeWheel(-0.86, 0.38, 1.28, g),
-    makeWheel(0.86, 0.38, 1.28, g),
+    makeWheel(-0.86, 0.38, -1.28, g, true),
+    makeWheel(0.86, 0.38, -1.28, g, true),
+    makeWheel(-0.86, 0.38, 1.28, g, false),
+    makeWheel(0.86, 0.38, 1.28, g, false),
   ];
   return g;
 }
@@ -1664,7 +1716,12 @@ function spinWheels(c, dt, speed){
   const wheels = c.mesh.userData.wheels;
   if (!wheels) return;
   const spin = speed * dt * 2.5;
-  for (const tire of wheels) tire.rotation.y += spin;
+  const turn = -((c.steer || 0) * 0.48);
+  for (const w of wheels){
+    const tire = w.tire || w;
+    tire.rotation.y += spin;
+    if (w.hub) w.hub.rotation.y = w.steer ? turn : 0;
+  }
 }
 function spawnCar(def){
   const mesh = buildCarMesh(def.color);
@@ -1684,9 +1741,10 @@ function resetCars(){
   player.car = null;
   for (const c of CARS){
     c.x = c.homeX; c.z = c.homeZ; c.yaw = c.homeYaw;
-    c.speed = 0; c.traffic = c.homeTraffic; c.occupied = null;
+    c.speed = 0; c.steer = 0; c.traffic = c.homeTraffic; c.occupied = null;
     c.mesh.position.set(c.x, 0, c.z);
     c.mesh.rotation.y = -c.yaw;
+    spinWheels(c, 0, 0);
   }
 }
 
@@ -1997,6 +2055,46 @@ function addEurekaDistrict(lamps){
   for (const [x, z] of [[-121, 32], [-121, 68], [-146, 18], [20, 18], [-40, 18], [72, 18], [-16, -22], [16, -22], [84, 32], [84, -18]]) addDistrictLamp(x, z, lamps);
   for (let i = 0; i < 4; i++) box(0.12, 0.02, 1.6, 0xf2efe6, -6.2, 0.09, 9.2 + i * 0.7);
 }
+function addOfficeDoor(){
+  const frameZ = 2.22;
+  box(0.14, 2.55, 0.18, TRIM, -1.55, 1.32, frameZ);
+  box(0.14, 2.55, 0.18, TRIM, 1.55, 1.32, frameZ);
+  box(3.24, 0.16, 0.18, TRIM, 0, 2.55, frameZ);
+  box(3.1, 0.08, 0.24, 0x2a241c, 0, 0.08, frameZ);
+  officeDoor.leaves = [];
+  for (const side of [-1, 1]){
+    const hinge = new THREE.Group();
+    hinge.position.set(side * 1.48, 0, frameZ);
+    scene.add(hinge);
+    const leaf = new THREE.Group();
+    leaf.position.set(-side * 0.71, 1.28, 0);
+    hinge.add(leaf);
+    box(1.4, 2.36, 0.07, 0x5c3a28, 0, 0, 0, leaf);
+    box(1.16, 0.08, 0.09, TRIM, 0, 0.95, 0, leaf);
+    box(1.16, 0.08, 0.09, TRIM, 0, -0.95, 0, leaf);
+    const pane = box(0.72, 0.92, 0.02, glassMat, 0, 0.32, 0, leaf);
+    pane.castShadow = false;
+    sph(0.045, 0.045, 0.06, 0xc9a24a, -side * 0.5, -0.08, 0.06, leaf);
+    sph(0.045, 0.045, 0.06, 0xc9a24a, -side * 0.5, -0.08, -0.06, leaf);
+    officeDoor.leaves.push({hinge, side});
+  }
+}
+function snapOfficeDoor(open){
+  officeDoor.open = !!open;
+  officeDoor.angle = officeDoor.open ? 1.25 : 0;
+  for (const leaf of officeDoor.leaves) leaf.hinge.rotation.y = leaf.side * officeDoor.angle;
+}
+function tickOfficeDoor(dt){
+  const goal = officeDoor.open ? 1.25 : 0;
+  officeDoor.angle = lerp(officeDoor.angle, goal, 1 - Math.exp(-dt * 8));
+  if (Math.abs(officeDoor.angle - goal) < 0.002) officeDoor.angle = goal;
+  for (const leaf of officeDoor.leaves) leaf.hinge.rotation.y = leaf.side * officeDoor.angle;
+}
+function toggleOfficeDoor(){
+  officeDoor.open = !officeDoor.open;
+  sfx(officeDoor.open ? 'open' : 'click');
+  toast(officeDoor.open ? 'Office door open.' : 'Office door shut.');
+}
 function buildWorld(){
   paved(240, 280, grassMap, 4, 0, 0, 106);
   paved(9.2, 208, asphaltMap, 4, 0, 0.06, 102);
@@ -2050,8 +2148,10 @@ function buildWorld(){
   shopR.castShadow = false;
   box(1.5, 2.2, 0.06, TRIM, -2.75, 1.45, 2.18);
   box(1.5, 2.2, 0.06, TRIM, 2.75, 1.45, 2.18);
-  plane(3.4, 1.7, signTex('RENTOR', '3109 H ST', '#14202c', '#e4b15a'), 0, 2.7, 2.28, 0);
-  plane(3.6, 2.4, officeTex, 0, 1.7, 2.16, 0);
+  const rentorSign = signTex('RENTOR', '3109 H ST', '#14202c', '#e4b15a');
+  plane(3.15, 0.62, rentorSign, 0, 3.0, 2.48, 0);
+  plane(3.15, 0.62, rentorSign, 0, 3.0, 2.32, Math.PI);
+  addOfficeDoor();
   plane(2.2, 1.1, signTex('707.444.3835', 'SINCE 1989', '#1c1915', '#f4efe6'), 0, 2.2, -7.7, Math.PI);
   for (const p of PROPS) addHouse(p);
   addSolid(-16.2, 205, -13.4, 209.6);
@@ -2511,8 +2611,10 @@ function reportFriendly(id, dmg){
 function die(){
   if (player.down) return;
   if (player.car){
+    player.car.steer = 0;
     player.car.occupied = null;
     player.car.speed = 0;
+    spinWheels(player.car, 0, 0);
     player.car = null;
   }
   player.down = true;
@@ -3047,7 +3149,7 @@ function landHold(){
   if (!p || !S.haul || S.haul.propId !== p.id || S.haul.stage !== 'drag') return;
   if (onStreet(x, z) && !insideHouse(p, x, z)){
     S.haul.stage = 'call';
-    say(p.resident, p.resident + ' is in the street. Dial 444-0191.');
+    say(p.resident, p.resident + ' is in the street. Dial 911.');
   } else notice('Throw them into the street.');
 }
 function throwPerson(){
@@ -3181,7 +3283,7 @@ function haulPoint(){
     }
     case 'call': {
       const w = worldXZ(p.avatar.mesh);
-      return {x:w.x, z:w.z, label:'Dial 444-0191'};
+      return {x:w.x, z:w.z, label:'Dial 911'};
     }
     case 'wagon':
       return {x:JAIL.x, z:JAIL.z, label:'Debtors\' jail'};
@@ -4045,6 +4147,14 @@ function targets(){
       out.push({x:pk.x, z:pk.z, label:(owned ? 'Ammo · ' : 'Pick up ') + WEAP[pk.type].name, rank:0, act(){ pickup(pk.type); }});
     }
   }
+  if (!player.down){
+    out.push({
+      x:0, z:2.16,
+      label: officeDoor.open ? 'Close the office door' : 'Open the office door',
+      rank:0,
+      act:toggleOfficeDoor,
+    });
+  }
   let best = null;
   for (const t of out){
     t.d = Math.hypot(t.x - player.x, t.z - player.z);
@@ -4089,6 +4199,8 @@ function exitCar(){
   player.x = sx; player.z = sz;
   c.occupied = null;
   c.speed = 0;
+  c.steer = 0;
+  spinWheels(c, 0, 0);
   player.car = null;
   sfx('click');
 }
@@ -4324,6 +4436,7 @@ function resetRun(){
   S.removed = 0;
   S.haul = null;
   qCursor = 0;
+  snapOfficeDoor(false);
   player.x = 0; player.z = -1; player.yaw = Math.PI; player.pitch = 0;
   player.hp = 100; player.down = false;
   player.inv = {pistol:null, shotgun:null, smg:null};
@@ -4522,7 +4635,7 @@ function updateHud(){
   } else el.banner.classList.add('hidden');
   let hint = 'The gold pin is the next door. Press E when you reach it.';
   if (S.haul && S.haul.stage === 'drag') hint = 'F grabs. Walk them out. F or the mouse throws them into the street.';
-  else if (S.haul && S.haul.stage === 'call') hint = 'P opens the phone. Dial 444-0191.';
+  else if (S.haul && S.haul.stage === 'call') hint = 'P opens the phone. Dial 911.';
   else if (S.haul && S.haul.stage === 'wagon') hint = 'The cops are taking them to debtors\' jail.';
   else if (S.phase === 'day' && !S.offered) hint = 'A Ferndale signing calls late. Finish the gold pin first.';
   else if (S.urgent && !S.urgent.done) hint = 'Take a car to the gold pin, then get back inside 3109.';
@@ -4660,8 +4773,8 @@ function driveCar(dt){
   const target = throttle * max;
   c.speed = lerp(c.speed, target, 1 - Math.exp(-dt * (throttle === 0 ? 3.4 : 2.5)));
   let steer = 0;
-  if (keys.KeyA || keys.ArrowLeft || stickX < -0.2) steer += 1;
-  if (keys.KeyD || keys.ArrowRight || stickX > 0.2) steer -= 1;
+  if (keys.KeyA || keys.ArrowLeft || stickX < -0.2) steer -= 1;
+  if (keys.KeyD || keys.ArrowRight || stickX > 0.2) steer += 1;
   c.steer = steer;
   if (Math.abs(c.speed) > 0.2){
     const dir = c.speed < -0.3 ? -1 : 1;
@@ -4801,6 +4914,7 @@ function update(dt){
   tickClock(dt);
   if (S.mode !== 'play') return;
   tickTraffic(dt);
+  tickOfficeDoor(dt);
   tickWalkers(dt);
   tickPop(dt);
   tickAudio(dt);
@@ -5226,6 +5340,12 @@ window.__rentor = {
   summon(x, z){ return makeZombie(x, z).id; },
   zombie(id){ const z = pool.find(q => q.id === id); return z ? {hp:z.hp, x:z.x, z:z.z, dead:z.dead, stag:z.stag} : null; },
   hits(x, z){ return hits(x, z, 0.32); },
+  door(){ return {open:officeDoor.open, angle:+officeDoor.angle.toFixed(3)}; },
+  wheels(id){
+    const c = CARS.find(q => q.id === id);
+    if (!c || !c.mesh.userData.wheels) return [];
+    return c.mesh.userData.wheels.map(w => w.hub ? +w.hub.rotation.y.toFixed(3) : 0);
+  },
   inOffice,
   cars(){ return CARS.map(c => ({id:c.id, x:c.x, z:c.z, yaw:c.yaw, traffic:!!c.traffic, occupied:c.occupied, speed:c.speed})); },
   enter(id){ const c = CARS.find(q => q.id === id); if (c) enterCar(c); },
@@ -5248,7 +5368,7 @@ window.__rentor = {
   },
 };
 buildPhoneKeys();
-$('playbtn').addEventListener('click', () => { openGuide(); });
+$('playbtn').addEventListener('click', () => { fresh(); wantLock(); });
 $('guidebtn').addEventListener('click', () => { fresh(); wantLock(); });
 $('hostbtn').addEventListener('click', startHost);
 $('ffbtn').addEventListener('click', toggleFF);
