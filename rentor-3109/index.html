@@ -295,7 +295,7 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
   <input id="bgsound" type="range" min="0" max="100" step="1" value="100" aria-label="Street noise volume">
   <span id="bglabel">100%</span>
  </div>
- <p class="touchhelp">Left side moves, right side looks. USE opens a door or a car. GRAB takes a person. PHONE dials 911. The clock never stops while a note is open. Be back at the office before dark.</p>
+ <p class="touchhelp">Left side moves, right side looks. Walk into a porch pillar to talk. USE opens the office door or a car. GRAB takes a person. PHONE dials 911. Be back at the office before dark.</p>
  <p class="tiny" style="text-align:center">An original sim about the desk at <a href="https://www.rentor.com">Rentor</a>, 3109 H Street, Eureka. Not affiliated with Second Nature or Whimsy Games.</p>
 </div></div>
 <div id="guide" class="screen hidden"><div class="manual">
@@ -317,7 +317,7 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
    <p class="rule">The stops</p>
    <h3>Go inside</h3>
    <ul>
-    <li>E opens a door. They ask about their human rights.</li>
+    <li>Walk into the porch pillar. They ask about their human rights.</li>
     <li>Ask if they have the rent. Wait 1 minute, and they pay.</li>
     <li>Or send them to debtors' prison. Grab them and throw them into the street.</li>
     <li>P opens the phone. Dial 911. A missed month cools them off.</li>
@@ -1278,7 +1278,7 @@ function addWindows(g, p){
     if (p.h > 5.2) putWindowX(g, p.hw, p.hd * 0.15, y + 1.4, h * 0.7, glassMat);
   }
 }
-function addPorchColumn(x, z, parent){
+function addPorchColumn(x, z, parent, p){
   const h = 2.35;
   const parts = [
     cyl(0.28, 0.28, h, porchColumnMat, x, h / 2, z, parent),
@@ -1290,6 +1290,8 @@ function addPorchColumn(x, z, parent){
     m.userData.baseScale = {x:m.scale.x, y:m.scale.y, z:m.scale.z};
     porchColumns.push(m);
   }
+  if (!p.pillars) p.pillars = [];
+  p.pillars.push({lx:x, lz:z});
 }
 function tickPorchColumns(dt){
   porchPulse += dt;
@@ -1318,8 +1320,8 @@ function addPorch(g, p){
   if (p.face === 'x'){
     const s = p.side > 0 ? -1 : 1;
     const x = s * (p.hw + 0.72);
-    addPorchColumn(x, -1.15, g);
-    addPorchColumn(x, 1.15, g);
+    addPorchColumn(x, -1.15, g, p);
+    addPorchColumn(x, 1.15, g, p);
     box(0.9, 0.08, 2.9, TRIM, x, colH - 0.02, 0, g);
     box(0.95, 0.1, 3.05, shingle, x, colH + 0.08, 0, g);
     box(1.15, 0.06, 0.42, 0xd9cfc2, x + s * 0.2, 0.03, 0, g);
@@ -1332,8 +1334,8 @@ function addPorch(g, p){
   } else {
     const s = p.side > 0 ? -1 : 1;
     const z = s * (p.hd + 0.72);
-    addPorchColumn(-1.15, z, g);
-    addPorchColumn(1.15, z, g);
+    addPorchColumn(-1.15, z, g, p);
+    addPorchColumn(1.15, z, g, p);
     box(2.9, 0.08, 0.9, TRIM, 0, colH - 0.02, z, g);
     box(3.05, 0.1, 0.95, shingle, 0, colH + 0.08, z, g);
     box(0.42, 0.06, 1.15, 0xd9cfc2, 0, 0.03, z + s * 0.2, g);
@@ -4198,6 +4200,90 @@ function doDesk(){
     ],
   });
 }
+const pillarNotes = new Map();
+const pillarHeld = new Set();
+let pillarFloat = '';
+const PILLAR_SHOW = 7;
+const PILLAR_TOUCH = 0.72;
+const PILLAR_REARM = 1.25;
+function pillarPhrase(label){
+  const head = String(label || '').split(' · ')[0].trim();
+  if (!head) return '';
+  return /[.!?]$/.test(head) ? head : head + '.';
+}
+function pillarJob(p){
+  const task = S.tasks.find(t => !t.done && t.propId === p.id);
+  if (task) return {label:pillarPhrase(labelFor(task)), act(){ doTask(task); }};
+  if (p.id === 'fern' && S.urgent && !S.urgent.done && S.urgent.step === 0){
+    return {label:pillarPhrase(urgentSpot().label), act(){ doUrgent(); }};
+  }
+  return null;
+}
+function ensurePillarNote(p){
+  let s = pillarNotes.get(p.id);
+  if (s) return s;
+  s = nameSprite('');
+  s.scale.set(2.35, 0.58, 1);
+  s.visible = false;
+  scene.add(s);
+  pillarNotes.set(p.id, s);
+  return s;
+}
+function hidePillarNotes(exceptId){
+  for (const [id, s] of pillarNotes){
+    if (id !== exceptId) s.visible = false;
+  }
+}
+function showPillarNote(p, x, z, line){
+  const s = ensurePillarNote(p);
+  if (s.userData.line !== line){
+    s.userData.line = line;
+    paintName(s, line);
+  }
+  const dx = player.x - x, dz = player.z - z;
+  const len = Math.hypot(dx, dz) || 1;
+  s.position.set(x + dx / len * 0.62, 1.92 + Math.sin(porchPulse * 2) * 0.05, z + dz / len * 0.62);
+  s.visible = true;
+}
+function tickPillars(){
+  pillarFloat = '';
+  if (S.mode !== 'play' || S.phase !== 'day' || player.down || player.car){
+    hidePillarNotes();
+    return;
+  }
+  let best = null;
+  for (const p of PROPS){
+    if (!p.pillars || !p.pillars.length) continue;
+    const job = pillarJob(p);
+    let near = null;
+    for (const col of p.pillars){
+      const x = p.x + col.lx, z = p.z + col.lz;
+      const d = Math.hypot(x - player.x, z - player.z);
+      if (!near || d < near.d) near = {x, z, d};
+    }
+    if (!job){
+      pillarHeld.delete(p.id);
+      continue;
+    }
+    if (near.d > PILLAR_REARM) pillarHeld.delete(p.id);
+    if (!best || near.d < best.d) best = {p, x:near.x, z:near.z, d:near.d, job};
+  }
+  if (!best || best.d > PILLAR_SHOW){
+    hidePillarNotes();
+    return;
+  }
+  if (best.d <= PILLAR_TOUCH && !pillarHeld.has(best.p.id) && !S.panel && !phoneOn){
+    pillarHeld.add(best.p.id);
+    best.job.act();
+  }
+  if (S.panel || phoneOn){
+    hidePillarNotes();
+    return;
+  }
+  showPillarNote(best.p, best.x, best.z, best.job.label);
+  hidePillarNotes(best.p.id);
+  pillarFloat = best.job.label;
+}
 function targets(){
   const out = [];
   if (S.phase === 'day' && !player.down){
@@ -4731,7 +4817,7 @@ function updateHud(){
   if (bannerLife > 0 && !S.panel){
     el.banner.classList.remove('hidden');
   } else el.banner.classList.add('hidden');
-  let hint = 'The gold pin is the next door. Press E when you reach it.';
+  let hint = 'The gold pin is the next door. Walk into the pillar.';
   if (S.haul && S.haul.stage === 'drag') hint = 'F grabs. Walk them out. F or the mouse throws them into the street.';
   else if (S.haul && S.haul.stage === 'call') hint = 'P opens the phone. Dial 911.';
   else if (S.haul && S.haul.stage === 'wagon') hint = 'The cops are taking them to debtors\' jail.';
@@ -4809,9 +4895,10 @@ function updateHud(){
   }
   const near = player.car ? null : targets();
   const ride = player.car ? null : nearestCar(3);
+  const pillarCue = !!(pillarFloat && near && near.label.indexOf(pillarFloat.replace(/\.$/, '')) === 0);
   const prompt = player.car
     ? ((TOUCH ? 'USE' : 'E') + '  Exit car')
-    : near
+    : near && !pillarCue
       ? ((TOUCH ? 'USE' : 'E') + '  ' + near.label)
       : ride
         ? ((TOUCH ? 'USE' : 'E') + '  ' + (ride.traffic ? 'Take car' : ride.label))
@@ -5030,6 +5117,7 @@ function update(dt){
   tickWagon(dt);
   if (S.phase === 'night') tickZombies(dt);
   tickPorchColumns(dt);
+  tickPillars();
   applySky();
   updateHud();
 }
@@ -5450,6 +5538,16 @@ window.__rentor = {
   zombie(id){ const z = pool.find(q => q.id === id); return z ? {hp:z.hp, x:z.x, z:z.z, dead:z.dead, stag:z.stag} : null; },
   hits(x, z){ return hits(x, z, 0.32); },
   door(){ return {open:officeDoor.open, angle:+officeDoor.angle.toFixed(3)}; },
+  pillar(id){
+    const p = propById(id);
+    if (!p) return null;
+    const note = pillarNotes.get(id);
+    return {
+      cols:(p.pillars || []).map(c => ({x:p.x + c.lx, z:p.z + c.lz})),
+      text:note && note.visible ? (note.userData.line || '') : '',
+      held:pillarHeld.has(id),
+    };
+  },
   wheels(id){
     const c = CARS.find(q => q.id === id);
     if (!c || !c.mesh.userData.wheels) return [];
