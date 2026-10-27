@@ -1094,6 +1094,11 @@ const headMat = glowMat(0xfff6d8, 0xffe7b0, 0.35, 1.35);
 const tailMat = glowMat(0xc43a32, 0xff4428, 0.3, 1.15);
 const bulbMat = glowMat(0xfff6e4, 0xffd89a, 0.28, 0.75);
 const TRIM = 0xf7f4ee;
+const porchColumns = [];
+const porchColumnMat = new THREE.MeshBasicMaterial({color:0xfff6dc});
+const porchColumnHot = new THREE.Color(0xfff8ee);
+const porchColumnDim = new THREE.Color(0xffb43a);
+let porchPulse = 0;
 function hashStr(s){
   let h = 0;
   for (let i = 0; i < (s || '').length; i++) h = (h * 33 + s.charCodeAt(i)) >>> 0;
@@ -1273,14 +1278,48 @@ function addWindows(g, p){
     if (p.h > 5.2) putWindowX(g, p.hw, p.hd * 0.15, y + 1.4, h * 0.7, glassMat);
   }
 }
+function addPorchColumn(x, z, parent){
+  const h = 2.35;
+  const parts = [
+    cyl(0.28, 0.28, h, porchColumnMat, x, h / 2, z, parent),
+    cyl(0.44, 0.44, 0.2, porchColumnMat, x, h - 0.04, z, parent),
+    cyl(0.4, 0.4, 0.16, porchColumnMat, x, 0.08, z, parent),
+  ];
+  for (const m of parts){
+    m.castShadow = false;
+    m.userData.baseScale = {x:m.scale.x, y:m.scale.y, z:m.scale.z};
+    porchColumns.push(m);
+  }
+}
+function tickPorchColumns(dt){
+  porchPulse += dt;
+  const wave = 0.5 + 0.5 * Math.sin(porchPulse * 2.8);
+  porchColumnMat.color.copy(porchColumnDim).lerp(porchColumnHot, 0.35 + wave * 0.65);
+  const s = 0.94 + wave * 0.12;
+  for (const m of porchColumns){
+    const b = m.userData.baseScale;
+    m.scale.set(b.x * s, b.y, b.z * s);
+  }
+}
+function hangAddress(tex, x, y, z, yaw){
+  const geo = new THREE.PlaneGeometry(1.8, 0.7);
+  const matl = new THREE.MeshBasicMaterial({map:tex, side:THREE.FrontSide});
+  for (let flip = 0; flip < 2; flip++){
+    const ry = yaw + flip * Math.PI;
+    const m = new THREE.Mesh(geo, matl);
+    m.position.set(x + Math.sin(ry) * 0.02, y, z + Math.cos(ry) * 0.02);
+    m.rotation.y = ry;
+    scene.add(m);
+  }
+}
 function addPorch(g, p){
   const colH = 2.35;
   const shingle = roofMat(p.roof);
   if (p.face === 'x'){
     const s = p.side > 0 ? -1 : 1;
     const x = s * (p.hw + 0.72);
-    cyl(0.09, 0.11, colH, TRIM, x, colH / 2, -1.15, g);
-    cyl(0.09, 0.11, colH, TRIM, x, colH / 2, 1.15, g);
+    addPorchColumn(x, -1.15, g);
+    addPorchColumn(x, 1.15, g);
     box(0.9, 0.08, 2.9, TRIM, x, colH - 0.02, 0, g);
     box(0.95, 0.1, 3.05, shingle, x, colH + 0.08, 0, g);
     box(1.15, 0.06, 0.42, 0xd9cfc2, x + s * 0.2, 0.03, 0, g);
@@ -1293,8 +1332,8 @@ function addPorch(g, p){
   } else {
     const s = p.side > 0 ? -1 : 1;
     const z = s * (p.hd + 0.72);
-    cyl(0.09, 0.11, colH, TRIM, -1.15, colH / 2, z, g);
-    cyl(0.09, 0.11, colH, TRIM, 1.15, colH / 2, z, g);
+    addPorchColumn(-1.15, z, g);
+    addPorchColumn(1.15, z, g);
     box(2.9, 0.08, 0.9, TRIM, 0, colH - 0.02, z, g);
     box(3.05, 0.1, 0.95, shingle, 0, colH + 0.08, z, g);
     box(0.42, 0.06, 1.15, 0xd9cfc2, 0, 0.03, z + s * 0.2, g);
@@ -1454,7 +1493,7 @@ function placeDoor(p){
 }
 function labelYaw(p){
   if (p.face === 'z') return p.side > 0 ? Math.PI : 0;
-  return p.side > 0 ? Math.PI / 2 : -Math.PI / 2;
+  return p.side > 0 ? -Math.PI / 2 : Math.PI / 2;
 }
 function addWall(g, p, minx, minz, maxx, maxz, material){
   const w = Math.max(0.08, maxx - minx), d = Math.max(0.08, maxz - minz);
@@ -1557,7 +1596,7 @@ function addHouse(p){
   scene.add(g);
   placeDoor(p);
   const label = signTex(p.addr.split(',')[0], p.hoard ? 'Full house' : p.kind, '#f4efe6', '#1c1915');
-  plane(1.8, 0.7, label, p.door.x, 2.15, p.door.z, labelYaw(p));
+  hangAddress(label, p.door.x, 2.15, p.door.z, labelYaw(p));
 }
 const CARS = [];
 const CAR_DEFS = [
@@ -4990,6 +5029,7 @@ function update(dt){
   tickHold(dt);
   tickWagon(dt);
   if (S.phase === 'night') tickZombies(dt);
+  tickPorchColumns(dt);
   applySky();
   updateHud();
 }
