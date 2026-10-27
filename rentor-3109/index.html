@@ -54,6 +54,9 @@ canvas{display:block}
 #mapwrap{position:absolute;top:46px;right:16px;width:168px;background:rgba(8,10,14,.78);border:1px solid rgba(228,177,90,.5);border-radius:4px;padding:6px}
 #minimap{display:block;width:156px;height:156px;background:#14181f}
 #mapcap{margin-top:4px;text-align:center;font-size:10px;letter-spacing:2px;color:#e4b15a}
+#mapwrap.still{width:406px}
+#mapwrap.still #minimap{width:394px;height:394px}
+#mapwrap.still #mapcap{font-size:13px;letter-spacing:3px}
 #xh{position:absolute;left:50%;top:50%}
 #xh i{position:absolute;background:rgba(255,255,255,.88);box-shadow:0 0 2px #000}
 #xh .t,#xh .b{width:2px;height:8px;left:-1px}
@@ -178,6 +181,8 @@ body.touching #ffplay{top:auto;left:8px;bottom:calc(330px + env(safe-area-inset-
 body.touching #compass{display:none}
 body.touching #mapwrap{top:calc(6px + env(safe-area-inset-top));right:8px;width:108px;padding:4px}
 body.touching #minimap{width:100px;height:100px}
+body.touching #mapwrap.still{width:240px}
+body.touching #mapwrap.still #minimap{width:232px;height:232px}
 body.touching #ammo{top:calc(8px + env(safe-area-inset-top));right:122px;bottom:auto}
 body.touching #vitals{bottom:calc(210px + env(safe-area-inset-bottom));width:min(46vw,200px)}
 body.touching #pop{bottom:calc(268px + env(safe-area-inset-bottom))}
@@ -203,7 +208,7 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
  <div id="speed"></div>
  <div id="obj"></div>
  <div id="compass"></div>
- <div id="mapwrap"><canvas id="minimap" width="312" height="312"></canvas><div id="mapcap">NORTH</div></div>
+ <div id="mapwrap" class="still"><canvas id="minimap" width="832" height="832"></canvas><div id="mapcap">NORTH</div></div>
  <div id="feed"></div>
  <div id="pop"></div>
  <div id="vitals"><div id="cashlabel">DESK</div><div id="cash"></div><div id="hp"><i id="hpfill"></i></div><div id="safe" class="hidden">SAFE · 3109</div></div>
@@ -488,7 +493,7 @@ const el = {
   phone:$('phone'), phonenum:$('phonenum'), phonekeys:$('phonekeys'),
   title:$('title'), guide:$('guide'), year:$('year'), yearstats:$('yearstats'), yearformula:$('yearformula'),
   touch:$('touch'), stickzone:$('stickzone'), lookpad:$('lookpad'), stick:$('stick'), knob:$('knob'),
-  goal:$('goal'), speed:$('speed'), map:$('minimap'),
+  goal:$('goal'), speed:$('speed'), map:$('minimap'), mapwrap:$('mapwrap'),
   track:$('track'), trackcount:$('trackcount'), trackfill:$('trackfill'), tracknote:$('tracknote'),
   bannerline:$('bannerline'),
 };
@@ -4752,7 +4757,9 @@ function drawMap(){
   const c = el.map;
   if (!c) return;
   const g = c.getContext('2d');
-  const w = c.width, h = c.height;
+  const base = 312;
+  g.setTransform(c.width / base, 0, 0, c.height / base, 0, 0);
+  const w = base, h = base;
   const X0 = -156, X1 = 112, Z0 = -70, Z1 = 226;
   const pt = (x, z) => [(x - X0) / (X1 - X0) * w, h - (z - Z0) / (Z1 - Z0) * h];
   g.clearRect(0, 0, w, h);
@@ -5131,8 +5138,11 @@ function tickPlayer(dt){
     if (w && WEAP[w.type].auto) fire();
   }
   if ((mouseRight || touchShove) && player.shoveT <= 0) shove();
-  if (!S.panel && !phoneOn && !player.down && player.car) driveCar(dt);
-  else if (!S.panel && !phoneOn && !player.down){
+  let moving = false;
+  if (!S.panel && !phoneOn && !player.down && player.car){
+    driveCar(dt);
+    moving = Math.abs(player.car.speed) > 0.4;
+  } else if (!S.panel && !phoneOn && !player.down){
     let ix = stickX, iz = stickY;
     if (keys.KeyW || keys.ArrowUp) iz += 1;
     if (keys.KeyS || keys.ArrowDown) iz -= 1;
@@ -5140,6 +5150,7 @@ function tickPlayer(dt){
     if (keys.KeyA || keys.ArrowLeft) ix -= 1;
     const fl = Math.hypot(ix, iz);
     if (fl > 0){
+      moving = true;
       ix /= fl; iz /= fl;
       const sprint = keys.ShiftLeft || keys.ShiftRight || touchRun;
       const sp = (sprint ? SPRINT : WALK) * (player.hold && player.hold.grabbed ? 0.68 : 1);
@@ -5169,6 +5180,24 @@ function tickPlayer(dt){
   }
   vm.position.y = -0.26 + Math.sin(player.bob * 2) * 0.01;
   vm.rotation.x = player.shoveT > 0.2 ? -0.8 : 0;
+  tickMap(dt, moving);
+}
+let mapHold = 0;
+let mapScale = 1;
+function tickMap(dt, moving){
+  if (moving) mapHold = 0.3;
+  else mapHold = Math.max(0, mapHold - dt);
+  const want = mapHold <= 0 ? 1 : 0;
+  mapScale += (want - mapScale) * (1 - Math.exp(-dt * 8));
+  const big = TOUCH ? 220 : 394;
+  const small = TOUCH ? 100 : 156;
+  const gap = TOUCH ? 8 : 12;
+  const canvas = small + (big - small) * mapScale;
+  el.map.style.width = canvas.toFixed(1) + 'px';
+  el.map.style.height = canvas.toFixed(1) + 'px';
+  el.mapwrap.style.width = (canvas + gap).toFixed(1) + 'px';
+  el.mapwrap.style.right = ((TOUCH ? 8 : 16) - (TOUCH ? 0 : 8) * mapScale).toFixed(1) + 'px';
+  el.mapwrap.classList.toggle('still', mapScale > 0.6);
 }
 function tickClock(dt){
   if (net.role === 'client') return;
