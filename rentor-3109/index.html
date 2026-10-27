@@ -74,13 +74,12 @@ canvas{display:block}
 #pchoices button{font:inherit;text-align:center;padding:12px 14px;border-radius:6px;border:1px solid #c8bba6;background:#fffaf3;cursor:pointer;font-size:15px}
 #pchoices button:hover{border-color:#9a3412;background:#fff}
 #pkey{margin:10px 0 0;font-size:12px;letter-spacing:.4px;color:#6b5e52}
-#reply{position:fixed;left:50%;top:46%;transform:translate(-50%,-50%);width:min(480px,calc(100vw - 24px));z-index:8;background:#f4efe6;color:#1c1915;border-radius:10px;padding:18px 18px 16px;box-shadow:0 24px 70px rgba(0,0,0,.55);text-align:center;cursor:pointer}
-#reply.docked{left:auto;right:16px;top:auto;bottom:108px;transform:none;width:230px;padding:8px 10px;text-align:left;display:grid;grid-template-columns:48px 1fr;column-gap:8px;align-items:center}
-#reply.docked #rface{grid-row:1 / span 2;width:48px;height:58px;margin:0}
-#reply.docked #rname{font-size:15px;margin:0}
-#reply.docked #rline{font-size:13px;line-height:1.25;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-#reply.docked #ryou,#reply.docked #rcue{display:none}
-body.touching #reply.docked{right:8px;bottom:calc(220px + env(safe-area-inset-bottom));width:min(46vw,210px)}
+#reply,#reply.docked{position:fixed;left:auto;right:16px;top:auto;bottom:108px;transform:none;width:230px;z-index:8;background:#f4efe6;color:#1c1915;border-radius:10px;padding:8px 10px;box-shadow:0 12px 32px rgba(0,0,0,.4);text-align:left;cursor:pointer;display:grid;grid-template-columns:48px 1fr;column-gap:8px;align-items:center}
+#reply #rface,#reply.docked #rface{grid-row:1 / span 2;width:48px;height:58px;margin:0}
+#reply #rname,#reply.docked #rname{font-size:15px;margin:0}
+#reply #rline,#reply.docked #rline{font-size:13px;line-height:1.25;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+#reply #ryou,#reply #rcue,#reply.docked #ryou,#reply.docked #rcue{display:none}
+body.touching #reply,body.touching #reply.docked{right:8px;bottom:calc(220px + env(safe-area-inset-bottom));width:min(46vw,210px)}
 #phone{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;width:min(300px,calc(100vw - 24px));background:#1c1915;color:#f4efe6;border-radius:28px;padding:16px 16px 14px;box-shadow:0 24px 70px rgba(0,0,0,.55);text-align:center;border:2px solid #3a342c}
 #phonename{font-size:12px;letter-spacing:2px;color:#e4b15a;margin:0 0 4px}
 #phonenum{font-variant-numeric:tabular-nums;font-size:28px;letter-spacing:1px;min-height:40px;margin:0}
@@ -186,9 +185,9 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
  .screen{overflow:auto;align-items:flex-start;padding:16px 0}
  h1{font-size:46px;letter-spacing:4px}
  .controls{grid-template-columns:1fr 1fr}
- #panel,#reply{width:min(540px,calc(100vw - 16px));max-height:78vh}
- #reply.docked{width:min(46vw,210px);max-height:none}
- #pface,#rface{width:120px;height:144px}
+ #panel{width:min(540px,calc(100vw - 16px));max-height:78vh}
+ #reply,#reply.docked{width:min(46vw,210px);max-height:none}
+ #pface{width:120px;height:144px}
  #banner{font-size:16px;top:40%}
 }
 @media (max-width:640px){.controls{display:none}.touchhelp{display:block;margin:8px auto 12px;max-width:420px;font-size:14px}}
@@ -250,7 +249,7 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
  <div id="rname"></div>
  <div id="ryou" class="hidden"></div>
  <p id="rline"></p>
- <p id="rcue">Click to tuck this aside</p>
+ <p id="rcue">Click to put this away</p>
 </div>
 <div id="title" class="screen"><div class="card wide">
  <div class="kicker">3109 H STREET · EUREKA</div>
@@ -3434,8 +3433,7 @@ function hideReply(){
 }
 function stepReply(){
   if (!replyOpen()) return false;
-  if (replyDocked()) hideReply();
-  else dockReply();
+  hideReply();
   sfx('click');
   return true;
 }
@@ -3762,19 +3760,18 @@ function showReply(who, line, yours){
   el.ryou.textContent = yours ? ('You — ' + yours) : '';
   el.ryou.classList.toggle('hidden', !yours);
   el.rline.textContent = line;
-  el.reply.classList.remove('hidden', 'docked');
-  el.rcue.textContent = 'Click to tuck this aside';
-  replyLife = who ? 6 : 3.4;
+  el.rcue.textContent = 'Click to put this away';
+  el.reply.classList.add('docked');
+  el.reply.classList.remove('hidden');
+  replyLife = 0;
   syncTalk();
 }
 function say(who, line){
-  toast(line);
   speak(line, who || pendingWho, true);
-  if (S.panel) return;
+  if (S.panel){ toast(line); return; }
   showReply(who || pendingWho, line, pendingYou);
 }
 function notice(line){
-  toast(line);
   showReply('', line, '');
 }
 function hidePanel(){
