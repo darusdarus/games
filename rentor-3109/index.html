@@ -86,6 +86,8 @@ body.touching #reply,body.touching #reply.docked{right:8px;bottom:calc(220px + e
 #phonekeys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
 #phonekeys button{font:inherit;padding:12px 0;border-radius:10px;border:0;background:#2c2824;color:#f4efe6;cursor:pointer}
 #phonekeys button:hover{background:#3d3832}
+#phonekeys button.ready{background:#1f9d4a;color:#f4fff6}
+#phonekeys button.ready:hover{background:#28b356}
 #phonehint{margin:10px 0 0;font-size:12px;line-height:1.4;color:#d9cbb8}
 #rname{font-family:Palatino,Georgia,serif;font-size:26px;margin:2px 0 6px}
 #rline{margin:0;font-size:18px;line-height:1.4}
@@ -3315,12 +3317,14 @@ function tickHold(dt){
   h.mesh.rotation.x = Math.min(1.1, spd * 0.12);
   if (spd < 0.45) landHold();
 }
+let callButton = null;
 function renderPhone(){
   const d = phoneDigits;
   let shown = '—';
   if (d.length <= 3) shown = d;
   else shown = d.slice(0, 3) + '-' + d.slice(3);
   el.phonenum.textContent = shown || '—';
+  if (callButton) callButton.classList.toggle('ready', d.replace(/\D/g, '') === STATION_NO);
 }
 function pushDigit(n){
   if (phoneDigits.length >= 7) return;
@@ -3374,6 +3378,7 @@ function buildPhoneKeys(){
     const b = document.createElement('button');
     b.type = 'button';
     b.textContent = lab === 'clear' ? 'Clear' : lab === 'call' ? 'Call' : lab;
+    if (lab === 'call') callButton = b;
     b.addEventListener('click', () => {
       if (lab === 'clear'){ phoneDigits = ''; renderPhone(); sfx('click'); }
       else if (lab === 'call') placeCall();
