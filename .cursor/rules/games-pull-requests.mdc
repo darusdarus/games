@@ -1,0 +1,10 @@
+---
+description: Merge pull requests in this games repository as soon as the requested work is done
+alwaysApply: true
+---
+
+# Games pull requests
+
+When the user asks for a change in this repository, merge that pull request as soon as the work is finished and checked. Do not wait for a separate approval to merge.
+
+This covers every game in the repository, including Eureka Pulp Mill and Rentor. Squash-merge into `main`.
