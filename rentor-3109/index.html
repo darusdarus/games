@@ -75,6 +75,12 @@ canvas{display:block}
 #pchoices button:hover{border-color:#9a3412;background:#fff}
 #pkey{margin:10px 0 0;font-size:12px;letter-spacing:.4px;color:#6b5e52}
 #reply{position:fixed;left:50%;top:46%;transform:translate(-50%,-50%);width:min(480px,calc(100vw - 24px));z-index:8;background:#f4efe6;color:#1c1915;border-radius:10px;padding:18px 18px 16px;box-shadow:0 24px 70px rgba(0,0,0,.55);text-align:center;cursor:pointer}
+#reply.docked{left:auto;right:16px;top:auto;bottom:108px;transform:none;width:230px;padding:8px 10px;text-align:left;display:grid;grid-template-columns:48px 1fr;column-gap:8px;align-items:center}
+#reply.docked #rface{grid-row:1 / span 2;width:48px;height:58px;margin:0}
+#reply.docked #rname{font-size:15px;margin:0}
+#reply.docked #rline{font-size:13px;line-height:1.25;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+#reply.docked #ryou,#reply.docked #rcue{display:none}
+body.touching #reply.docked{right:8px;bottom:calc(220px + env(safe-area-inset-bottom));width:min(46vw,210px)}
 #phone{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;width:min(300px,calc(100vw - 24px));background:#1c1915;color:#f4efe6;border-radius:28px;padding:16px 16px 14px;box-shadow:0 24px 70px rgba(0,0,0,.55);text-align:center;border:2px solid #3a342c}
 #phonename{font-size:12px;letter-spacing:2px;color:#e4b15a;margin:0 0 4px}
 #phonenum{font-variant-numeric:tabular-nums;font-size:28px;letter-spacing:1px;min-height:40px;margin:0}
@@ -181,6 +187,7 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
  h1{font-size:46px;letter-spacing:4px}
  .controls{grid-template-columns:1fr 1fr}
  #panel,#reply{width:min(540px,calc(100vw - 16px));max-height:78vh}
+ #reply.docked{width:min(46vw,210px);max-height:none}
  #pface,#rface{width:120px;height:144px}
  #banner{font-size:16px;top:40%}
 }
@@ -243,7 +250,7 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
  <div id="rname"></div>
  <div id="ryou" class="hidden"></div>
  <p id="rline"></p>
- <p id="rcue">Esc or click closes this</p>
+ <p id="rcue">Click to tuck this aside</p>
 </div>
 <div id="title" class="screen"><div class="card wide">
  <div class="kicker">3109 H STREET · EUREKA</div>
@@ -476,7 +483,7 @@ const el = {
   ammo:$('ammo'), wname:$('wname'), acount:$('acount'), xh:$('xh'), prompt:$('prompt'), downmsg:$('downmsg'),
   dmg:$('dmg'), panel:$('panel'), panelclock:$('panelclock'), ptitle:$('ptitle'), pbody:$('pbody'),
   pchoices:$('pchoices'), pface:$('pface'), pspeaker:$('pspeaker'), pyou:$('pyou'), pheard:$('pheard'),
-  reply:$('reply'), rface:$('rface'), rname:$('rname'), ryou:$('ryou'), rline:$('rline'), talkdim:$('talkdim'), banner:$('banner'),
+  reply:$('reply'), rface:$('rface'), rname:$('rname'), ryou:$('ryou'), rline:$('rline'), rcue:$('rcue'), talkdim:$('talkdim'), banner:$('banner'),
   phone:$('phone'), phonenum:$('phonenum'), phonekeys:$('phonekeys'),
   title:$('title'), guide:$('guide'), year:$('year'), yearstats:$('yearstats'), yearformula:$('yearformula'),
   touch:$('touch'), stickzone:$('stickzone'), lookpad:$('lookpad'), stick:$('stick'), knob:$('knob'),
@@ -3213,9 +3220,7 @@ function openPhone(){
   phoneDigits = '';
   renderPhone();
   el.phone.classList.remove('hidden');
-  el.reply.classList.add('hidden');
-  replyLife = 0;
-  syncTalk();
+  hideReply();
   sfx('open');
   if (document.pointerLockElement) document.exitPointerLock();
 }
@@ -3413,13 +3418,30 @@ function dayTrack(){
   }
   return {done, total, pct, pace, tone};
 }
+function replyOpen(){ return !el.reply.classList.contains('hidden'); }
+function replyDocked(){ return el.reply.classList.contains('docked'); }
+function dockReply(){
+  el.reply.classList.add('docked');
+  el.rcue.textContent = 'Click to put this away';
+  replyLife = 0;
+  syncTalk();
+}
+function hideReply(){
+  replyLife = 0;
+  el.reply.classList.add('hidden');
+  el.reply.classList.remove('docked');
+  syncTalk();
+}
+function stepReply(){
+  if (!replyOpen()) return false;
+  if (replyDocked()) hideReply();
+  else dockReply();
+  sfx('click');
+  return true;
+}
 function dismissBubbles(){
   let n = 0;
-  if (!el.reply.classList.contains('hidden')){
-    replyLife = 0;
-    el.reply.classList.add('hidden');
-    n += 1;
-  }
+  if (replyOpen()) return stepReply();
   if (bannerLife > 0 || !el.banner.classList.contains('hidden')){
     bannerLife = 0;
     el.banner.classList.add('hidden');
@@ -3634,12 +3656,9 @@ function passBy(){
 }
 function tickAudio(dt){
   if (bannerLife > 0) bannerLife -= dt;
-  if (replyLife > 0){
+  if (replyLife > 0 && replyOpen() && !replyDocked()){
     replyLife -= dt;
-    if (replyLife <= 0){
-      el.reply.classList.add('hidden');
-      syncTalk();
-    }
+    if (replyLife <= 0) dockReply();
   }
   if (!audioCtx || !amb || audioCtx.state !== 'running') return;
   try {
@@ -3681,7 +3700,7 @@ function speak(text, who, fresh){
   }
 }
 function syncTalk(){
-  const on = !el.panel.classList.contains('hidden') || !el.reply.classList.contains('hidden') || phoneOn;
+  const on = !el.panel.classList.contains('hidden') || phoneOn;
   document.body.classList.toggle('talking', on);
   el.talkdim.classList.toggle('hidden', !on);
 }
@@ -3743,7 +3762,8 @@ function showReply(who, line, yours){
   el.ryou.textContent = yours ? ('You — ' + yours) : '';
   el.ryou.classList.toggle('hidden', !yours);
   el.rline.textContent = line;
-  el.reply.classList.remove('hidden');
+  el.reply.classList.remove('hidden', 'docked');
+  el.rcue.textContent = 'Click to tuck this aside';
   replyLife = who ? 6 : 3.4;
   syncTalk();
 }
@@ -3765,8 +3785,7 @@ function hidePanel(){
 }
 function openPanel(spec){
   S.panel = spec;
-  el.reply.classList.add('hidden');
-  replyLife = 0;
+  hideReply();
   el.panel.classList.remove('hidden');
   el.pspeaker.textContent = spec.face || '';
   el.pyou.textContent = spec.yours ? ('You — ' + spec.yours) : '';
@@ -5457,12 +5476,7 @@ document.addEventListener('mouseup', e => {
   if (e.button === 0) mouseLeft = false;
   if (e.button === 2) mouseRight = false;
 });
-el.reply.addEventListener('click', () => {
-  replyLife = 0;
-  el.reply.classList.add('hidden');
-  syncTalk();
-  sfx('click');
-});
+el.reply.addEventListener('click', () => { stepReply(); });
 el.banner.addEventListener('click', () => {
   bannerLife = 0;
   el.banner.classList.add('hidden');
