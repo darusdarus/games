@@ -711,6 +711,16 @@ function carBlocks(c, x, z, r){
   const lz = dx * (-sin) + dz * (-cos);
   return Math.abs(lx) < 0.95 + r && Math.abs(lz) < 2.05 + r;
 }
+function carAt(x, z, r, ignore){
+  let best = null, bestD = 1e9;
+  for (const c of CARS){
+    if (c === ignore || c.occupied === 'you') continue;
+    if (!carBlocks(c, x, z, r)) continue;
+    const d = (c.x - x) * (c.x - x) + (c.z - z) * (c.z - z);
+    if (d < bestD){ best = c; bestD = d; }
+  }
+  return best;
+}
 function moveCircle(e, dx, dz, r){
   e.x += dx;
   if (hits(e.x, e.z, r)) e.x -= dx;
@@ -1661,7 +1671,7 @@ function makeWheel(x, y, z, parent, steers){
   cap.castShadow = false;
   const caliper = trimBox(0.07, 0.05, 0.12, 0xb23a2e, 0.22, 0, 0.05, axle);
   caliper.rotation.z = 0.4;
-  return {tire, hub, steer:!!steers};
+  return {tire, hub, steer:!!steers, home:new THREE.Vector3(x, y, z)};
 }
 function lampLens(x, y, z, matl, parent, forward){
   const bucket = meshOf(cylGeo24, 0x1a1c20, x, y, z + forward * 0.02, parent);
@@ -1764,7 +1774,204 @@ function buildCarMesh(color){
     makeWheel(-0.86, 0.38, 1.28, g, false),
     makeWheel(0.86, 0.38, 1.28, g, false),
   ];
+  g.userData.hood = hood;
+  g.userData.hoodX = hood.rotation.x;
+  g.userData.hoodPos = hood.position.clone();
+  g.userData.trunk = trunk;
+  g.userData.trunkX = trunk.rotation.x;
+  g.userData.trunkPos = trunk.position.clone();
+  g.userData.wind = wind;
+  g.userData.windX = wind.rotation.x;
+  g.userData.windPos = wind.position.clone();
   return g;
+}
+const looseWheels = [];
+let crackMat = null;
+let fireT = 0;
+let crackGeo = null;
+let flameGeo = null;
+function crackMaterial(){
+  if (crackMat) return crackMat;
+  const tex = canvasTex(256, 128, (g, w, h) => {
+    g.clearRect(0, 0, w, h);
+    g.lineCap = 'round';
+    const lines = [
+      [16, 18, 240, 108],
+      [28, 112, 236, 16],
+      [128, 6, 108, 122],
+      [70, 8, 40, 120],
+      [190, 10, 210, 118],
+      [8, 64, 248, 58],
+    ];
+    const stroke = (width, color) => {
+      g.strokeStyle = color;
+      g.lineWidth = width;
+      for (const [x1, y1, x2, y2] of lines){
+        g.beginPath();
+        g.moveTo(x1, y1);
+        g.lineTo(x2, y2);
+        g.stroke();
+      }
+    };
+    stroke(22, 'rgba(8, 10, 14, 1)');
+    stroke(8, 'rgba(255, 255, 255, 1)');
+  });
+  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+  crackMat = new THREE.MeshBasicMaterial({
+    map:tex, transparent:true, depthWrite:false, side:THREE.DoubleSide,
+  });
+  return crackMat;
+}
+function spawnFire(){
+  if (!flameGeo) flameGeo = new THREE.ConeGeometry(0.32, 0.95, 6);
+  const group = new THREE.Group();
+  const sprites = [];
+  const cols = [0xfff6c8, 0xff8418, 0xff3c08];
+  for (let i = 0; i < 3; i++){
+    const m = new THREE.Mesh(flameGeo, new THREE.MeshBasicMaterial({color:cols[i]}));
+    m.position.set((i - 1) * 0.2, 0.55 + i * 0.1, (i - 1) * 0.05);
+    m.scale.set(0.9, 1.1 + i * 0.2, 0.9);
+    group.add(m);
+    sprites.push(m);
+  }
+  const light = new THREE.PointLight(0xff6a1a, 3.2, 10, 2);
+  light.position.set(0, 0.9, 0);
+  group.add(light);
+  scene.add(group);
+  return {group, sprites, light};
+}
+const fireAnchor = new THREE.Vector3();
+function placeFire(c){
+  const f = c.fire;
+  const hood = c.mesh.userData.hood;
+  if (!f || !hood) return;
+  fireAnchor.set(0, 0.42, -0.18);
+  hood.localToWorld(fireAnchor);
+  f.group.position.copy(fireAnchor);
+}
+function wreckCar(other, attacker, impact){
+  if (!other || other.occupied === 'you') return;
+  const mesh = other.mesh;
+  const u = mesh.userData;
+  if (!other.wrecked){
+    other.wrecked = true;
+    other.traffic = false;
+    other.speed = 0;
+    const hitFx = -Math.sin(attacker.yaw), hitFz = -Math.cos(attacker.yaw);
+    for (const w of u.wheels || []){
+      scene.attach(w.hub);
+      let ox = w.hub.position.x - other.x;
+      let oz = w.hub.position.z - other.z;
+      const olen = Math.hypot(ox, oz) || 1;
+      ox /= olen; oz /= olen;
+      const kick = 4.4 + Math.min(Math.abs(impact), 22) * 0.08;
+      looseWheels.push({
+        hub:w.hub,
+        vx:ox * kick + hitFx * 1.8,
+        vz:oz * kick + hitFz * 1.8,
+        t:Math.random() * 4,
+      });
+    }
+    mesh.scale.set(1.08, 0.7, 0.84);
+    mesh.rotation.z = (Math.random() * 2 - 1) * 0.2;
+    mesh.rotation.x = 0.1;
+    if (u.hood){
+      u.hood.rotation.x = 0.82;
+      u.hood.rotation.z = (Math.random() * 2 - 1) * 0.16;
+      u.hood.position.y += 0.2;
+      u.hood.position.z += 0.26;
+      u.hood.scale.set(1.04, 1.4, 0.58);
+    }
+    if (u.trunk){
+      u.trunk.rotation.x = -0.7;
+      u.trunk.position.y += 0.16;
+      u.trunk.position.z -= 0.08;
+    }
+    if (u.wind && !u.crack){
+      u.wind.rotation.x = 0.55;
+      if (!u.glassMat) u.glassMat = new THREE.MeshBasicMaterial({color:0x101820, transparent:true, opacity:0.92});
+      u.wind.material = u.glassMat;
+      if (!crackGeo) crackGeo = new THREE.PlaneGeometry(1.5, 0.64);
+      const plate = new THREE.Mesh(crackGeo, crackMaterial());
+      plate.position.set(u.wind.position.x, u.wind.position.y + 0.02, u.wind.position.z - 0.1);
+      plate.rotation.x = 0.42;
+      plate.renderOrder = 3;
+      mesh.add(plate);
+      u.crack = plate;
+    }
+    other.fire = spawnFire();
+    sfx('crash');
+  }
+  const fx = -Math.sin(attacker.yaw), fz = -Math.cos(attacker.yaw);
+  const nx = other.x + fx * 1.6;
+  const nz = other.z + fz * 1.6;
+  if (!hits(nx, nz, 0.85, true)){
+    other.x = nx;
+    other.z = nz;
+  }
+  other.yaw += (Math.random() * 2 - 1) * 0.4;
+  mesh.position.set(other.x, 0, other.z);
+  mesh.rotation.y = -other.yaw;
+  placeFire(other);
+}
+function tickWrecks(dt){
+  fireT += dt;
+  for (const w of looseWheels){
+    w.t += dt;
+    w.hub.position.x += w.vx * dt;
+    w.hub.position.z += w.vz * dt;
+    w.vx *= Math.exp(-dt * 1.5);
+    w.vz *= Math.exp(-dt * 1.5);
+    const spd = Math.hypot(w.vx, w.vz);
+    w.hub.rotateX(spd * dt * 7);
+    w.hub.position.y = 0.36 + (spd > 0.25 ? Math.abs(Math.sin(w.t * 16)) * 0.14 : 0);
+  }
+  for (const c of CARS){
+    if (!c.fire) continue;
+    placeFire(c);
+    const f = 0.78 + Math.sin(fireT * 17 + c.x) * 0.18 + Math.sin(fireT * 29) * 0.08;
+    c.fire.light.intensity = 3.4 * f;
+    c.fire.sprites.forEach((s, i) => {
+      const wob = 0.85 + Math.sin(fireT * (13 + i * 4) + i) * 0.16;
+      s.scale.set(0.85 * wob, (1.05 + i * 0.22) * f, 0.85 * wob);
+    });
+  }
+}
+function restoreCar(c){
+  const mesh = c.mesh;
+  const u = mesh.userData;
+  c.wrecked = false;
+  mesh.scale.set(1, 1, 1);
+  mesh.rotation.x = 0;
+  mesh.rotation.z = 0;
+  if (u.hood && u.hoodPos){
+    u.hood.rotation.set(u.hoodX, 0, 0);
+    u.hood.position.copy(u.hoodPos);
+    u.hood.scale.set(1, 1, 1);
+  }
+  if (u.trunk && u.trunkPos){
+    u.trunk.rotation.set(u.trunkX, 0, 0);
+    u.trunk.position.copy(u.trunkPos);
+  }
+  if (u.crack){
+    mesh.remove(u.crack);
+    u.crack = null;
+  }
+  if (u.wind && u.windPos){
+    u.wind.material = carGlass;
+    u.wind.rotation.set(u.windX, 0, 0);
+    u.wind.position.copy(u.windPos);
+  }
+  if (c.fire){
+    scene.remove(c.fire.group);
+    c.fire = null;
+  }
+  for (const w of u.wheels || []){
+    if (w.hub.parent !== mesh) mesh.add(w.hub);
+    w.hub.position.copy(w.home);
+    w.hub.rotation.set(0, 0, 0);
+    if (w.tire) w.tire.rotation.set(0, 0, 0);
+  }
 }
 function spinWheels(c, dt, speed){
   const wheels = c.mesh.userData.wheels;
@@ -1793,11 +2000,13 @@ function spawnCar(def){
 }
 function resetCars(){
   player.car = null;
+  looseWheels.length = 0;
   for (const c of CARS){
+    restoreCar(c);
     c.x = c.homeX; c.z = c.homeZ; c.yaw = c.homeYaw;
     c.speed = 0; c.steer = 0; c.traffic = c.homeTraffic; c.occupied = null;
     c.mesh.position.set(c.x, 0, c.z);
-    c.mesh.rotation.y = -c.yaw;
+    c.mesh.rotation.set(0, -c.yaw, 0);
     spinWheels(c, 0, 0);
   }
 }
@@ -3739,6 +3948,7 @@ function sfx(kind){
     case 'step': noiseHit(0.05, 240, 0.05); break;
     case 'shot': noiseHit(0.09, 900, 0.08); break;
     case 'shove': noiseHit(0.08, 420, 0.07); break;
+    case 'crash': noiseHit(0.24, 140, 0.2); blip(90, 0.22, 0.08, 'triangle'); break;
     case 'ring': blip(880, 0.09, 0.05); blip(660, 0.14, 0.04); break;
     default: assertNever(kind);
   }
@@ -5067,7 +5277,11 @@ function driveCar(dt){
   const fx = -Math.sin(c.yaw), fz = -Math.cos(c.yaw);
   const nx = c.x + fx * c.speed * dt;
   const nz = c.z + fz * c.speed * dt;
-  if (hits(nx, nz, 0.9, c)) c.speed *= -0.35;
+  const other = carAt(nx, nz, 0.95, c);
+  if (other && Math.abs(c.speed) > 6.5){
+    wreckCar(other, c, Math.abs(c.speed));
+    c.speed *= -0.4;
+  } else if (hits(nx, nz, 0.9, c)) c.speed *= -0.35;
   else { c.x = nx; c.z = nz; }
   c.mesh.position.set(c.x, 0, c.z);
   c.mesh.rotation.y = -c.yaw;
@@ -5221,6 +5435,7 @@ function update(dt){
   tickClock(dt);
   if (S.mode !== 'play') return;
   tickTraffic(dt);
+  tickWrecks(dt);
   tickOfficeDoor(dt);
   tickWalkers(dt);
   tickPop(dt);
@@ -5673,6 +5888,29 @@ window.__rentor = {
   },
   inOffice,
   cars(){ return CARS.map(c => ({id:c.id, x:c.x, z:c.z, yaw:c.yaw, traffic:!!c.traffic, occupied:c.occupied, speed:c.speed})); },
+  wreck(id){
+    const c = CARS.find(q => q.id === id);
+    if (!c) return null;
+    const wheels = c.mesh.userData.wheels || [];
+    const at = new THREE.Vector3();
+    return {
+      wrecked:!!c.wrecked,
+      off:wheels.filter(w => w.hub.parent !== c.mesh).length,
+      fire:!!c.fire,
+      fireAt:c.fire ? {
+        x:+c.fire.group.position.x.toFixed(2),
+        y:+c.fire.group.position.y.toFixed(2),
+        z:+c.fire.group.position.z.toFixed(2),
+      } : null,
+      cracked:!!c.mesh.userData.crack,
+      scaleY:+c.mesh.scale.y.toFixed(2),
+      hood:c.mesh.userData.hood ? +c.mesh.userData.hood.rotation.x.toFixed(2) : 0,
+      wheels:wheels.map(w => {
+        w.hub.getWorldPosition(at);
+        return {x:+at.x.toFixed(2), z:+at.z.toFixed(2), on:w.hub.parent === c.mesh};
+      }),
+    };
+  },
   enter(id){ const c = CARS.find(q => q.id === id); if (c) enterCar(c); },
   exit(){ exitCar(); },
   goal(){ return goalLine(); },
