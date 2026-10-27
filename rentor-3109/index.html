@@ -2601,6 +2601,9 @@ const lamps = buildWorld();
 const beamMat = new THREE.MeshLambertMaterial({color:0xffd56a, transparent:true, opacity:0.35});
 const beam = box(0.35, 14, 0.35, beamMat, 0, 7, 0);
 beam.castShadow = false;
+const BEAM_TOUCH = 1.15;
+const BEAM_REARM = 2.25;
+let beamHeld = '';
 const vm = new THREE.Group();
 camera.add(vm);
 vm.position.set(0.28, -0.26, -0.48);
@@ -4748,6 +4751,24 @@ function objectivePoint(){
   if (!inOffice()) return homePoint();
   return null;
 }
+function actAtBeam(goal){
+  if (S.phase !== 'day' || !goal) return false;
+  for (const t of S.tasks){
+    if (t.done) continue;
+    const p = propById(t.propId);
+    if (Math.hypot(p.door.x - goal.x, p.door.z - goal.z) > 0.75) continue;
+    doTask(t);
+    return true;
+  }
+  if (S.urgent && !S.urgent.done){
+    const s = urgentSpot();
+    if (Math.hypot(s.x - goal.x, s.z - goal.z) <= 0.75){
+      doUrgent();
+      return true;
+    }
+  }
+  return false;
+}
 function goalLine(){
   if (player.down) return 'Down until dawn. You can still shoot. You wake at the desk.';
   if (net.role === 'client' && (!net.latest || !net.latest.playing)) return 'Waiting for the host to open the day.';
@@ -4778,6 +4799,7 @@ function beginDay(){
   S.pendingOffer = false;
   S.urgent = null;
   S.rentWait = null;
+  beamHeld = '';
   hidePanel();
   player.down = false;
   player.hp = 100;
@@ -5175,9 +5197,14 @@ function updateHud(){
   if (goal){
     const dx = goal.x - player.x, dz = goal.z - player.z;
     const dist = Math.hypot(dx, dz);
-    beam.visible = dist > 3;
     beam.position.set(goal.x, 7, goal.z);
     beamMat.color.setHex(S.phase === 'night' || (S.urgent && S.urgent.done) ? 0xff5544 : 0xffd56a);
+    const key = goal.x.toFixed(1) + ',' + goal.z.toFixed(1);
+    if (dist > BEAM_REARM) beamHeld = '';
+    if (beamHeld !== key && dist <= BEAM_TOUCH && S.phase === 'day' && !player.down && !player.car && !S.panel && !phoneOn && actAtBeam(goal)){
+      beamHeld = key;
+    }
+    beam.visible = dist > BEAM_TOUCH && !S.panel;
   } else beam.visible = false;
   el.compass.replaceChildren();
   if (mark && markKey){
@@ -5198,11 +5225,12 @@ function updateHud(){
   const near = player.car || S.panel ? null : targets();
   const ride = player.car || S.panel ? null : nearestCar(3);
   const pillarCue = !!(pillarFloat && near && near.label.indexOf(pillarFloat.replace(/\.$/, '')) === 0);
+  const beamCue = !!(goal && near && S.phase === 'day' && Math.hypot(goal.x - near.x, goal.z - near.z) < 0.75);
   const prompt = S.panel
     ? ''
     : player.car
       ? ((TOUCH ? 'USE' : 'E') + '  Exit car')
-      : near && !pillarCue
+      : near && !pillarCue && !beamCue
         ? ((TOUCH ? 'USE' : 'E') + '  ' + near.label)
         : ride
           ? ((TOUCH ? 'USE' : 'E') + '  ' + (ride.traffic ? 'Take car' : ride.label))
@@ -5981,6 +6009,7 @@ window.__rentor = {
   zombie(id){ const z = pool.find(q => q.id === id); return z ? {hp:z.hp, x:z.x, z:z.z, dead:z.dead, stag:z.stag} : null; },
   hits(x, z){ return hits(x, z, 0.32); },
   door(){ return {open:officeDoor.open, angle:+officeDoor.angle.toFixed(3)}; },
+  beam(){ return {visible:beam.visible, x:+beam.position.x.toFixed(2), z:+beam.position.z.toFixed(2), held:beamHeld}; },
   pillar(id){
     const p = propById(id);
     if (!p) return null;
