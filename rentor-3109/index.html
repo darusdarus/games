@@ -256,7 +256,7 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
    <h3>Start the day</h3>
    <ul>
     <li>Five minutes of daylight. Be back inside 3109 before dark.</li>
-    <li>The gold pin is the next door. Collect the rent, or walk them outside.</li>
+    <li>They ask about human rights. Wait 1 minute, or send them to debtors' prison.</li>
     <li>E opens the office door and a car. W drives forward. A turns left. D turns right.</li>
     <li>P opens the phone. Dial 911. The cops take them to debtors' jail.</li>
    </ul>
@@ -311,10 +311,10 @@ body.touching #sound{left:auto;right:8px;bottom:auto;top:calc(148px + env(safe-a
    <p class="rule">The stops</p>
    <h3>Go inside</h3>
    <ul>
-    <li>E opens a door. Ask for the rent first.</li>
-    <li>If they will not pay, grab them and throw them into the street.</li>
-    <li>P opens the phone. Dial 911. The cops take them to debtors' jail.</li>
-    <li>A missed month cools them off. Another one and the unit goes empty.</li>
+    <li>E opens a door. They ask about their human rights.</li>
+    <li>Ask if they have the rent. Wait 1 minute, and they pay.</li>
+    <li>Or send them to debtors' prison. Grab them and throw them into the street.</li>
+    <li>P opens the phone. Dial 911. A missed month cools them off.</li>
    </ul>
   </section>
   <section>
@@ -496,7 +496,7 @@ const S = {
   mode:'title', phase:'day', left:DAY_LEN, month:0, cash:4200, doors:false,
   homeNights:0, caught:0, deaths:0, collected:0, repairs:0, filled:0, correct:0, wrong:0, signed:0, rentIn:0, spent:0,
   tasks:[], urgent:null, offered:false, pendingOffer:false, panel:null, trickle:8, hurt:0, muzzle:0,
-  haul:null, removed:0,
+  haul:null, rentWait:null, removed:0,
 };
 let phoneOn = false;
 let phoneDigits = '';
@@ -4021,38 +4021,78 @@ function salePanel(t){
     choices: beat.choices.map(c => ({label:c.label, apply(){ applyPitch(t, c); }})),
   };
 }
+function sendToPrison(t, p){
+  if (S.haul && S.haul.stage !== 'jailed'){
+    say(p.resident, 'The street is already waiting on the wagon.');
+    return;
+  }
+  if (S.rentWait && S.rentWait.propId === p.id) S.rentWait = null;
+  t.done = true;
+  S.wrong += 1;
+  S.haul = {propId:p.id, stage:'drag'};
+  say(p.resident, 'You are taking me to debtors\' prison.');
+}
+function acceptRentWait(p){
+  if (S.rentWait && S.rentWait.propId !== p.id){
+    const other = propById(S.rentWait.propId);
+    say(p.resident, 'You are already waiting on ' + (other && other.resident ? other.resident : 'another door') + '.');
+    return;
+  }
+  S.rentWait = {propId:p.id, left:60};
+  say(p.resident, 'I can have it in 1 minute.');
+}
+function rentAnswerPanel(t, p){
+  return {
+    face: p.resident || 'Resident',
+    title:'Rent · ' + p.addr,
+    yours:'Do you have the rent?',
+    heard:'I can have it in 1 minute.',
+    body:(p.resident || 'The resident') + ' can have ' + money(p.rent) + ' in 1 minute. The clock keeps running.',
+    choices:[
+      {label:'Okay, I\'ll wait 1 minute.', apply(){ acceptRentWait(p); }},
+      {label:'No, you\'re going to debtors\' prison.', apply(){ sendToPrison(t, p); }},
+    ],
+  };
+}
+function rentRightsPanel(t, p){
+  return {
+    face: p.resident || 'Resident',
+    title:'Rent · ' + p.addr,
+    yours:'The rent is due.',
+    heard:'What about my human rights?',
+    body:(p.resident || 'The resident') + ' owes ' + money(p.rent) + '. The rent is still due.',
+    choices:[
+      {label:'Do you have the rent?', apply(){ openPanel(rentAnswerPanel(t, p)); }},
+      {label:'Okay, I\'ll wait 1 minute.', apply(){ acceptRentWait(p); }},
+      {label:'No, you\'re going to debtors\' prison.', apply(){ sendToPrison(t, p); }},
+    ],
+  };
+}
+function tickRentWait(dt){
+  if (!S.rentWait || S.phase !== 'day') return;
+  S.rentWait.left -= dt;
+  if (S.rentWait.left > 0) return;
+  const propId = S.rentWait.propId;
+  S.rentWait = null;
+  const p = propById(propId);
+  const t = S.tasks.find(q => q.type === 'rent' && q.propId === propId && !q.done);
+  if (!t || !p) return;
+  t.done = true;
+  earn(p.rent);
+  S.collected += 1;
+  bumpHappy(p, 3);
+  say(p.resident, p.resident + ' paid ' + money(p.rent) + '.');
+}
 function doTask(t){
   const p = propById(t.propId);
   switch (t.type){
     case 'rent':
-      openPanel({
-        face: p.resident || 'Resident',
-        title:'Rent · ' + p.addr,
-        yours:'The rent is due.',
-        heard:'What about my human rights?',
-        body:(p.resident || 'The resident') + ' owes ' + money(p.rent) + '. The rent is still due. If they will not pay, they leave with you.',
-        choices:[
-          {label:'Take ' + money(p.rent) + ' and leave a receipt.', apply(){
-            t.done = true;
-            earn(p.rent);
-            S.collected += 1;
-            bumpHappy(p, 3);
-            say(p.resident, p.resident + ' paid ' + money(p.rent) + '.');
-          }},
-          {label:'You do not have it. You are coming outside.', apply(){
-            if (S.haul && S.haul.stage !== 'jailed'){
-              say(p.resident, 'The street is already waiting on the wagon.');
-              return;
-            }
-            t.done = true;
-            S.wrong += 1;
-            S.haul = {propId:p.id, stage:'drag'};
-            say(p.resident, 'I do not have ' + money(p.rent) + '.');
-          }},
-        ],
-      });
-      speak('What about my human rights?', p.resident || 'Resident', true);
-      toast('What about my human rights?');
+      if (S.rentWait && S.rentWait.propId === p.id){
+        const secs = Math.max(1, Math.ceil(S.rentWait.left));
+        say(p.resident, 'I can have it in ' + secs + ' seconds.');
+        break;
+      }
+      openPanel(rentRightsPanel(t, p));
       break;
     case 'repair':
       openPanel({
@@ -4299,6 +4339,7 @@ function beginDay(){
   S.offered = false;
   S.pendingOffer = false;
   S.urgent = null;
+  S.rentWait = null;
   hidePanel();
   player.down = false;
   player.hp = 100;
@@ -4314,6 +4355,7 @@ function beginDay(){
 }
 function beginNight(){
   shownObj = '';
+  S.rentWait = null;
   if (S.haul && S.haul.stage !== 'jailed') cancelHaul('Dusk stopped the removal. They are back inside.');
   const home = inOffice();
   if (home) S.homeNights += 1; else S.caught += 1;
@@ -4435,6 +4477,7 @@ function resetRun(){
   S.rentIn = 0; S.spent = 0;
   S.removed = 0;
   S.haul = null;
+  S.rentWait = null;
   qCursor = 0;
   snapOfficeDoor(false);
   player.x = 0; player.z = -1; player.yaw = Math.PI; player.pitch = 0;
@@ -4637,6 +4680,7 @@ function updateHud(){
   if (S.haul && S.haul.stage === 'drag') hint = 'F grabs. Walk them out. F or the mouse throws them into the street.';
   else if (S.haul && S.haul.stage === 'call') hint = 'P opens the phone. Dial 911.';
   else if (S.haul && S.haul.stage === 'wagon') hint = 'The cops are taking them to debtors\' jail.';
+  else if (S.rentWait) hint = 'You agreed to wait. The clock keeps running.';
   else if (S.phase === 'day' && !S.offered) hint = 'A Ferndale signing calls late. Finish the gold pin first.';
   else if (S.urgent && !S.urgent.done) hint = 'Take a car to the gold pin, then get back inside 3109.';
   else if (player.down) hint = 'You can still shoot. Dawn puts you back at the desk.';
@@ -4660,6 +4704,13 @@ function updateHud(){
       row.textContent = 'NEXT · ' + h.label + ' · ' + Math.round(Math.hypot(h.x - player.x, h.z - player.z)) + 'm';
       el.obj.append(row);
     }
+  }
+  if (S.rentWait && S.phase === 'day'){
+    const who = propById(S.rentWait.propId);
+    const row = document.createElement('div');
+    row.className = 'hot';
+    row.textContent = (who && who.resident ? who.resident : 'Rent') + ' · ' + Math.ceil(S.rentWait.left) + 's';
+    el.obj.append(row);
   }
   if (S.urgent && !S.urgent.done){
     const s = urgentSpot();
@@ -4911,6 +4962,7 @@ function tickClock(dt){
 function update(dt){
   tickNet(dt);
   if (S.mode === 'title' || S.mode === 'year' || S.mode === 'guide') return;
+  if (S.mode === 'play') tickRentWait(dt);
   tickClock(dt);
   if (S.mode !== 'play') return;
   tickTraffic(dt);
@@ -5235,6 +5287,7 @@ function snapshot(){
     driving:!!player.car, carId:player.car ? player.car.id : '',
     panel:S.panel ? S.panel.title : '',
     haul:S.haul ? {propId:S.haul.propId, stage:S.haul.stage} : null,
+    rentWait:S.rentWait ? {propId:S.rentWait.propId, left:S.rentWait.left} : null,
     removed:S.removed,
     holding:player.hold ? (player.hold.grabbed ? 'grab' : 'throw') : '',
     urgent:S.urgent ? {step:S.urgent.step, done:!!S.urgent.done, payout:S.urgent.payout} : null,
