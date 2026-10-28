@@ -16,14 +16,31 @@ button,input,textarea{font-family:inherit}
 #title h1{margin:0;text-align:center;font-weight:500;letter-spacing:.08em;font-size:clamp(28px,4.6vw,64px);text-shadow:0 3px 16px rgba(0,0,0,.45)}
 #title .mid{pointer-events:auto;text-align:center;max-width:640px}
 #title .game{margin:0 0 14px;font-size:clamp(16px,2vw,22px);letter-spacing:.04em;text-shadow:0 2px 8px #000}
-#walkbtn{pointer-events:auto;background:#f3ead4;color:#24180f;border:0;border-radius:999px;padding:14px 28px;font-size:22px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.28)}
-#walkbtn:hover{background:#fff8ea}
+.choices{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+#walkbtn,#withbtn,#hostbtn,#joinbtn,#backbtn,#codecopy,#leavebtn{border:0;border-radius:999px;cursor:pointer;font-size:20px}
+#walkbtn,#hostbtn{background:#f3ead4;color:#24180f;padding:14px 22px;box-shadow:0 8px 24px rgba(0,0,0,.28)}
+#withbtn{background:transparent;color:#f6f0e4;border:2px solid #f3ead4;padding:12px 18px;text-shadow:0 2px 8px #000}
+#walkbtn:hover,#hostbtn:hover{background:#fff8ea}
 #title .how{margin:14px auto 0;max-width:560px;font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;font-size:16px;line-height:1.45;text-shadow:0 2px 8px #000}
+#together{margin-top:4px;background:rgba(246,240,228,.95);color:#24180f;border-radius:18px;padding:16px 18px 14px;text-align:left;box-shadow:0 12px 40px rgba(0,0,0,.28)}
+#together h2{margin:0 0 8px;font-size:28px;font-weight:500}
+#together label{display:block;font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;font-size:14px;margin-top:8px}
+#together input{width:100%;box-sizing:border-box;margin:4px 0 10px;padding:8px 10px;border-radius:10px;border:1px solid #ddcbae;background:#fffaf2;color:#24180f;font-size:18px}
+.joinrow{display:flex;gap:8px;align-items:center}
+.joinrow input{flex:1;margin:0;text-transform:uppercase}
+#joinbtn{background:#e4b15a;color:#24180f;padding:10px 16px}
+#backbtn{background:transparent;color:#6d5844;padding:8px 0;font-size:16px}
+#roomhint{min-height:1.2em;margin:8px 0}
+#roomchip{position:absolute;top:16px;left:16px;display:flex;gap:8px;align-items:center;background:rgba(24,18,12,.78);border:1px solid rgba(228,177,90,.7);border-radius:999px;padding:6px 8px 6px 12px;pointer-events:auto;font-family:"Avenir Next","Segoe UI",system-ui,sans-serif}
+#codecopy{background:transparent;color:#f6f0e4;padding:4px 0;font-size:16px}
+#leavebtn{background:#f3ead4;color:#24180f;padding:6px 12px;font-size:15px}
+#roomcount{font-size:14px;color:#e4b15a}
 #slogan{margin:0;letter-spacing:.18em;font-size:clamp(16px,2.4vw,28px);font-weight:500;text-shadow:0 3px 12px rgba(0,0,0,.5)}
 #top{position:absolute;top:14px;left:50%;transform:translateX(-50%);text-align:center;min-width:240px;text-shadow:0 2px 8px #000}
 #kicker{letter-spacing:.16em;font-size:13px}
 #where{font-size:28px;margin-top:2px}
-#hint{font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;font-size:15px;opacity:.92;margin-top:2px}
+#hint,#status{font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;font-size:15px;opacity:.92;margin-top:2px}
+#status{color:#ffe7b8}
 #kept{position:absolute;top:16px;right:16px;background:rgba(24,18,12,.72);border:1px solid rgba(228,177,90,.7);border-radius:10px;padding:8px 12px;font-size:16px}
 #prompt{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);pointer-events:auto;background:rgba(243,234,212,.94);color:#24180f;border:0;border-radius:999px;padding:12px 18px;font-size:18px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.28)}
 #cross{position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border:1px solid rgba(255,255,255,.8);border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
@@ -59,8 +76,28 @@ button,input,textarea{font-family:inherit}
     <h1>THERE'S MAGIC IN LEARNING</h1>
     <div class="mid">
       <p class="game">Darus' Memorization Station</p>
-      <button id="walkbtn" type="button">Walk to the castle</button>
-      <p class="how" id="how">Walk the path and into the castle. Leave a poem, a story, a thing, or a picture in its room. Hide it, then type it or say it out loud. The magic tells you how close you came.</p>
+      <div id="homebtns">
+        <div class="choices">
+          <button id="walkbtn" type="button">Walk alone</button>
+          <button id="withbtn" type="button">Play with others</button>
+        </div>
+        <p class="how" id="how">Walk the path and into the castle. Leave a poem, a story, a thing, or a picture in its room. Hide it, then type it or say it out loud. The magic tells you how close you came. Or open a room and let people drop in.</p>
+      </div>
+      <div id="together" class="hidden">
+        <p class="kicker">DROP IN</p>
+        <h2>Play with others</h2>
+        <label for="pname">Your name</label>
+        <input id="pname" type="text" maxlength="16" autocomplete="nickname">
+        <button id="hostbtn" type="button">Host a room</button>
+        <label for="joincode">Room code</label>
+        <div class="joinrow">
+          <input id="joincode" type="text" maxlength="4" placeholder="CODE" autocapitalize="characters">
+          <button id="joinbtn" type="button">Join</button>
+        </div>
+        <p id="roomhint" class="note"></p>
+        <p class="note">Anyone with the code can walk in, and anyone can leave. The castle keeps what you place.</p>
+        <button id="backbtn" type="button">Back</button>
+      </div>
     </div>
     <p id="slogan">MAKE EDUCATION GREAT AGAIN</p>
   </div>
@@ -68,8 +105,14 @@ button,input,textarea{font-family:inherit}
     <div id="kicker">THERE'S MAGIC IN LEARNING</div>
     <div id="where">The path</div>
     <div id="hint"></div>
+    <div id="status"></div>
   </div>
   <div id="kept" class="hidden"></div>
+  <div id="roomchip" class="hidden">
+    <button id="codecopy" type="button">Room <span id="roomcode"></span></button>
+    <span id="roomcount"></span>
+    <button id="leavebtn" type="button">Leave</button>
+  </div>
   <div id="cross" class="hidden"></div>
   <button id="prompt" class="hidden" type="button"></button>
   <div id="panel" class="hidden"><div class="sheet" id="sheet"></div></div>
@@ -78,6 +121,7 @@ button,input,textarea{font-family:inherit}
     <button id="usebtn" type="button">Use</button>
   </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js"></script>
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}</script>
 <script type="module">
 import * as THREE from 'three';
@@ -111,6 +155,7 @@ const titleEl = document.getElementById('title');
 const topEl = document.getElementById('top');
 const whereEl = document.getElementById('where');
 const hintEl = document.getElementById('hint');
+const statusEl = document.getElementById('status');
 const keptEl = document.getElementById('kept');
 const crossEl = document.getElementById('cross');
 const promptEl = document.getElementById('prompt');
@@ -305,6 +350,7 @@ function loadMemories() {
 }
 
 function saveMemories() {
+  if (net.role === 'client' || net.borrowed) return true;
   try {
     localStorage.setItem(KEY, JSON.stringify(memories));
     return true;
@@ -332,13 +378,34 @@ function addMemory(room, title, text, image) {
     best: null,
     last: null,
   };
+  if (memories.filter((m) => m.room === item.room).length >= SLOT_MAX) return null;
   memories.push(item);
+  if (net.role === 'client') {
+    refreshProps();
+    sendAct({ op: 'add', memory: item });
+    return item;
+  }
   if (!saveMemories()) {
     memories.pop();
+    refreshProps();
     return null;
   }
   refreshProps();
+  if (net.role === 'host') {
+    broadcastBook();
+    if (item.image) broadcastImage(item.id, item.image);
+  }
   return item;
+}
+
+function shareChange(act) {
+  refreshProps();
+  if (net.role === 'client') {
+    if (act) sendAct(act);
+    return;
+  }
+  saveMemories();
+  if (net.role === 'host') broadcastBook();
 }
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -502,11 +569,11 @@ function buildCastle(parent) {
   castleGlow.position.set(0, 10, -12);
 }
 
-function person(parent, x, z, hair, tall, whiteHair) {
+function person(parent, x, z, hair, tall, whiteHair, robeColor) {
   const g = new THREE.Group();
   g.position.set(x, 0, z);
   const h = tall ? 2.05 : 1.55;
-  const robe = addMesh(g, geo(tall ? 'robeT' : 'robe', () => new THREE.CylinderGeometry(0.22, 0.55, 1, 8)), mat(0x241f22), 0, h * 0.34, 0);
+  const robe = addMesh(g, geo(tall ? 'robeT' : 'robe', () => new THREE.CylinderGeometry(0.22, 0.55, 1, 8)), mat(robeColor == null ? 0x241f22 : robeColor), 0, h * 0.34, 0);
   robe.scale.y = h * 0.7;
   addMesh(g, geo(tall ? 'headT' : 'head', () => new THREE.SphereGeometry(tall ? 0.2 : 0.16, 12, 10)), mat(0xf0d0b4), 0, h * 0.78, tall ? -0.04 : 0);
   const cap = addMesh(g, geo(tall ? 'hairT' : 'hair', () => new THREE.SphereGeometry(tall ? 0.22 : 0.17, 12, 10)), mat(hair), 0, h * 0.9, tall ? 0.02 : 0);
@@ -526,6 +593,541 @@ function keeper(parent, x, z) {
 function walker(parent, x, z, hair) {
   const mesh = person(parent, x, z, hair, false, false);
   return { mesh, x, z, base: z };
+}
+
+const MAX_WALKERS = 8;
+const ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+const ROBES = [0x241f22, 0x3a2a28, 0x1e2a28, 0x3a2430, 0x2c2418, 0x1a2830];
+const HAIR = [0x8a3a22, 0x1c1c1c, 0x6b4a2a, 0xc4a05a, 0x4a3028, 0x2a2420];
+const net = {
+  role: 'solo', id: 'you', name: 'Walker', code: '', borrowed: false,
+  peer: null, link: null, conns: [], poses: new Map(), acc: 0, silence: 0,
+};
+const remotes = new Map();
+let joinedPersonal = null;
+let joinTimer = 0;
+const roomChip = document.getElementById('roomchip');
+const roomCodeEl = document.getElementById('roomcode');
+const roomCountEl = document.getElementById('roomcount');
+const togetherEl = document.getElementById('together');
+const homeBtns = document.getElementById('homebtns');
+const nameInput = document.getElementById('pname');
+
+try {
+  const savedName = localStorage.getItem('darus-memorization-name');
+  if (savedName) nameInput.value = savedName;
+} catch { /* the name field still works */ }
+
+function hashStr(text) {
+  let h = 0;
+  for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+function cloneMemory(memory) {
+  return { ...memory };
+}
+
+function setRoomHint(text) {
+  const node = document.getElementById('roomhint');
+  if (node) node.textContent = text;
+}
+
+function cleanName() {
+  const raw = (nameInput.value || '').replace(/[^\w .'-]/g, '').trim().slice(0, 16);
+  const name = raw || 'Walker';
+  try { localStorage.setItem('darus-memorization-name', name); } catch { /* keep the name for this visit */ }
+  return name;
+}
+
+function makeCode() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 4; i++) code += alphabet[Math.floor(Math.random() * alphabet.length)];
+  return code;
+}
+
+function roomCount() {
+  if (net.role === 'host') return 1 + net.conns.filter((conn) => conn.open).length;
+  if (net.role === 'client') return 1 + net.poses.size;
+  return 1;
+}
+
+function paintRoom() {
+  const together = net.role === 'host' || net.role === 'client';
+  roomChip.classList.toggle('hidden', !together || mode !== 'play');
+  if (!together) return;
+  roomCodeEl.textContent = net.code;
+  const count = roomCount();
+  roomCountEl.textContent = count === 1 ? '1 walking' : `${count} walking`;
+}
+
+function bookList() {
+  return memories.map((memory) => ({
+    id: memory.id,
+    room: memory.room,
+    title: memory.title,
+    text: memory.text,
+    hidden: !!memory.hidden,
+    best: memory.best,
+    last: memory.last,
+    hasImage: !!memory.image,
+  }));
+}
+
+function sanitizeIncoming(raw) {
+  if (!raw || !ROOMS[raw.room] || typeof raw.text !== 'string') return null;
+  const id = String(raw.id || '');
+  if (!/^[a-z0-9]{8,24}$/i.test(id)) return null;
+  let image = '';
+  if (typeof raw.image === 'string' && raw.image.startsWith('data:image/') && raw.image.length <= 500000) image = raw.image;
+  return {
+    id,
+    room: raw.room,
+    title: String(raw.title || '').slice(0, 80) || 'Untitled',
+    text: String(raw.text).slice(0, 8000),
+    image,
+    hidden: !!raw.hidden,
+    best: raw.best == null || !Number.isFinite(Number(raw.best)) ? null : Number(raw.best),
+    last: raw.last == null || !Number.isFinite(Number(raw.last)) ? null : Number(raw.last),
+  };
+}
+
+function applyBook(list) {
+  if (!Array.isArray(list)) return;
+  const images = new Map(memories.map((memory) => [memory.id, memory.image]));
+  const next = [];
+  for (const raw of list) {
+    const item = sanitizeIncoming({ ...raw, image: images.get(raw.id) || '' });
+    if (item) next.push(item);
+  }
+  memories = next;
+  refreshProps();
+  if (ui && ui.id && !byId(ui.id)) closeUi(false);
+}
+
+function applyImage(id, image) {
+  const memory = byId(id);
+  if (!memory || typeof image !== 'string' || !image.startsWith('data:image/') || image.length > 500000) return;
+  memory.image = image;
+  refreshProps();
+}
+
+function sendTo(conn, msg) {
+  if (!conn || !conn.open) return;
+  try { conn.send(msg); } catch { /* the next pose will try again */ }
+}
+
+function sendAct(act) {
+  sendTo(net.link, { t: 'act', ...act });
+}
+
+function broadcastBook() {
+  const payload = { t: 'book', memories: bookList() };
+  for (const conn of net.conns) sendTo(conn, payload);
+}
+
+function broadcastImage(id, image) {
+  for (const conn of net.conns) {
+    if (!conn.gotImages) conn.gotImages = new Set();
+    if (conn.gotImages.has(id)) continue;
+    conn.gotImages.add(id);
+    sendTo(conn, { t: 'image', id, image });
+  }
+}
+
+function sendAllImages(conn) {
+  conn.gotImages = new Set();
+  for (const memory of memories) {
+    if (!memory.image) continue;
+    conn.gotImages.add(memory.id);
+    sendTo(conn, { t: 'image', id: memory.id, image: memory.image });
+  }
+}
+
+function hostApply(msg, conn) {
+  if (!msg || net.role === 'client') return false;
+  if (msg.op === 'add') {
+    const item = sanitizeIncoming(msg.memory);
+    if (!item) return false;
+    if (byId(item.id)) return true;
+    if (memories.filter((memory) => memory.room === item.room).length >= SLOT_MAX) {
+      if (conn) sendTo(conn, { t: 'book', memories: bookList() });
+      if (conn) sendTo(conn, { t: 'fullroom' });
+      return false;
+    }
+    memories.push(item);
+    if (!saveMemories()) {
+      memories.pop();
+      return false;
+    }
+    refreshProps();
+    if (net.role === 'host') {
+      broadcastBook();
+      if (item.image) broadcastImage(item.id, item.image);
+    }
+    return true;
+  }
+  if (msg.op === 'hide' || msg.op === 'show') {
+    const memory = byId(msg.id);
+    if (!memory) return false;
+    memory.hidden = msg.op === 'hide';
+  } else if (msg.op === 'remove') {
+    if (!byId(msg.id)) return false;
+    memories = memories.filter((memory) => memory.id !== msg.id);
+    if (ui && ui.id === msg.id) closeUi(false);
+  } else if (msg.op === 'score') {
+    const memory = byId(msg.id);
+    const pct = Math.round(Number(msg.pct));
+    if (!memory || !Number.isFinite(pct)) return false;
+    const clamped = Math.max(0, Math.min(100, pct));
+    memory.last = clamped;
+    memory.best = memory.best == null ? clamped : Math.max(memory.best, clamped);
+  } else return false;
+  refreshProps();
+  saveMemories();
+  if (net.role === 'host') broadcastBook();
+  return true;
+}
+
+function myPose() {
+  return { id: net.id || 'you', name: net.name, x: player.x, z: player.z, yaw: player.yaw, pitch: player.pitch, zone };
+}
+
+function nameSprite(text) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'rgba(24,18,12,0.82)';
+  ctx.fillRect(16, 8, 224, 48);
+  ctx.fillStyle = '#f6f0e4';
+  ctx.font = '28px Georgia';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(String(text || 'Walker').slice(0, 16), 128, 32);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }));
+  sprite.position.set(0, 1.95, 0);
+  sprite.scale.set(1.6, 0.4, 1);
+  return sprite;
+}
+
+function showRemotes() {
+  for (const remote of remotes.values()) remote.mesh.visible = mode === 'play' && remote.zone === zone;
+}
+
+function syncRemotes(people) {
+  const seen = new Set();
+  for (const personPose of people || []) {
+    if (!personPose || personPose.id === net.id) continue;
+    if (typeof personPose.x !== 'number' || typeof personPose.z !== 'number') continue;
+    seen.add(personPose.id);
+    let remote = remotes.get(personPose.id);
+    if (!remote) {
+      const mesh = person(scene, personPose.x, personPose.z, HAIR[hashStr(personPose.id) % HAIR.length], false, false, ROBES[hashStr(personPose.id) % ROBES.length]);
+      mesh.add(nameSprite(personPose.name || 'Walker'));
+      remote = { id: personPose.id, mesh, x: personPose.x, z: personPose.z, tx: personPose.x, tz: personPose.z, yaw: personPose.yaw || 0, zone: personPose.zone || 'grounds' };
+      remotes.set(personPose.id, remote);
+    }
+    remote.tx = Math.max(-30, Math.min(30, personPose.x));
+    remote.tz = Math.max(-30, Math.min(30, personPose.z));
+    remote.yaw = personPose.yaw || 0;
+    remote.zone = typeof personPose.zone === 'string' ? personPose.zone : remote.zone;
+  }
+  for (const [id, remote] of remotes) {
+    if (seen.has(id)) continue;
+    scene.remove(remote.mesh);
+    remotes.delete(id);
+  }
+  showRemotes();
+}
+
+function clearRemotes() {
+  for (const remote of remotes.values()) scene.remove(remote.mesh);
+  remotes.clear();
+  net.poses.clear();
+}
+
+function peopleList(exceptId) {
+  const list = [myPose()];
+  for (const conn of net.conns) {
+    const pose = net.poses.get(conn.peer);
+    if (pose) list.push(pose);
+  }
+  return list.filter((pose) => pose.id !== exceptId);
+}
+
+function sendPeople() {
+  for (const conn of net.conns) sendTo(conn, { t: 'people', people: peopleList(conn.peer) });
+  syncRemotes(peopleList(net.id));
+  paintRoom();
+}
+
+function tickRemotes(dt) {
+  const k = 1 - Math.exp(-dt * 8);
+  for (const remote of remotes.values()) {
+    remote.x += (remote.tx - remote.x) * k;
+    remote.z += (remote.tz - remote.z) * k;
+    remote.mesh.position.set(remote.x, 0, remote.z);
+    remote.mesh.rotation.y = remote.yaw;
+  }
+}
+
+function tickNet(dt) {
+  tickRemotes(dt);
+  if (net.role === 'host') {
+    net.acc += dt;
+    if (net.acc >= 0.15) {
+      net.acc = 0;
+      sendPeople();
+    }
+    return;
+  }
+  if (net.role !== 'client') return;
+  net.silence += dt;
+  if (net.silence > 8) hostGone();
+  net.acc += dt;
+  if (net.acc >= 0.1 && net.link && net.link.open) {
+    net.acc = 0;
+    sendTo(net.link, { t: 'pose', ...myPose() });
+  }
+}
+
+function onData(conn, msg) {
+  if (!msg || typeof msg.t !== 'string') return;
+  net.silence = 0;
+  if (msg.t === 'hello') {
+    net.poses.set(conn.peer, { id: conn.peer, name: msg.name || 'Walker', x: 0.4, z: 13.5, yaw: 0, pitch: 0, zone: 'grounds' });
+    sendTo(conn, { t: 'welcome', code: net.code });
+    sendTo(conn, { t: 'book', memories: bookList() });
+    sendAllImages(conn);
+    sendPeople();
+    return;
+  }
+  if (msg.t === 'welcome') {
+    if (joinTimer) window.clearTimeout(joinTimer);
+    joinTimer = 0;
+    net.code = msg.code || net.code;
+    if (mode !== 'play') {
+      player.x = ((hashStr(net.name) % 5) - 2) * 0.7;
+      startWalk();
+    }
+    paintRoom();
+    return;
+  }
+  if (msg.t === 'pose') {
+    net.poses.set(conn.peer, {
+      id: conn.peer,
+      name: msg.name || 'Walker',
+      x: Number(msg.x) || 0,
+      z: Number(msg.z) || 0,
+      yaw: Number(msg.yaw) || 0,
+      pitch: Number(msg.pitch) || 0,
+      zone: typeof msg.zone === 'string' ? msg.zone : 'grounds',
+    });
+    return;
+  }
+  if (msg.t === 'people') {
+    syncRemotes(msg.people);
+    paintRoom();
+    return;
+  }
+  if (msg.t === 'book') {
+    applyBook(msg.memories);
+    return;
+  }
+  if (msg.t === 'image') {
+    applyImage(msg.id, msg.image);
+    return;
+  }
+  if (msg.t === 'act') {
+    if (net.role === 'host') hostApply(msg, conn);
+    return;
+  }
+  if (msg.t === 'full') {
+    abortJoin('That room is full. Walk alone still works.');
+    return;
+  }
+  if (msg.t === 'fullroom') statusEl.textContent = 'That room is full.';
+}
+
+function dropConn(conn) {
+  net.conns = net.conns.filter((item) => item !== conn);
+  net.poses.delete(conn.peer);
+  syncRemotes(peopleList(net.id));
+  paintRoom();
+}
+
+function acceptConn(conn) {
+  if (net.conns.length >= MAX_WALKERS - 1) {
+    const refuse = () => { try { conn.send({ t: 'full' }); conn.close(); } catch { /* already gone */ } };
+    if (conn.open) refuse();
+    else conn.on('open', refuse);
+    return;
+  }
+  net.conns.push(conn);
+  conn.on('data', (data) => onData(conn, data));
+  conn.on('close', () => dropConn(conn));
+  paintRoom();
+}
+
+function closePeer() {
+  const peer = net.peer;
+  net.peer = null;
+  net.link = null;
+  net.conns = [];
+  if (joinTimer) window.clearTimeout(joinTimer);
+  joinTimer = 0;
+  if (!peer) return;
+  try { peer.destroy(); } catch { /* already closed */ }
+}
+
+function hostGone() {
+  if (net.role !== 'client') return;
+  net.role = 'solo';
+  net.borrowed = true;
+  closePeer();
+  clearRemotes();
+  paintRoom();
+  statusEl.textContent = 'The host left. You can keep walking this castle until you leave or reload.';
+}
+
+function leaveRoom() {
+  const restore = net.role === 'client' || net.borrowed;
+  closePeer();
+  net.role = 'solo';
+  net.borrowed = false;
+  net.code = '';
+  clearRemotes();
+  paintRoom();
+  if (restore && joinedPersonal) {
+    memories = joinedPersonal.map(cloneMemory);
+    refreshProps();
+    statusEl.textContent = 'You left the room. This is your own castle again.';
+  } else {
+    statusEl.textContent = 'You left the room.';
+  }
+  joinedPersonal = null;
+}
+
+function showTogether(open) {
+  togetherEl.classList.toggle('hidden', !open);
+  homeBtns.classList.toggle('hidden', open);
+  if (!open) setRoomHint('');
+}
+
+function abortJoin(hint) {
+  closePeer();
+  net.role = 'solo';
+  net.code = '';
+  if (joinedPersonal) memories = joinedPersonal.map(cloneMemory);
+  joinedPersonal = null;
+  refreshProps();
+  paintRoom();
+  if (mode === 'play') {
+    titleEl.classList.remove('hidden');
+    topEl.classList.add('hidden');
+    keptEl.classList.add('hidden');
+    crossEl.classList.add('hidden');
+    mode = 'title';
+  }
+  showTogether(true);
+  setRoomHint(hint);
+}
+
+function openHost(code, attempt) {
+  let peer;
+  try {
+    peer = new window.Peer(`memorize${code}`, { config: ICE });
+  } catch {
+    abortJoin('Could not open a room. Walk alone still works.');
+    return;
+  }
+  net.peer = peer;
+  peer.on('open', (id) => {
+    if (net.peer !== peer) return;
+    net.id = id;
+    setRoomHint('');
+    startWalk();
+    paintRoom();
+  });
+  peer.on('connection', (conn) => acceptConn(conn));
+  peer.on('error', (err) => {
+    if (net.peer !== peer) return;
+    const kind = err && err.type;
+    if (kind === 'unavailable-id' && attempt < 2) {
+      closePeer();
+      const next = makeCode();
+      net.code = next;
+      openHost(next, attempt + 1);
+      return;
+    }
+    abortJoin('Could not open a room. Walk alone still works.');
+  });
+}
+
+function startHost() {
+  if (!window.Peer) {
+    setRoomHint('This browser has no room link. Walk alone still works.');
+    return;
+  }
+  net.name = cleanName();
+  net.borrowed = false;
+  joinedPersonal = null;
+  const code = makeCode();
+  net.code = code;
+  net.role = 'host';
+  setRoomHint('Opening the room…');
+  openHost(code, 0);
+}
+
+function startJoin() {
+  const room = (document.getElementById('joincode').value || '').trim().toUpperCase();
+  if (!window.Peer) {
+    setRoomHint('This browser has no room link. Walk alone still works.');
+    return;
+  }
+  if (!/^[A-Z0-9]{4}$/.test(room)) {
+    setRoomHint('Enter the four-character room code.');
+    return;
+  }
+  net.name = cleanName();
+  net.borrowed = false;
+  joinedPersonal = memories.map(cloneMemory);
+  memories = [];
+  refreshProps();
+  net.code = room;
+  net.role = 'client';
+  net.silence = 0;
+  setRoomHint(`Joining ${room}…`);
+  let peer;
+  try {
+    peer = new window.Peer(undefined, { config: ICE });
+  } catch {
+    abortJoin('Could not join that room. Walk alone still works.');
+    return;
+  }
+  net.peer = peer;
+  joinTimer = window.setTimeout(() => {
+    if (net.peer === peer && net.role === 'client' && mode !== 'play') abortJoin('Could not join that room. Walk alone still works.');
+  }, 10000);
+  peer.on('open', (id) => {
+    if (net.peer !== peer) return;
+    net.id = id;
+    const conn = peer.connect(`memorize${room}`, { reliable: true });
+    net.link = conn;
+    conn.on('open', () => conn.send({ t: 'hello', name: net.name }));
+    conn.on('data', (data) => onData(conn, data));
+    conn.on('close', () => { if (net.link === conn) hostGone(); });
+    conn.on('error', () => { if (net.peer === peer && mode !== 'play') abortJoin('Could not join that room. Walk alone still works.'); });
+  });
+  peer.on('error', (err) => {
+    if (net.peer !== peer) return;
+    const missing = err && err.type === 'peer-unavailable';
+    abortJoin(missing ? 'No room is using that code.' : 'Could not join that room. Walk alone still works.');
+  });
 }
 
 function wallBox(parent, x, y, z, w, h, d, color) {
@@ -818,6 +1420,7 @@ function showZone() {
   whereEl.textContent = NAMES[zone] || 'The castle';
   hintEl.textContent = HINTS[zone] || '';
   keptEl.textContent = `${memories.length} kept`;
+  showRemotes();
 }
 
 function place(x, z, yaw) {
@@ -976,6 +1579,7 @@ function update(dt) {
   updateShrouds();
   checkTriggers();
   updatePrompt();
+  tickNet(dt);
   applyCamera();
 }
 
@@ -993,6 +1597,7 @@ function startWalk() {
   if (!TOUCH) crossEl.classList.remove('hidden');
   showZone();
   applyCamera();
+  paintRoom();
   wantLock();
 }
 
@@ -1151,14 +1756,12 @@ function openView(id) {
   actions.append(
     button('Hide and try to remember', 'gold', () => {
       memory.hidden = true;
-      saveMemories();
-      refreshProps();
+      shareChange({ op: 'hide', id: memory.id });
       openRecall(memory.id);
     }),
     button('Hide for later', 'primary', () => {
       memory.hidden = true;
-      saveMemories();
-      refreshProps();
+      shareChange({ op: 'hide', id: memory.id });
       closeUi(true);
     }),
     button('Remove', 'danger', () => confirmRemove(memory.id)),
@@ -1174,8 +1777,7 @@ function confirmRemove(id) {
   actions.replaceChildren(
     button('Yes, remove it', 'danger', () => {
       memories = memories.filter((m) => m.id !== id);
-      saveMemories();
-      refreshProps();
+      shareChange({ op: 'remove', id });
       closeUi(true);
     }),
     button('Keep it', 'ghost', () => openView(id)),
@@ -1216,8 +1818,7 @@ function askReveal(id) {
   actions.replaceChildren(
     button('Yes, show the original', 'danger', () => {
       memory.hidden = false;
-      saveMemories();
-      refreshProps();
+      shareChange({ op: 'show', id });
       openView(id);
     }),
     button('Keep it hidden', 'ghost', () => openRecall(id)),
@@ -1271,8 +1872,7 @@ function judge() {
   const graded = scoreRecall(memory.text, box.value);
   memory.last = graded.pct;
   memory.best = memory.best == null ? graded.pct : Math.max(memory.best, graded.pct);
-  saveMemories();
-  refreshProps();
+  shareChange({ op: 'score', id: memory.id, pct: graded.pct });
   const host = document.getElementById('result');
   host.replaceChildren();
   host.append($('div', { class: 'pct' }, `${graded.pct}%`));
@@ -1336,6 +1936,7 @@ window.addEventListener('resize', () => {
 
 window.addEventListener('keydown', (event) => {
   if (mode === 'title' && (event.key === 'Enter' || event.key === ' ')) {
+    if (typing() || !togetherEl.classList.contains('hidden')) return;
     event.preventDefault();
     startWalk();
     return;
@@ -1369,6 +1970,21 @@ document.addEventListener('mousemove', (event) => {
 });
 promptEl.addEventListener('click', useNearest);
 document.getElementById('walkbtn').addEventListener('click', startWalk);
+document.getElementById('withbtn').addEventListener('click', () => showTogether(true));
+document.getElementById('backbtn').addEventListener('click', () => showTogether(false));
+document.getElementById('hostbtn').addEventListener('click', startHost);
+document.getElementById('joinbtn').addEventListener('click', startJoin);
+document.getElementById('leavebtn').addEventListener('click', () => { leaveRoom(); wantLock(); });
+document.getElementById('codecopy').addEventListener('click', () => {
+  const code = net.code || '';
+  if (!code) return;
+  const done = () => { statusEl.textContent = `Code ${code}. Send it to them.`; };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(done).catch(done);
+    return;
+  }
+  done();
+});
 document.getElementById('usebtn').addEventListener('click', useNearest);
 
 stickEl.addEventListener('pointerdown', (event) => {
@@ -1455,8 +2071,7 @@ window.__station = {
     const memory = byId(id);
     if (!memory) return;
     memory.hidden = true;
-    saveMemories();
-    refreshProps();
+    shareChange({ op: 'hide', id });
   },
   memories() {
     return memories.map(({ image, ...memory }) => ({ ...memory, hasImage: !!image }));
@@ -1490,7 +2105,38 @@ window.__station = {
       ui: ui ? ui.type : '',
       prompt: nearest() ? nearest().prompt : '',
       kept: memories.length,
+      room: net.role,
+      code: net.code,
+      walking: roomCount(),
     };
+  },
+  share: {
+    get role() { return net.role; },
+    get code() { return net.code; },
+    get borrowed() { return net.borrowed; },
+    host(code) {
+      net.role = 'host';
+      net.code = code || 'TEST';
+      net.id = 'host-test';
+      net.borrowed = false;
+      paintRoom();
+    },
+    client(link) {
+      joinedPersonal = memories.map(cloneMemory);
+      net.role = 'client';
+      net.link = link;
+      net.id = 'client-test';
+      net.borrowed = false;
+      paintRoom();
+    },
+    act(msg) { return hostApply(msg, null); },
+    book: bookList,
+    applyBook,
+    applyImage,
+    leave: leaveRoom,
+    people(list) { syncRemotes(list); },
+    remoteCount() { return [...remotes.values()].filter((remote) => remote.mesh.visible).length; },
+    pose: myPose,
   },
 };
 </script>
