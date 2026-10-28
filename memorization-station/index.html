@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Darus' Memorization Station: There's Magic in Learning</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#1c2a14;color:#f6f0e4;font-family:Georgia,"Iowan Old Style","Palatino Linotype",Palatino,serif;user-select:none;touch-action:none;-webkit-tap-highlight-color:transparent}
+canvas{display:block}
+button,input,textarea{font-family:inherit}
+.hidden{display:none!important}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:2}
+#title{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:28px 18px 22px;pointer-events:none;background:linear-gradient(to bottom,rgba(18,28,12,.45),rgba(18,28,12,0) 22%,rgba(18,28,12,0) 72%,rgba(18,28,12,.55))}
+#title h1{margin:0;text-align:center;font-weight:500;letter-spacing:.08em;font-size:clamp(28px,4.6vw,64px);text-shadow:0 3px 16px rgba(0,0,0,.45)}
+#title .mid{pointer-events:auto;text-align:center;max-width:640px}
+#title .game{margin:0 0 14px;font-size:clamp(16px,2vw,22px);letter-spacing:.04em;text-shadow:0 2px 8px #000}
+#walkbtn{pointer-events:auto;background:#f3ead4;color:#24180f;border:0;border-radius:999px;padding:14px 28px;font-size:22px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.28)}
+#walkbtn:hover{background:#fff8ea}
+#title .how{margin:14px auto 0;max-width:560px;font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;font-size:16px;line-height:1.45;text-shadow:0 2px 8px #000}
+#slogan{margin:0;letter-spacing:.18em;font-size:clamp(16px,2.4vw,28px);font-weight:500;text-shadow:0 3px 12px rgba(0,0,0,.5)}
+#top{position:absolute;top:14px;left:50%;transform:translateX(-50%);text-align:center;min-width:240px;text-shadow:0 2px 8px #000}
+#kicker{letter-spacing:.16em;font-size:13px}
+#where{font-size:28px;margin-top:2px}
+#hint{font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;font-size:15px;opacity:.92;margin-top:2px}
+#kept{position:absolute;top:16px;right:16px;background:rgba(24,18,12,.72);border:1px solid rgba(228,177,90,.7);border-radius:10px;padding:8px 12px;font-size:16px}
+#prompt{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);pointer-events:auto;background:rgba(243,234,212,.94);color:#24180f;border:0;border-radius:999px;padding:12px 18px;font-size:18px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.28)}
+#cross{position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border:1px solid rgba(255,255,255,.8);border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+#panel{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:auto;background:rgba(12,16,10,.45);padding:18px}
+.sheet{width:min(640px,100%);max-height:min(86vh,820px);overflow:auto;background:#f6f0e4;color:#24180f;border-radius:18px;padding:22px 22px 18px;box-shadow:0 18px 60px rgba(0,0,0,.35)}
+.sheet h2{font-size:32px;margin:0 0 6px;font-weight:500}
+.kicker{letter-spacing:.14em;font-size:13px;color:#8a5a18;margin:0 0 6px}
+.sheet p{font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;line-height:1.45}
+.sheet label{display:block;font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;font-size:14px;margin:12px 0 4px}
+.sheet input[type="text"],.sheet textarea{width:100%;box-sizing:border-box;border:1px solid #ddcbae;background:#fffaf2;color:#24180f;border-radius:10px;padding:10px 12px;font-size:17px}
+.sheet textarea{min-height:140px;resize:vertical}
+.sheet img.preview{display:block;max-width:100%;max-height:220px;margin-top:10px;border-radius:10px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.actions button,.sheet .ghost{border:0;border-radius:999px;padding:10px 14px;font-size:16px;cursor:pointer}
+.primary{background:#2f5c28;color:#f6f0e4}
+.gold{background:#e4b15a;color:#24180f}
+.ghost{background:transparent;color:#6d5844}
+.danger{background:#f0d2cc;color:#6d241c}
+.note{font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;color:#6d5844;min-height:1.2em}
+.bodytext{white-space:pre-wrap;font-size:18px;line-height:1.45;background:#fffaf2;border-radius:12px;padding:12px 14px}
+.pct{font-size:88px;line-height:.9;margin:8px 0;color:#8a5a18}
+.bar{height:14px;background:#e6d8c0;border-radius:8px;overflow:hidden;margin:8px 0 12px}
+.bar span{display:block;height:100%;background:#e4b15a}
+#touch{position:absolute;inset:0}
+#stick{position:absolute;left:22px;bottom:22px;width:116px;height:116px;border-radius:50%;background:rgba(243,234,212,.28);border:2px solid rgba(243,234,212,.7);pointer-events:auto}
+#knob{position:absolute;left:38px;top:38px;width:36px;height:36px;border-radius:50%;background:rgba(243,234,212,.9)}
+#usebtn{position:absolute;right:22px;bottom:28px;pointer-events:auto;background:#f3ead4;color:#24180f;border:0;border-radius:999px;padding:14px 18px;font-size:18px}
+</style>
+</head>
+<body>
+<div id="hud">
+  <div id="title">
+    <h1>THERE'S MAGIC IN LEARNING</h1>
+    <div class="mid">
+      <p class="game">Darus' Memorization Station</p>
+      <button id="walkbtn" type="button">Walk to the castle</button>
+      <p class="how" id="how">Walk the path and into the castle. Leave a poem, a story, a thing, or a picture in its room. Hide it, then type it or say it out loud. The magic tells you how close you came.</p>
+    </div>
+    <p id="slogan">MAKE EDUCATION GREAT AGAIN</p>
+  </div>
+  <div id="top" class="hidden">
+    <div id="kicker">THERE'S MAGIC IN LEARNING</div>
+    <div id="where">The path</div>
+    <div id="hint"></div>
+  </div>
+  <div id="kept" class="hidden"></div>
+  <div id="cross" class="hidden"></div>
+  <button id="prompt" class="hidden" type="button"></button>
+  <div id="panel" class="hidden"><div class="sheet" id="sheet"></div></div>
+  <div id="touch" class="hidden">
+    <div id="stick"><div id="knob"></div></div>
+    <button id="usebtn" type="button">Use</button>
+  </div>
+</div>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}</script>
+<script type="module">
+import * as THREE from 'three';
+
+const AUTOTEST = new URLSearchParams(location.search).has('autotest');
+const TOUCH = matchMedia('(pointer: coarse)').matches || innerWidth <= 900;
+const KEY = 'darus-memorization-station-v1';
+const WALK = 4.5;
+const SLOT_MAX = 12;
+const ROOMS = {
+  poem: { name: 'Poems', place: 'Place a poem', hint: 'Place a poem. Hide it, then remember it.' },
+  story: { name: 'Stories', place: 'Place a story', hint: 'Place a story. Hide it, then tell it back.' },
+  thing: { name: 'Things', place: 'Place a thing', hint: 'Place a thing, a pickle, a list. Hide it, then recall it.' },
+  picture: { name: 'Pictures', place: 'Place a picture', hint: 'Place a picture and the words that go with it. Hide them, then recall the words.' },
+};
+const DOORS = [
+  { room: 'poem', x: -6.7 },
+  { room: 'story', x: -2.25 },
+  { room: 'thing', x: 2.25 },
+  { room: 'picture', x: 6.7 },
+];
+const HINTS = {
+  grounds: 'Walk to the castle.',
+  hall: 'Walk into a room.',
+  ...Object.fromEntries(Object.entries(ROOMS).map(([k, v]) => [k, v.hint])),
+};
+const NAMES = { grounds: 'The path', hall: 'The castle', poem: 'Poems', story: 'Stories', thing: 'Things', picture: 'Pictures' };
+const STOP = new Set('a an the of and or to in on for with from that this it is was were be as at by your you i we they he she them his her our my'.split(' '));
+
+const titleEl = document.getElementById('title');
+const topEl = document.getElementById('top');
+const whereEl = document.getElementById('where');
+const hintEl = document.getElementById('hint');
+const keptEl = document.getElementById('kept');
+const crossEl = document.getElementById('cross');
+const promptEl = document.getElementById('prompt');
+const panelEl = document.getElementById('panel');
+const sheetEl = document.getElementById('sheet');
+const touchEl = document.getElementById('touch');
+const stickEl = document.getElementById('stick');
+const knobEl = document.getElementById('knob');
+const howEl = document.getElementById('how');
+
+const keys = new Set();
+const stick = { x: 0, y: 0, id: null };
+const player = { x: 0.15, z: 14.5, yaw: 0, pitch: -0.16 };
+let mode = 'title';
+let zone = 'grounds';
+let ui = null;
+let cool = 0;
+let shown = '';
+let memories = loadMemories();
+let targets = [];
+let listening = null;
+let draftImage = '';
+let audioCtx = null;
+let titleTime = 0;
+const students = [];
+
+if (TOUCH) {
+  howEl.textContent = 'Walk the path with the pad, and use the button on the right. Leave a poem, a story, a thing, or a picture. Hide it, then type it or say it out loud. The magic tells you how close you came.';
+  touchEl.classList.remove('hidden');
+}
+
+function $(tag, attrs, text) {
+  const node = document.createElement(tag);
+  if (attrs) {
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'class') node.className = v;
+      else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2), v);
+      else node.setAttribute(k, v);
+    }
+  }
+  if (text != null) node.textContent = text;
+  return node;
+}
+
+function normalize(s) {
+  return String(s)
+    .toLowerCase()
+    .replace(/[’‘]/g, "'")
+    .replace(/[-–—]/g, ' ')
+    .replace(/[^a-z0-9'\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function stem(w) {
+  if (w.length > 3 && w.endsWith('s') && !w.endsWith('ss')) return w.slice(0, -1);
+  return w;
+}
+
+function counts(arr) {
+  const map = new Map();
+  for (const w of arr) map.set(w, (map.get(w) || 0) + 1);
+  return map;
+}
+
+function wordF1(ow, gw) {
+  if (!ow.length || !gw.length) return 0;
+  const gc = counts(gw);
+  let inter = 0;
+  for (const [w, c] of counts(ow)) inter += Math.min(c, gc.get(w) || 0);
+  if (!inter) return 0;
+  const prec = inter / gw.length;
+  const rec = inter / ow.length;
+  return (2 * prec * rec) / (prec + rec);
+}
+
+function lcs(a, b) {
+  const n = Math.min(a.length, 180);
+  const m = Math.min(b.length, 180);
+  const dp = new Uint16Array((n + 1) * (m + 1));
+  const stride = m + 1;
+  for (let i = 1; i <= n; i++) {
+    for (let j = 1; j <= m; j++) {
+      const ix = i * stride + j;
+      if (a[i - 1] === b[j - 1]) dp[ix] = dp[(i - 1) * stride + (j - 1)] + 1;
+      else dp[ix] = Math.max(dp[(i - 1) * stride + j], dp[i * stride + (j - 1)]);
+    }
+  }
+  return dp[n * stride + m];
+}
+
+function levenshteinRatio(a, b) {
+  if (a === b) return 1;
+  if (a.length * b.length > 1400000) {
+    a = a.slice(0, 900);
+    b = b.slice(0, 900);
+  }
+  if (!a.length || !b.length) return 0;
+  const m = b.length;
+  let prev = new Uint16Array(m + 1);
+  let cur = new Uint16Array(m + 1);
+  for (let j = 0; j <= m; j++) prev[j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    cur[0] = i;
+    const ca = a.charCodeAt(i - 1);
+    for (let j = 1; j <= m; j++) {
+      const cost = ca === b.charCodeAt(j - 1) ? 0 : 1;
+      cur[j] = Math.min(cur[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+    }
+    const swap = prev;
+    prev = cur;
+    cur = swap;
+  }
+  return 1 - prev[m] / Math.max(a.length, b.length);
+}
+
+function verdictFor(pct) {
+  if (pct >= 100) return 'Word for word. The castle will keep it that way.';
+  if (pct >= 90) return 'The shape is yours. Only a little slipped.';
+  if (pct >= 75) return 'You have the heart of it.';
+  if (pct >= 55) return 'Half the spell came back.';
+  if (pct >= 30) return 'A glimmer. Look once more and try again.';
+  return 'The veil is still thick.';
+}
+
+function slipped(orig, guess) {
+  const used = counts(guess);
+  const missed = [];
+  const seen = new Set();
+  for (const w of orig) {
+    const s = stem(w);
+    const left = used.get(s) || 0;
+    if (left > 0) used.set(s, left - 1);
+    else if (!seen.has(s)) {
+      seen.add(s);
+      if (!STOP.has(s)) missed.push(w);
+    }
+  }
+  return missed;
+}
+
+function scoreRecall(original, guess) {
+  const a = normalize(original);
+  const b = normalize(guess);
+  if (!a) return { pct: 0, verdict: verdictFor(0), missed: [], extra: [], spoken: '0 percent. There was nothing stored to remember.' };
+  if (a === b) {
+    const verdict = verdictFor(100);
+    return { pct: 100, verdict, missed: [], extra: [], spoken: `100 percent. ${verdict}` };
+  }
+  const ow = a ? a.split(' ') : [];
+  const gw = b ? b.split(' ') : [];
+  const os = ow.map(stem);
+  const gs = gw.map(stem);
+  if (!gw.length) {
+    const verdict = verdictFor(0);
+    return { pct: 0, verdict, missed: slipped(ow, []), extra: [], spoken: `0 percent. ${verdict}` };
+  }
+  const f1 = wordF1(os, gs);
+  const order = lcs(os, gs) / os.length;
+  const chars = levenshteinRatio(a.slice(0, 1000), b.slice(0, 1000));
+  let pct = ow.length <= 20
+    ? chars * 0.5 + f1 * 0.35 + order * 0.15
+    : chars * 0.2 + f1 * 0.45 + order * 0.35;
+  if (f1 > 0.98 && order > 0.95) pct = Math.max(pct, 0.97);
+  pct = Math.round(Math.max(0, Math.min(1, pct)) * 100);
+  if (a === b) pct = 100;
+  const missed = slipped(ow, gs);
+  const extra = slipped(gw, os);
+  const verdict = verdictFor(pct);
+  let spoken = `${pct} percent. ${verdict}`;
+  if (pct < 100 && missed.length) spoken += ` These slipped: ${missed.slice(0, 5).join(', ')}.`;
+  return { pct, verdict, missed, extra, spoken };
+}
+
+function loadMemories() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY) || '[]');
+    if (!Array.isArray(raw)) return [];
+    return raw.filter((m) => m && ROOMS[m.room] && typeof m.text === 'string').map((m) => ({
+      id: String(m.id || uid()),
+      room: m.room,
+      title: String(m.title || '').slice(0, 80),
+      text: String(m.text).slice(0, 8000),
+      image: typeof m.image === 'string' ? m.image : '',
+      hidden: !!m.hidden,
+      best: Number.isFinite(m.best) ? m.best : null,
+      last: Number.isFinite(m.last) ? m.last : null,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function saveMemories() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(memories));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function uid() {
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+}
+
+function byId(id) {
+  return memories.find((m) => m.id === id) || null;
+}
+
+function addMemory(room, title, text, image) {
+  const item = {
+    id: uid(),
+    room,
+    title: (title || '').trim().slice(0, 80) || 'Untitled',
+    text: (text || '').trim().slice(0, 8000),
+    image: image || '',
+    hidden: false,
+    best: null,
+    last: null,
+  };
+  memories.push(item);
+  if (!saveMemories()) {
+    memories.pop();
+    return null;
+  }
+  refreshProps();
+  return item;
+}
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.75));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.NoToneMapping;
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xc5dc9a);
+scene.fog = new THREE.Fog(0xc5dc9a, 20, 76);
+const camera = new THREE.PerspectiveCamera(68, innerWidth / innerHeight, 0.08, 140);
+camera.rotation.order = 'YXZ';
+
+scene.add(new THREE.HemisphereLight(0xd7ecb4, 0x3d6828, 0.95));
+const sun = new THREE.DirectionalLight(0xfff4d8, 1.15);
+sun.position.set(18, 28, 12);
+scene.add(sun);
+const indoorLight = new THREE.PointLight(0xffe0b8, 0, 22, 1.4);
+indoorLight.position.set(0, 5.2, 1);
+scene.add(indoorLight);
+const castleGlow = new THREE.PointLight(0xffb15a, 6, 28, 2);
+castleGlow.position.set(0, 12, -10);
+scene.add(castleGlow);
+
+const GEO = {};
+function geo(key, make) {
+  if (!GEO[key]) GEO[key] = make();
+  return GEO[key];
+}
+const mats = new Map();
+function mat(color, opts) {
+  const key = `${color}:${opts ? JSON.stringify(opts) : ''}`;
+  if (!mats.has(key)) mats.set(key, new THREE.MeshLambertMaterial({ color, ...(opts || {}) }));
+  return mats.get(key);
+}
+function basic(color, opts) {
+  const key = `b:${color}:${opts ? JSON.stringify(opts) : ''}`;
+  if (!mats.has(key)) mats.set(key, new THREE.MeshBasicMaterial({ color, ...(opts || {}) }));
+  return mats.get(key);
+}
+function addMesh(parent, geometry, material, x, y, z) {
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(x, y, z);
+  parent.add(mesh);
+  return mesh;
+}
+
+const grounds = new THREE.Group();
+const hall = new THREE.Group();
+const rooms = {};
+const props = {};
+scene.add(grounds, hall);
+for (const key of Object.keys(ROOMS)) {
+  rooms[key] = new THREE.Group();
+  props[key] = new THREE.Group();
+  rooms[key].add(props[key]);
+  rooms[key].visible = false;
+  scene.add(rooms[key]);
+}
+hall.visible = false;
+
+function buildGrounds() {
+  addMesh(grounds, geo('lawn', () => new THREE.CircleGeometry(70, 40)), mat(0x67a83e), 0, 0, 0).rotation.x = -Math.PI / 2;
+  const path = addMesh(grounds, geo('path', () => new THREE.PlaneGeometry(5.4, 34)), mat(0xb08960), 0, 0.02, 2);
+  path.rotation.x = -Math.PI / 2;
+  const worn = addMesh(grounds, geo('worn', () => new THREE.PlaneGeometry(2.4, 30)), mat(0x8d6b43), 0.3, 0.03, 2);
+  worn.rotation.x = -Math.PI / 2;
+  for (const [x, z, s] of [[-14, 6, 8], [16, -2, 7], [-18, -8, 6], [12, 14, 5], [-8, 16, 4]]) {
+    const hill = addMesh(grounds, geo('hill', () => new THREE.SphereGeometry(1, 14, 10)), mat(0x5f9a38), x, -0.35, z);
+    hill.scale.set(s, s * 0.28, s);
+  }
+  for (let i = 0; i < 26; i++) {
+    const side = i < 13 ? -1 : 1;
+    const x = side * (13 + (i % 5) * 3.2);
+    const z = 14 - (i % 13) * 3.4;
+    foliage(grounds, x, z, 2.2 + (i % 3), 0.9 + (i % 2) * 0.3);
+  }
+  for (let i = 0; i < 16; i++) {
+    foliage(grounds, -22 + (i % 8) * 6.2, -28 - Math.floor(i / 8) * 5, 3.4, 1.3);
+  }
+  deadTree(grounds, -9.4, 3.2);
+  foliage(grounds, 8.8, 10.2, 6.4, 1.35);
+  const tent = addMesh(grounds, geo('tent', () => new THREE.ConeGeometry(1.1, 1.5, 6)), mat(0x3a6ea5), -5.2, 0.75, -2.4);
+  tent.rotation.y = 0.4;
+  buildCastle(grounds);
+  keeper(grounds, 3.7, 11.4);
+  students.push(walker(grounds, -0.85, 5.2, 0x8a3a22));
+  students.push(walker(grounds, 0.35, 6.1, 0x1c1c1c));
+  students.push(walker(grounds, 1.35, 5.5, 0x6b4a2a));
+}
+
+function foliage(parent, x, z, h, r) {
+  addMesh(parent, geo('barkC', () => new THREE.CylinderGeometry(0.18, 0.28, 1, 6)), mat(0x6b4630), x, 0.5, z);
+  const top = addMesh(parent, geo('leaf', () => new THREE.ConeGeometry(1, 1.6, 7)), mat(iShade(x, z)), x, 0.7 + h * 0.45, z);
+  top.scale.set(r, h, r);
+}
+
+function iShade(x, z) {
+  return ((Math.abs(Math.floor(x * 3 + z)) % 2) === 0) ? 0x3f6e32 : 0x2c5228;
+}
+
+function deadTree(parent, x, z) {
+  const g = new THREE.Group();
+  g.position.set(x, 0, z);
+  const trunk = addMesh(g, geo('dt', () => new THREE.CylinderGeometry(0.28, 0.72, 4.6, 7)), mat(0x5a3b28), 0.2, 2.2, 0);
+  trunk.rotation.z = 0.22;
+  const specs = [
+    [0.2, 3.3, 0.2, 2.2, 0.4, 0.7],
+    [-0.2, 3.6, 0.1, 1.8, -0.5, 0.9],
+    [0.6, 2.8, -0.2, 1.6, 0.2, -0.8],
+    [-0.5, 2.5, 0.4, 1.5, 1.0, 0.4],
+    [1.4, 4.1, 0.2, 1.3, 0.8, 0.2],
+  ];
+  for (const [bx, by, bz, len, rz, rx] of specs) {
+    const branch = addMesh(g, geo('br' + len, () => new THREE.CylinderGeometry(0.06, 0.12, len, 5)), mat(0x4e3424), bx, by, bz);
+    branch.rotation.z = rz;
+    branch.rotation.x = rx;
+  }
+  parent.add(g);
+}
+
+function buildCastle(parent) {
+  const g = new THREE.Group();
+  g.position.set(0, 0, -20);
+  const rockTop = 4.4;
+  addMesh(g, geo('rock', () => new THREE.CylinderGeometry(12, 15, rockTop, 9)), mat(0x8d6844), 0, rockTop / 2, 2);
+  addMesh(g, geo('ledge', () => new THREE.BoxGeometry(8, 2.4, 5)), mat(0x6e4e32), -8, 1.6, 5);
+  addMesh(g, geo('ledge2', () => new THREE.BoxGeometry(7, 2, 4)), mat(0x7a5838), 8.5, 1.3, 6);
+  addMesh(g, geo('step', () => new THREE.BoxGeometry(6.2, 0.4, 2.4)), mat(0xc4b090), 0, 0.2, 15.2);
+  addMesh(g, geo('step2', () => new THREE.BoxGeometry(5.2, 0.7, 2.2)), mat(0xb09a74), 0, 0.55, 13.2);
+  addMesh(g, geo('step3', () => new THREE.BoxGeometry(4.2, 1.1, 2)), mat(0xa08860), 0, 0.9, 11.4);
+  addMesh(g, geo('keep', () => new THREE.BoxGeometry(15, 7.2, 9)), mat(0xe0c79a), 0, rockTop + 3.6, 0.4);
+  addMesh(g, geo('gate', () => new THREE.BoxGeometry(2.2, 2.6, 0.4)), basic(0x24180f), 0, rockTop + 1.5, 5.1);
+  const towers = [
+    [-7.4, 3.6, 10.5, 1.55, 0x3c82d6],
+    [7.4, 3.6, 12.5, 1.7, 0x2d66b8],
+    [-7.6, -3.6, 11, 1.45, 0x4b94e0],
+    [7.6, -3.6, 9.5, 1.4, 0x2d66b8],
+    [0, -0.6, 16.5, 2.15, 0x2458a8],
+    [-3.4, 4.8, 8.2, 1.15, 0x3c82d6],
+    [3.6, 4.9, 7.6, 1.05, 0x5aa0e8],
+    [-2.2, -4.2, 8.8, 1.1, 0x2d66b8],
+    [2.4, -4.3, 7.2, 1, 0x3c82d6],
+  ];
+  for (const [x, z, h, r, roof] of towers) {
+    addMesh(g, geo(`tw${r}`, () => new THREE.CylinderGeometry(r * 0.86, r, 1, 8)), mat(0xd7b888), x, rockTop + h / 2, z).scale.y = h;
+    addMesh(g, geo(`rf${r}`, () => new THREE.ConeGeometry(r * 1.45, 4.4, 8)), mat(roof), x, rockTop + h + 2.05, z);
+    addMesh(g, geo('twin', () => new THREE.BoxGeometry(0.28, 0.48, 0.08)), basic(0xffc56b), x, rockTop + h * 0.55, z + r + 0.05);
+  }
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 6; col++) {
+      addMesh(g, geo('win', () => new THREE.BoxGeometry(0.42, 0.7, 0.1)), basic(0xffc56b), -5 + col * 2, rockTop + 2.1 + row * 1.8, 4.95);
+    }
+  }
+  for (let i = 0; i < 10; i++) {
+    addMesh(g, geo('merlon', () => new THREE.BoxGeometry(0.7, 0.7, 0.45)), mat(0xd7b888), -6.4 + i * 1.4, rockTop + 7.5, 4.7);
+  }
+  parent.add(g);
+  castleGlow.position.set(0, 10, -12);
+}
+
+function person(parent, x, z, hair, tall, whiteHair) {
+  const g = new THREE.Group();
+  g.position.set(x, 0, z);
+  const h = tall ? 2.05 : 1.55;
+  const robe = addMesh(g, geo(tall ? 'robeT' : 'robe', () => new THREE.CylinderGeometry(0.22, 0.55, 1, 8)), mat(0x241f22), 0, h * 0.34, 0);
+  robe.scale.y = h * 0.7;
+  addMesh(g, geo(tall ? 'headT' : 'head', () => new THREE.SphereGeometry(tall ? 0.2 : 0.16, 12, 10)), mat(0xf0d0b4), 0, h * 0.78, tall ? -0.04 : 0);
+  const cap = addMesh(g, geo(tall ? 'hairT' : 'hair', () => new THREE.SphereGeometry(tall ? 0.22 : 0.17, 12, 10)), mat(hair), 0, h * 0.9, tall ? 0.02 : 0);
+  cap.scale.y = 0.72;
+  if (whiteHair) {
+    const mane = addMesh(g, geo('mane', () => new THREE.SphereGeometry(0.2, 12, 10)), mat(0xf7f4ee), 0, h * 0.62, 0.12);
+    mane.scale.set(0.85, 1.7, 0.55);
+  }
+  parent.add(g);
+  return g;
+}
+
+function keeper(parent, x, z) {
+  person(parent, x, z, 0xf7f4ee, true, true);
+}
+
+function walker(parent, x, z, hair) {
+  const mesh = person(parent, x, z, hair, false, false);
+  return { mesh, x, z, base: z };
+}
+
+function wallBox(parent, x, y, z, w, h, d, color) {
+  const mesh = addMesh(parent, new THREE.BoxGeometry(w, h, d), mat(color), x, y, z);
+  return mesh;
+}
+
+function buildHall() {
+  addMesh(hall, geo('floor', () => new THREE.BoxGeometry(20, 0.4, 16)), mat(0x8c7d6b), 0, -0.2, 0);
+  addMesh(hall, geo('rug', () => new THREE.BoxGeometry(4.2, 0.05, 9)), mat(0x6d2f34), 0, 0.02, 0);
+  wallBox(hall, 0, 3.6, 7.7, 20, 7.2, 0.45, 0xb7a48c);
+  wallBox(hall, -9.8, 3.6, 0, 0.45, 7.2, 16, 0xb7a48c);
+  wallBox(hall, 9.8, 3.6, 0, 0.45, 7.2, 16, 0xb7a48c);
+  addMesh(hall, geo('ceil', () => new THREE.BoxGeometry(20, 0.3, 16)), mat(0x6e6256), 0, 7.2, 0);
+  const segments = [[-8.6, 2.6], [-4.45, 1.7], [0, 1.6], [4.45, 1.7], [8.6, 2.6]];
+  for (const [x, w] of segments) wallBox(hall, x, 3.6, -7.7, w, 7.2, 0.45, 0xb7a48c);
+  for (const door of DOORS) {
+    wallBox(hall, door.x, 6.3, -7.7, 2.2, 1.8, 0.5, 0xa68458);
+    addMesh(hall, geo('arch', () => new THREE.PlaneGeometry(1.7, 3.2)), basic(0x1a1612), door.x, 2.2, -7.46);
+    const sign = signPlane(ROOMS[door.room].name, 'Walk in', 2.15, 0.48);
+    sign.position.set(door.x, 5.15, -7.4);
+    hall.add(sign);
+    door.sign = sign;
+  }
+  const out = signPlane('Outside', 'The path', 2.1, 0.48);
+  out.position.set(0, 4.6, 7.42);
+  out.rotation.y = Math.PI;
+  hall.add(out);
+  addMesh(hall, geo('lamp', () => new THREE.SphereGeometry(0.18, 10, 8)), basic(0xffe0b8), 0, 6.4, 0);
+}
+
+function buildRooms() {
+  const rugs = { poem: 0x2f6a3a, story: 0x6e2c34, thing: 0xa56b28, picture: 0x2a4e78 };
+  for (const key of Object.keys(ROOMS)) {
+    const g = rooms[key];
+    addMesh(g, geo('rfloor', () => new THREE.BoxGeometry(17, 0.4, 15)), mat(0x8c7d6b), 0, -0.2, 0);
+    addMesh(g, geo('rrug' + key, () => new THREE.BoxGeometry(5, 0.05, 7)), mat(rugs[key]), 0, 0.02, -0.4);
+    wallBox(g, 0, 3.4, -7.2, 17, 6.8, 0.4, 0xb7a48c);
+    wallBox(g, -8.3, 3.4, 0, 0.4, 6.8, 15, 0xb7a48c);
+    wallBox(g, 8.3, 3.4, 0, 0.4, 6.8, 15, 0xb7a48c);
+    wallBox(g, -4.6, 3.4, 6.5, 7.2, 6.8, 0.4, 0xb7a48c);
+    wallBox(g, 4.6, 3.4, 6.5, 7.2, 6.8, 0.4, 0xb7a48c);
+    wallBox(g, 0, 5.8, 6.5, 2.2, 2, 0.4, 0xa68458);
+    addMesh(g, geo('ceilr', () => new THREE.BoxGeometry(17, 0.3, 15)), mat(0x6e6256), 0, 6.8, 0);
+    const back = signPlane('Hall', 'Turn around', 1.8, 0.42);
+    back.position.set(0, 4.3, 6.22);
+    back.rotation.y = Math.PI;
+    g.add(back);
+    dress(g, key);
+  }
+}
+
+function dress(g, key) {
+  if (key === 'story') {
+    for (let i = 0; i < 6; i++) {
+      wallBox(g, -7.9, 1.2 + (i % 3) * 0.7, -3 + Math.floor(i / 3) * 2, 0.35, 0.5, 1.4, i % 2 ? 0x6e2e2a : 0x2f4a6a);
+    }
+  } else if (key === 'thing') {
+    for (let i = 0; i < 4; i++) {
+      const jar = jarMesh('pickle jar ' + i, i % 2 === 0);
+      jar.position.set(-6.2 + i * 0.7, 1.15, -6.4);
+      g.add(jar);
+    }
+    wallBox(g, -5.2, 0.7, -6.5, 3.2, 0.2, 0.6, 0x7a5230);
+  } else if (key === 'picture') {
+    for (let i = 0; i < 4; i++) {
+      const frame = addMesh(g, geo('dframe', () => new THREE.BoxGeometry(0.7, 0.55, 0.06)), mat(0x7a5230), -7.95, 2.2, -3.2 + i * 1.8);
+      frame.rotation.y = Math.PI / 2;
+    }
+  } else {
+    for (let i = 0; i < 3; i++) {
+      const scroll = scrollMesh();
+      scroll.position.set(-6.4 + i * 0.5, 1.05, -6.3);
+      g.add(scroll);
+    }
+  }
+}
+
+function signPlane(title, sub, w, h) {
+  const texture = plaqueTexture(title, sub);
+  const material = new THREE.MeshBasicMaterial({ map: texture });
+  material.userData.owned = true;
+  texture.userData.owned = true;
+  const mesh = new THREE.Mesh(geo('sign' + w + 'x' + h, () => new THREE.PlaneGeometry(w, h)), material);
+  return mesh;
+}
+
+function plaqueTexture(title, sub) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 160;
+  const g = canvas.getContext('2d');
+  g.fillStyle = '#2a2118';
+  g.fillRect(0, 0, 512, 160);
+  g.strokeStyle = '#e4b15a';
+  g.lineWidth = 10;
+  g.strokeRect(8, 8, 496, 144);
+  g.fillStyle = '#f6f0e4';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  const label = title.length > 28 ? `${title.slice(0, 27)}…` : title;
+  let size = 54;
+  g.font = `600 ${size}px Georgia`;
+  while (g.measureText(label).width > 460 && size > 26) {
+    size -= 2;
+    g.font = `600 ${size}px Georgia`;
+  }
+  g.fillText(label, 256, 68);
+  g.font = '28px Georgia';
+  g.fillStyle = '#e4b15a';
+  g.fillText(sub, 256, 116);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+function slotPosition(i) {
+  const col = i % 4;
+  const row = Math.floor(i / 4);
+  return { x: -4.5 + col * 3, z: -1.4 - row * 2.35 };
+}
+
+function clearGroup(g) {
+  while (g.children.length) {
+    const child = g.children[0];
+    g.remove(child);
+    child.traverse((o) => {
+      if (!o.isMesh) return;
+      const list = Array.isArray(o.material) ? o.material : [o.material];
+      for (const material of list) {
+        if (material && material.userData && material.userData.owned) {
+          if (material.map) material.map.dispose();
+          material.dispose();
+        }
+      }
+    });
+  }
+}
+
+function scrollMesh() {
+  const g = new THREE.Group();
+  addMesh(g, geo('paper', () => new THREE.BoxGeometry(0.36, 0.03, 0.24)), mat(0xf6f0e2), 0, 0, 0);
+  const roll = addMesh(g, geo('roll', () => new THREE.CylinderGeometry(0.04, 0.04, 0.26, 8)), mat(0xe7d7b0), 0.16, 0.03, 0);
+  roll.rotation.z = Math.PI / 2;
+  return g;
+}
+
+function bookMesh() {
+  const g = new THREE.Group();
+  addMesh(g, geo('cover', () => new THREE.BoxGeometry(0.28, 0.08, 0.36)), mat(0x6e2e2a), 0, 0, 0);
+  addMesh(g, geo('pages', () => new THREE.BoxGeometry(0.24, 0.05, 0.32)), mat(0xf3ead7), 0, 0.03, 0);
+  return g;
+}
+
+function jarMesh(text, forcePickle) {
+  const g = new THREE.Group();
+  addMesh(g, geo('glass', () => new THREE.CylinderGeometry(0.16, 0.18, 0.34, 10)), mat(0xd8efe8, { transparent: true, opacity: 0.55 }), 0, 0, 0);
+  const pickle = forcePickle || /pickle/i.test(text || '');
+  addMesh(g, geo('fill', () => new THREE.CylinderGeometry(0.12, 0.14, 0.2, 10)), mat(pickle ? 0x6a9a32 : 0xd89a3a), 0, -0.04, 0);
+  return g;
+}
+
+function pictureMesh(dataUrl) {
+  const g = new THREE.Group();
+  addMesh(g, geo('frame', () => new THREE.BoxGeometry(0.48, 0.38, 0.05)), mat(0x7a5230), 0, 0, 0);
+  if (dataUrl) {
+    const image = new Image();
+    const texture = new THREE.Texture(image);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    image.onload = () => { texture.needsUpdate = true; };
+    image.src = dataUrl;
+    const material = new THREE.MeshBasicMaterial({ map: texture });
+    material.userData.owned = true;
+    texture.userData.owned = true;
+    const face = addMesh(g, geo('face', () => new THREE.PlaneGeometry(0.38, 0.28)), material, 0, 0, 0.03);
+    face.position.z = 0.04;
+  } else {
+    addMesh(g, geo('blank', () => new THREE.PlaneGeometry(0.38, 0.28)), basic(0xcabb9a), 0, 0, 0.04);
+  }
+  return g;
+}
+
+function mistMesh() {
+  const g = new THREE.Group();
+  const orb = addMesh(g, geo('orb', () => new THREE.SphereGeometry(0.22, 16, 12)), basic(0xffd56a, { transparent: true, opacity: 0.5 }), 0, 0.05, 0);
+  orb.userData.bob = Math.random() * 6;
+  orb.userData.baseY = 0.05;
+  const ring = addMesh(g, geo('ring', () => new THREE.TorusGeometry(0.28, 0.025, 8, 18)), basic(0xfff1c4), 0, 0.02, 0);
+  ring.rotation.x = Math.PI / 2;
+  ring.userData.spin = 1;
+  return g;
+}
+
+function objectFor(memory) {
+  if (memory.hidden) return mistMesh();
+  if (memory.room === 'poem') return scrollMesh();
+  if (memory.room === 'story') return bookMesh();
+  if (memory.room === 'thing') return jarMesh(memory.title + ' ' + memory.text, false);
+  return pictureMesh(memory.image);
+}
+
+function subFor(memory) {
+  const best = memory.best == null ? '' : `best ${memory.best}%`;
+  if (memory.hidden) return best ? `Hidden · ${best}` : 'Hidden';
+  return best || ROOMS[memory.room].name;
+}
+
+function buildPedestal(parent, x, z, title, sub, object, run, prompt) {
+  const g = new THREE.Group();
+  g.position.set(x, 0, z);
+  addMesh(g, geo('ped', () => new THREE.CylinderGeometry(0.42, 0.5, 0.9, 8)), mat(0xb7a48c), 0, 0.45, 0);
+  addMesh(g, geo('pedtop', () => new THREE.CylinderGeometry(0.5, 0.46, 0.1, 8)), mat(0x7a5230), 0, 0.95, 0);
+  object.position.y = 1.2;
+  g.add(object);
+  const sign = signPlane(title, sub, 1.15, 0.32);
+  sign.position.set(0, 1.72, 0);
+  g.add(sign);
+  parent.add(g);
+  targets.push({ x, z, prompt, run });
+}
+
+function refreshProps() {
+  updateDoorSigns();
+  targets = [];
+  if (zone === 'grounds') {
+    targets.push({ x: 0, z: -3.3, prompt: 'Enter the castle', run: goHall });
+    targets.push({ x: 3.7, z: 11.4, prompt: 'Listen to the keeper', run: openKeeper });
+  } else if (zone === 'hall') {
+    for (const door of DOORS) {
+      const count = memories.filter((m) => m.room === door.room).length;
+      targets.push({
+        x: door.x,
+        z: -6.3,
+        prompt: count ? `${ROOMS[door.room].name} · ${count}` : ROOMS[door.room].name,
+        run: () => goRoom(door.room),
+      });
+    }
+    targets.push({ x: 0, z: 6.7, prompt: 'Leave the castle', reach: 1.5, run: goGrounds });
+  } else if (ROOMS[zone]) {
+    const g = props[zone];
+    clearGroup(g);
+    const list = memories.filter((m) => m.room === zone);
+    list.forEach((memory, i) => {
+      const spot = slotPosition(i);
+      const prompt = memory.hidden ? `Remember ${memory.title}` : memory.title;
+      buildPedestal(g, spot.x, spot.z, memory.title, subFor(memory), objectFor(memory), () => openMemory(memory.id), prompt);
+    });
+    if (list.length < SLOT_MAX) {
+      const ring = new THREE.Mesh(geo('plus', () => new THREE.TorusGeometry(0.16, 0.03, 8, 16)), basic(0xe4b15a));
+      ring.rotation.x = Math.PI / 2;
+      buildPedestal(g, 0, 1.7, ROOMS[zone].place, 'Empty stand', ring, () => openAdd(zone), ROOMS[zone].place);
+    }
+    targets.push({ x: 0, z: 5.9, prompt: 'Return to the hall', run: goHallFromRoom });
+  }
+  keptEl.textContent = `${memories.length} kept`;
+}
+
+function updateDoorSigns() {
+  for (const door of DOORS) {
+    if (!door.sign) continue;
+    const count = memories.filter((m) => m.room === door.room).length;
+    const previous = door.sign.material;
+    const texture = plaqueTexture(ROOMS[door.room].name, count ? `${count} kept` : 'Walk in');
+    const material = new THREE.MeshBasicMaterial({ map: texture });
+    material.userData.owned = true;
+    texture.userData.owned = true;
+    door.sign.material = material;
+    if (previous && previous.userData.owned) {
+      if (previous.map) previous.map.dispose();
+      previous.dispose();
+    }
+  }
+}
+
+function showZone() {
+  grounds.visible = zone === 'grounds';
+  hall.visible = zone === 'hall';
+  castleGlow.visible = zone === 'grounds';
+  indoorLight.intensity = zone === 'grounds' ? 0 : 2.4;
+  for (const key of Object.keys(ROOMS)) rooms[key].visible = zone === key;
+  const outdoors = zone === 'grounds';
+  scene.background.set(outdoors ? 0xc5dc9a : 0x6a5e52);
+  scene.fog.color.set(outdoors ? 0xc5dc9a : 0x6a5e52);
+  scene.fog.near = outdoors ? 24 : 14;
+  scene.fog.far = outdoors ? 90 : 36;
+  if (shown !== zone) {
+    shown = zone;
+    refreshProps();
+  }
+  whereEl.textContent = NAMES[zone] || 'The castle';
+  hintEl.textContent = HINTS[zone] || '';
+  keptEl.textContent = `${memories.length} kept`;
+}
+
+function place(x, z, yaw) {
+  player.x = x;
+  player.z = z;
+  player.yaw = yaw;
+  player.pitch = yaw === 0 ? -0.06 : 0;
+  cool = 0.75;
+  showZone();
+}
+
+function goHall() {
+  zone = 'hall';
+  place(0, 4.2, 0);
+}
+
+function goGrounds() {
+  zone = 'grounds';
+  place(0, -1.15, Math.PI);
+}
+
+function goRoom(room) {
+  if (!ROOMS[room]) return;
+  zone = room;
+  place(0, 3.5, 0);
+}
+
+function goHallFromRoom() {
+  const door = DOORS.find((d) => d.room === zone) || DOORS[0];
+  zone = 'hall';
+  place(door.x, -4.5, Math.PI);
+}
+
+function nearest() {
+  let best = null;
+  for (const target of targets) {
+    const dist = Math.hypot(player.x - target.x, player.z - target.z);
+    const reach = target.reach || 2.35;
+    if (dist < reach && (!best || dist < best.dist)) best = { ...target, dist };
+  }
+  return best;
+}
+
+function useNearest() {
+  const target = nearest();
+  if (!target || ui) return;
+  target.run();
+}
+
+function canBe(x, z) {
+  if (zone === 'grounds') {
+    if (x < -22 || x > 22 || z > 20 || z < -4.25) return false;
+    if (Math.hypot(x + 9.4, z - 3.2) < 1.7) return false;
+    if (Math.hypot(x - 8.8, z - 10.2) < 1.55) return false;
+    return true;
+  }
+  if (zone === 'hall') {
+    if (Math.abs(x) > 9.2 || z > 7.25 || z < -7.25) return false;
+    return true;
+  }
+  if (Math.abs(x) > 7.7 || z > 6.05 || z < -6.7) return false;
+  return true;
+}
+
+function typing() {
+  const active = document.activeElement;
+  if (!active) return false;
+  const tag = active.tagName;
+  return tag === 'TEXTAREA' || tag === 'INPUT';
+}
+
+function move(dt) {
+  let x = stick.x;
+  let z = stick.y;
+  if (keys.has('KeyW') || keys.has('ArrowUp')) z -= 1;
+  if (keys.has('KeyS') || keys.has('ArrowDown')) z += 1;
+  if (keys.has('KeyA') || keys.has('ArrowLeft')) x -= 1;
+  if (keys.has('KeyD') || keys.has('ArrowRight')) x += 1;
+  const mag = Math.hypot(x, z);
+  if (mag > 1) { x /= mag; z /= mag; }
+  if (!mag) return;
+  const speed = (keys.has('ShiftLeft') || keys.has('ShiftRight')) ? WALK * 1.65 : WALK;
+  const fx = -Math.sin(player.yaw);
+  const fz = -Math.cos(player.yaw);
+  const rx = Math.cos(player.yaw);
+  const rz = -Math.sin(player.yaw);
+  const dx = (fx * -z + rx * x) * speed * dt;
+  const dz = (fz * -z + rz * x) * speed * dt;
+  if (canBe(player.x + dx, player.z)) player.x += dx;
+  if (canBe(player.x, player.z + dz)) player.z += dz;
+}
+
+function checkTriggers() {
+  if (cool > 0 || ui) return;
+  if (zone === 'grounds' && player.z < -3.4 && Math.abs(player.x) < 3.3) goHall();
+  else if (zone === 'hall' && player.z > 6.5 && Math.abs(player.x) < 2) goGrounds();
+  else if (zone === 'hall' && player.z < -6.85) {
+    const door = DOORS.find((d) => Math.abs(player.x - d.x) < 1.2);
+    if (door) goRoom(door.room);
+  } else if (ROOMS[zone] && player.z > 5.65 && Math.abs(player.x) < 1.7) goHallFromRoom();
+}
+
+function updateStudents(dt) {
+  for (const student of students) {
+    if (student.z > -1.2) student.z -= dt * 0.55;
+    student.mesh.position.z = student.z;
+    student.mesh.position.y = Math.sin(performance.now() * 0.004 + student.base) * 0.03;
+  }
+}
+
+function updateShrouds() {
+  const root = props[zone];
+  if (!root) return;
+  const t = performance.now() * 0.001;
+  root.traverse((o) => {
+    if (o.userData.spin) o.rotation.z = t * o.userData.spin;
+    if (o.userData.bob != null) o.position.y = o.userData.baseY + Math.sin(t * 2 + o.userData.bob) * 0.05;
+  });
+}
+
+function applyCamera() {
+  camera.position.set(player.x, 1.62, player.z);
+  camera.rotation.y = player.yaw;
+  camera.rotation.x = player.pitch;
+}
+
+function updateTitle(dt) {
+  titleTime += dt;
+  camera.position.set(5.4, 3.05, 17.2 + Math.sin(titleTime * 0.15) * 0.2);
+  camera.lookAt(-1.2, 7.4, -18);
+}
+
+function updatePrompt() {
+  if (mode !== 'play' || ui) {
+    promptEl.classList.add('hidden');
+    return;
+  }
+  const target = nearest();
+  if (!target) {
+    promptEl.classList.add('hidden');
+    return;
+  }
+  promptEl.textContent = TOUCH ? target.prompt : `E  ${target.prompt}`;
+  promptEl.classList.remove('hidden');
+}
+
+function update(dt) {
+  cool = Math.max(0, cool - dt);
+  if (mode === 'title') {
+    updateTitle(dt);
+    updateStudents(dt);
+    return;
+  }
+  if (!ui && !typing()) move(dt);
+  if (zone === 'grounds') updateStudents(dt);
+  updateShrouds();
+  checkTriggers();
+  updatePrompt();
+  applyCamera();
+}
+
+function wantLock() {
+  if (TOUCH || AUTOTEST || ui || mode !== 'play') return;
+  const pending = renderer.domElement.requestPointerLock();
+  if (pending && pending.catch) pending.catch(() => {});
+}
+
+function startWalk() {
+  mode = 'play';
+  titleEl.classList.add('hidden');
+  topEl.classList.remove('hidden');
+  keptEl.classList.remove('hidden');
+  if (!TOUCH) crossEl.classList.remove('hidden');
+  showZone();
+  applyCamera();
+  wantLock();
+}
+
+function closeUi(relock) {
+  if (listening) {
+    try { listening.stop(); } catch { /* already stopped */ }
+    listening = null;
+  }
+  ui = null;
+  panelEl.classList.add('hidden');
+  sheetEl.replaceChildren();
+  if (relock) wantLock();
+}
+
+function openSheet() {
+  document.exitPointerLock();
+  panelEl.classList.remove('hidden');
+  promptEl.classList.add('hidden');
+  sheetEl.replaceChildren();
+}
+
+function button(label, className, onClick) {
+  return $('button', { type: 'button', class: className, onclick: onClick }, label);
+}
+
+function openKeeper() {
+  ui = { type: 'keeper' };
+  openSheet();
+  sheetEl.append(
+    $('p', { class: 'kicker' }, 'THE KEEPER'),
+    $('h2', null, 'Leave it here, then call it back'),
+    $('p', null, 'The rooms will hold a poem, a story, a thing, or a picture. Hide it with magic. Type what you remember, or say it out loud. I will tell you the percent you brought back.'),
+    $('div', { class: 'actions' }, ),
+  );
+  sheetEl.lastChild.append(button('I will', 'primary', () => closeUi(true)));
+}
+
+function openAdd(room) {
+  draftImage = '';
+  ui = { type: 'add', room };
+  openSheet();
+  const title = $('input', { id: 'mtitle', type: 'text', maxlength: '80' });
+  const body = $('textarea', { id: 'mbody', maxlength: '8000' });
+  const note = $('p', { class: 'note', id: 'formnote' });
+  const placeholders = {
+    poem: 'The hill keeps a bell in its green.\nI will carry the sound back with me.',
+    story: 'Write the story the way you want to be able to tell it again.',
+    thing: 'A jar of dill pickles on the third shelf.',
+    picture: 'Write what is in the picture. Those words are what you will recall once it is hidden.',
+  };
+  title.placeholder = 'A name you will know it by';
+  body.placeholder = placeholders[room];
+  sheetEl.append(
+    $('p', { class: 'kicker' }, ROOMS[room].name.toUpperCase()),
+    $('h2', null, ROOMS[room].place),
+    $('label', { for: 'mtitle' }, 'Name'),
+    title,
+    $('label', { for: 'mbody' }, 'What you want to remember'),
+    body,
+  );
+  if (room === 'picture') {
+    const file = $('input', { id: 'mfile', type: 'file', accept: 'image/*' });
+    const preview = $('img', { id: 'mpreview', class: 'preview', alt: '' });
+    preview.classList.add('hidden');
+    file.addEventListener('change', () => {
+      const chosen = file.files && file.files[0];
+      if (!chosen) return;
+      compressImage(chosen).then((url) => {
+        draftImage = url;
+        preview.src = url;
+        preview.classList.remove('hidden');
+        note.textContent = '';
+      }).catch(() => {
+        note.textContent = 'That picture could not be kept. Try another.';
+      });
+    });
+    sheetEl.append($('label', { for: 'mfile' }, 'Picture'), file, preview);
+  }
+  const actions = $('div', { class: 'actions' });
+  actions.append(
+    button('Keep it in the castle', 'primary', saveDraft),
+    button('Close', 'ghost', () => closeUi(true)),
+  );
+  sheetEl.append(note, actions);
+  title.focus();
+}
+
+function saveDraft() {
+  if (!ui || ui.type !== 'add') return;
+  const title = document.getElementById('mtitle').value;
+  const text = document.getElementById('mbody').value;
+  const note = document.getElementById('formnote');
+  if (!text.trim()) {
+    note.textContent = 'Write the words you want to be able to bring back.';
+    return;
+  }
+  if (draftImage && draftImage.length > 450000) {
+    note.textContent = 'That picture is too heavy for the castle. Try a smaller one.';
+    return;
+  }
+  const item = addMemory(ui.room, title, text, draftImage);
+  if (!item) {
+    note.textContent = 'The castle could not store that. It may be full.';
+    return;
+  }
+  openView(item.id);
+}
+
+function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const blobUrl = URL.createObjectURL(file);
+    image.onload = () => {
+      const scale = Math.min(1, 640 / Math.max(image.width, image.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(blobUrl);
+      resolve(canvas.toDataURL('image/jpeg', 0.72));
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(blobUrl);
+      reject(new Error('image'));
+    };
+    image.src = blobUrl;
+  });
+}
+
+function openMemory(id) {
+  const memory = byId(id);
+  if (!memory) return;
+  if (memory.hidden) openRecall(id);
+  else openView(id);
+}
+
+function openView(id) {
+  const memory = byId(id);
+  if (!memory) return;
+  ui = { type: 'view', id };
+  openSheet();
+  sheetEl.append(
+    $('p', { class: 'kicker' }, ROOMS[memory.room].name.toUpperCase()),
+    $('h2', null, memory.title),
+  );
+  if (memory.image && !memory.hidden) {
+    const img = $('img', { class: 'preview', alt: memory.title });
+    img.src = memory.image;
+    sheetEl.append(img);
+  }
+  const text = $('div', { class: 'bodytext' });
+  text.textContent = memory.text;
+  sheetEl.append(text);
+  if (memory.best != null) sheetEl.append($('p', null, `Best so far: ${memory.best} percent.`));
+  const actions = $('div', { class: 'actions' });
+  actions.append(
+    button('Hide and try to remember', 'gold', () => {
+      memory.hidden = true;
+      saveMemories();
+      refreshProps();
+      openRecall(memory.id);
+    }),
+    button('Hide for later', 'primary', () => {
+      memory.hidden = true;
+      saveMemories();
+      refreshProps();
+      closeUi(true);
+    }),
+    button('Remove', 'danger', () => confirmRemove(memory.id)),
+    button('Close', 'ghost', () => closeUi(true)),
+  );
+  sheetEl.append(actions);
+}
+
+function confirmRemove(id) {
+  const memory = byId(id);
+  if (!memory) return;
+  const actions = sheetEl.querySelector('.actions');
+  actions.replaceChildren(
+    button('Yes, remove it', 'danger', () => {
+      memories = memories.filter((m) => m.id !== id);
+      saveMemories();
+      refreshProps();
+      closeUi(true);
+    }),
+    button('Keep it', 'ghost', () => openView(id)),
+  );
+}
+
+function openRecall(id) {
+  const memory = byId(id);
+  if (!memory) return;
+  ui = { type: 'recall', id };
+  openSheet();
+  const guess = $('textarea', { id: 'guess' });
+  guess.placeholder = 'Type what you remember, or say it out loud.';
+  const result = $('div', { id: 'result' });
+  sheetEl.append(
+    $('p', { class: 'kicker' }, 'HIDDEN BY MAGIC'),
+    $('h2', null, memory.title),
+    $('p', null, 'The castle has covered it. Bring back the words.'),
+    guess,
+  );
+  const actions = $('div', { class: 'actions' });
+  actions.append(
+    button('Say it out loud', 'primary', () => startListening()),
+    button('Score my memory', 'gold', judge),
+    button('Reveal the original', 'ghost', () => askReveal(id)),
+    button('Close', 'ghost', () => closeUi(true)),
+  );
+  const speak = actions.firstChild;
+  speak.id = 'speakbtn';
+  sheetEl.append(actions, result);
+  guess.focus();
+}
+
+function askReveal(id) {
+  const memory = byId(id);
+  if (!memory) return;
+  const actions = sheetEl.querySelector('.actions');
+  actions.replaceChildren(
+    button('Yes, show the original', 'danger', () => {
+      memory.hidden = false;
+      saveMemories();
+      refreshProps();
+      openView(id);
+    }),
+    button('Keep it hidden', 'ghost', () => openRecall(id)),
+  );
+}
+
+function startListening() {
+  const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const speakBtn = document.getElementById('speakbtn');
+  if (!Rec) {
+    const result = document.getElementById('result');
+    if (result) result.textContent = 'This browser cannot hear you. Type what you remember.';
+    return;
+  }
+  if (listening) {
+    try { listening.stop(); } catch { /* already stopped */ }
+    return;
+  }
+  const rec = new Rec();
+  rec.lang = 'en-US';
+  rec.interimResults = true;
+  rec.continuous = false;
+  rec.onresult = (event) => {
+    let text = '';
+    for (let i = 0; i < event.results.length; i++) text += event.results[i][0].transcript;
+    const box = document.getElementById('guess');
+    if (box) box.value = text;
+  };
+  rec.onerror = () => {
+    const result = document.getElementById('result');
+    if (result && !result.querySelector('.pct')) result.textContent = 'The castle could not hear. Type it instead.';
+  };
+  rec.onend = () => {
+    listening = null;
+    if (speakBtn) speakBtn.textContent = 'Say it out loud';
+  };
+  listening = rec;
+  try {
+    rec.start();
+    if (speakBtn) speakBtn.textContent = 'Listening…';
+  } catch {
+    listening = null;
+  }
+}
+
+function judge() {
+  if (!ui || ui.type !== 'recall') return;
+  const memory = byId(ui.id);
+  const box = document.getElementById('guess');
+  if (!memory || !box) return;
+  const graded = scoreRecall(memory.text, box.value);
+  memory.last = graded.pct;
+  memory.best = memory.best == null ? graded.pct : Math.max(memory.best, graded.pct);
+  saveMemories();
+  refreshProps();
+  const host = document.getElementById('result');
+  host.replaceChildren();
+  host.append($('div', { class: 'pct' }, `${graded.pct}%`));
+  const bar = $('div', { class: 'bar' });
+  const fill = $('span');
+  fill.style.width = `${graded.pct}%`;
+  bar.append(fill);
+  host.append(bar, $('p', null, graded.verdict));
+  if (graded.missed.length && graded.pct < 100) {
+    host.append($('p', null, `These slipped: ${graded.missed.slice(0, 8).join(', ')}.`));
+  }
+  if (graded.extra.length && graded.pct < 100) {
+    host.append($('p', null, `You added: ${graded.extra.slice(0, 6).join(', ')}.`));
+  }
+  host.append($('p', null, `Best so far: ${memory.best} percent.`));
+  chime(graded.pct);
+  say(graded.spoken);
+}
+
+function chime(pct) {
+  if (AUTOTEST) return;
+  try {
+    audioCtx = audioCtx || new AudioContext();
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(pct >= 90 ? 660 : pct >= 60 ? 520 : 330, t);
+    osc.frequency.exponentialRampToValueAtTime(pct >= 90 ? 880 : 440, t + 0.28);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.05, t + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + 0.62);
+  } catch {
+    /* The score still shows if sound is blocked. */
+  }
+}
+
+function say(text) {
+  if (AUTOTEST || !window.speechSynthesis) return;
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = 0.96;
+  utter.pitch = 0.9;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utter);
+}
+
+buildGrounds();
+buildHall();
+buildRooms();
+showZone();
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+window.addEventListener('keydown', (event) => {
+  if (mode === 'title' && (event.key === 'Enter' || event.key === ' ')) {
+    event.preventDefault();
+    startWalk();
+    return;
+  }
+  if (event.key === 'Escape') {
+    if (ui) closeUi(false);
+    document.exitPointerLock();
+    return;
+  }
+  if (typing()) {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && ui && ui.type === 'recall') judge();
+    return;
+  }
+  if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(event.code)) {
+    event.preventDefault();
+  }
+  keys.add(event.code);
+  if (event.code === 'KeyE' && !event.repeat) useNearest();
+});
+window.addEventListener('keyup', (event) => keys.delete(event.code));
+window.addEventListener('blur', () => keys.clear());
+
+renderer.domElement.addEventListener('click', () => {
+  if (mode === 'play' && !ui) wantLock();
+});
+document.addEventListener('mousemove', (event) => {
+  if (document.pointerLockElement !== renderer.domElement || ui) return;
+  player.yaw -= event.movementX * 0.0022;
+  player.pitch -= event.movementY * 0.0022;
+  player.pitch = Math.max(-1.15, Math.min(1.15, player.pitch));
+});
+promptEl.addEventListener('click', useNearest);
+document.getElementById('walkbtn').addEventListener('click', startWalk);
+document.getElementById('usebtn').addEventListener('click', useNearest);
+
+stickEl.addEventListener('pointerdown', (event) => {
+  stick.id = event.pointerId;
+  stickEl.setPointerCapture(event.pointerId);
+  moveStick(event);
+});
+stickEl.addEventListener('pointermove', (event) => {
+  if (event.pointerId === stick.id) moveStick(event);
+});
+function endStick(event) {
+  if (event.pointerId !== stick.id) return;
+  stick.id = null;
+  stick.x = 0;
+  stick.y = 0;
+  knobEl.style.transform = 'translate(0px, 0px)';
+}
+stickEl.addEventListener('pointerup', endStick);
+stickEl.addEventListener('pointercancel', endStick);
+
+function moveStick(event) {
+  const rect = stickEl.getBoundingClientRect();
+  let x = (event.clientX - (rect.left + rect.width / 2)) / 42;
+  let y = (event.clientY - (rect.top + rect.height / 2)) / 42;
+  const mag = Math.hypot(x, y);
+  if (mag > 1) { x /= mag; y /= mag; }
+  stick.x = x;
+  stick.y = y;
+  knobEl.style.transform = `translate(${x * 30}px, ${y * 30}px)`;
+}
+
+let lookId = null;
+let lookX = 0;
+let lookY = 0;
+renderer.domElement.addEventListener('pointerdown', (event) => {
+  if (!TOUCH || ui || mode !== 'play') return;
+  if (event.clientX < innerWidth * 0.42) return;
+  lookId = event.pointerId;
+  lookX = event.clientX;
+  lookY = event.clientY;
+});
+window.addEventListener('pointermove', (event) => {
+  if (lookId == null || event.pointerId !== lookId) return;
+  player.yaw -= (event.clientX - lookX) * 0.005;
+  player.pitch -= (event.clientY - lookY) * 0.005;
+  player.pitch = Math.max(-1.15, Math.min(1.15, player.pitch));
+  lookX = event.clientX;
+  lookY = event.clientY;
+});
+window.addEventListener('pointerup', (event) => {
+  if (event.pointerId === lookId) lookId = null;
+});
+
+if (AUTOTEST) startWalk();
+
+let last = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  if (!AUTOTEST) update(dt);
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(frame);
+
+window.__station = {
+  score: scoreRecall,
+  simulate(dt) { update(dt); },
+  setKey(code, down) { if (down) keys.add(code); else keys.delete(code); },
+  teleport(x, z, yaw) {
+    player.x = x;
+    player.z = z;
+    if (yaw != null) player.yaw = yaw;
+    applyCamera();
+  },
+  enter(name) {
+    if (name === 'hall') goHall();
+    else if (name === 'grounds') goGrounds();
+    else goRoom(name);
+    applyCamera();
+  },
+  add(room, title, text, image) { return addMemory(room, title, text || '', image || ''); },
+  hide(id) {
+    const memory = byId(id);
+    if (!memory) return;
+    memory.hidden = true;
+    saveMemories();
+    refreshProps();
+  },
+  memories() {
+    return memories.map(({ image, ...memory }) => ({ ...memory, hasImage: !!image }));
+  },
+  use() { useNearest(); },
+  nearest() {
+    const target = nearest();
+    return target ? target.prompt : '';
+  },
+  poster() {
+    mode = 'title';
+    zone = 'grounds';
+    shown = '';
+    showZone();
+    ui = null;
+    titleEl.classList.remove('hidden');
+    topEl.classList.add('hidden');
+    keptEl.classList.add('hidden');
+    crossEl.classList.add('hidden');
+    promptEl.classList.add('hidden');
+    panelEl.classList.add('hidden');
+    updateTitle(0);
+  },
+  get state() {
+    return {
+      mode,
+      zone,
+      x: player.x,
+      z: player.z,
+      yaw: player.yaw,
+      ui: ui ? ui.type : '',
+      prompt: nearest() ? nearest().prompt : '',
+      kept: memories.length,
+    };
+  },
+};
+</script>
+</body>
+</html>
