@@ -2312,13 +2312,14 @@ function updateCommon(c,dt){c.hitT=Math.max(0,c.hitT-dt);
 function zBodyR(e){return e.type?SPEC[e.type].r:.36;}
 function zAnchored(e){return (e.type==='hunter'&&e.state==='pin')||(e.type==='smoker'&&e.state==='pull');}
 function kickPosed(e){return e.state==='sob'||e.state==='headwait'||e.state==='headwalk';}
-/* A heap of dead commons becomes one mound. Real-sized heads and limbs cover the outside thick enough that the cloth barely shows. */
+/* A heap of dead commons becomes one mound. The mound and the limbs on it stay the size of the bodies in it. */
 let pileScan=0,pileSeq=1,PILE_MOUND=null,PILE_PLUG=null,PILE_TEX=null;
 const BIT_MAX=900;
 const _bit=new THREE.Object3D(),_bitCol=new THREE.Color(),_blood=new THREE.Color(0x4a1010);
 _bit.rotation.order='YXZ';
+const PILE_H=0.5/3;
 function pileMetrics(count,x,z){const g=bodyY(x,z);const ceil=ceilAt(x,z);const room=ceil==null?120:Math.max(0.8,ceil-g);
- const raw=0.5*Math.pow(Math.max(1,count),0.7);const sealed=ceil!=null&&raw+1.75>=room;
+ const raw=PILE_H*Math.pow(Math.max(1,count),0.7);const sealed=ceil!=null&&raw+1.75>=room;
  const h=sealed?room:Math.min(raw,120);const r=Math.min(14,0.75+Math.pow(Math.max(1,count),0.4)*0.62);
  return {g,h,r,sealed,room,raw};}
 function pileTex(){if(PILE_TEX)return PILE_TEX;
@@ -2329,14 +2330,11 @@ function pileTex(){if(PILE_TEX)return PILE_TEX;
   for(let i=0;i<14;i++){g.beginPath();g.ellipse((i*29+8)%w,(i*23+6)%h,5+(i%3)*2,3+(i%2)*2,(i%5)*.4,0,6.3);g.fill();}});
  PILE_TEX.wrapS=PILE_TEX.wrapT=THREE.RepeatWrapping;PILE_TEX.anisotropy=renderer.capabilities.getMaxAnisotropy();return PILE_TEX;}
 function pileHash(n){n=Math.imul(n|0,0x7feb352d);n=Math.imul(n^(n>>>15),0x846ca68b);return ((n^(n>>>16))>>>0)/4294967296;}
-function pileBitsN(p){const midR=Math.max(.8,(p.sealed?0.9:0.72)*p.r);
- const around=Math.max(5,Math.min(14,Math.round(Math.PI*2*midR/1.15)));
- const rise=Math.max(2,Math.min(p.sealed?5:10,Math.round(Math.max(p.h,1)/.9)));
- return Math.max(36,Math.min(300,around*rise*3));}
+function pileBitsN(p){return Math.max(1,Math.min(300,p.count|0));}
 function pileRadAt(t,sealed){return sealed?1-.14*t:Math.sqrt(Math.max(0,1-t));}
 function putBit(mesh,i,x,y,z,rx,ry,rz,sx,sy,sz,hex,blood){_bit.position.set(x,y,z);_bit.rotation.set(rx,ry,rz);_bit.scale.set(sx,sy,sz);_bit.updateMatrix();mesh.setMatrixAt(i,_bit.matrix);
  _bitCol.setHex(hex);_bitCol.multiplyScalar(.74);if(blood>0)_bitCol.lerp(_blood,blood);mesh.setColorAt(i,_bitCol);}
-function posePileBits(p){const n=pileBitsN(p),mesh=p.bits,span=p.sealed?0.9:0.88,t0=Math.max(.04,.22/Math.max(p.h,.3));let i=0;
+function posePileBits(p){const n=pileBitsN(p),mesh=p.bits,span=p.sealed?0.9:0.88,t0=Math.min(.35,Math.max(.04,.22/Math.max(p.h,.3)));let i=0;
  for(let s=0;s<n;s++){const h=pileHash(p.id*131+s*17+9);
   const yaw=pileHash(p.id*3+1)*6.2831853+s*2.399963229728653+(h-.5)*.55;
   let t=t0+(s+.5)/n*span+(pileHash(p.id*17+s*5)-.5)*.02;
@@ -2394,7 +2392,7 @@ function shedSpot(p,ux,uz){for(const dist of [p.r+.45,p.r*.55,.4]){const x=p.x+u
 function makeShedCorpse(x,z){const c={id:++ENTID,x,z,y:bodyY(x,z)+.45,yaw:rand(0,6.28),hp:0,dead:true,deathT:.5,fall:.15,state:'wander',target:null,atk:0,phase:rand(0,6),wt:0,wdx:0,wdz:0,stag:0,pvx:0,pvz:0,shirt:pick(SHIRTS),pants:pick(PANTS),skin:pick(SKINS),speed:0,swipe:0,chk:9,groanT:99,hitT:0,mv:0,looseT:2.8,slideT:.9,flying:false,fvx:0,fvz:0,fvy:2.2};
  commons.push(c);return c;}
 const PILE_BITE=10*0.3048;
-function countForPileHeight(h){if(h<=0.2)return 0;return Math.pow(h/0.5,1/0.7);}
+function countForPileHeight(h){if(h<=PILE_H*0.5)return 0;return Math.pow(h/PILE_H,1/0.7);}
 function pileAfterKick(p){const m=pileMetrics(p.count,p.x,p.z);if(m.h<=PILE_BITE+0.35)return 0;const next=Math.floor(countForPileHeight(m.h-PILE_BITE));if(!(next>=1)||next>=p.count)return 0;return next;}
 function shedPile(p,ent){const next=pileAfterKick(p),removed=p.count-next;const m=pileMetrics(p.count,p.x,p.z);
  const fx=-Math.sin(ent.yaw),fz=-Math.cos(ent.yaw);
