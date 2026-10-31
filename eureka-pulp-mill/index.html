@@ -1709,7 +1709,7 @@ const START_COMMONS=LAYOUT==='linear'
 BOTDEF.forEach((d,i)=>{const m=makeHuman(d);const gun=gunModel(d.w,m.b);gun.position.set(.12,1.22,.42);gun.rotation.y=Math.PI;m.armR.rotation.x=-1.35;m.armL.rotation.x=-1.25;m.armL.rotation.z=-.35;
  const tag=nameSprite(d.name,d.col);tag.position.y=2.25;m.g.add(tag);scene.add(m.g);
  const sp=BOT_SPAWN[i];
- bots.push(Object.assign({},d,{x:sp[0]*T,z:sp[1]*T,y:8,yaw:Math.PI,hp:100,down:false,lost:[],bite:null,headless:false,cargo:null,credits:[],loose:false,dropX:0,dropZ:0,cutChoice:null,revVic:null,kit:true,cd:rand(0,.5),mag:d.w==='shotgun'?8:50,reloadT:0,heal:0,mesh:m,tag,gun,shownW:d.w,botName:d.name,botCol:d.col,botW:d.w,phase:0,tgt:null,scanT:0,slot:i,isBot:true,moveSpd:0,lastSeen:0,net:false,peerId:null,pitch:0,vx:0,vz:0,fireCd:0,wep:'primary',bike:null,fixT:0}));});
+ bots.push(Object.assign({},d,{x:sp[0]*T,z:sp[1]*T,y:8,yaw:Math.PI/2,hp:100,down:false,lost:[],bite:null,headless:false,cargo:null,credits:[],loose:false,dropX:0,dropZ:0,cutChoice:null,revVic:null,kit:true,cd:rand(0,.5),mag:d.w==='shotgun'?8:50,reloadT:0,heal:0,mesh:m,tag,gun,shownW:d.w,botName:d.name,botCol:d.col,botW:d.w,phase:0,tgt:null,scanT:0,slot:i,isBot:true,moveSpd:0,lastSeen:0,net:false,peerId:null,pitch:0,vx:0,vz:0,fireCd:0,wep:'primary',bike:null,fixT:0}));});
 buildNuns();
 function makeHeadProp(skin,hair){const g=new THREE.Group();box(.26,.28,.27,skin||0xb08a6a,0,.14,0,g);box(.28,.1,.29,hair||0x3a2a1a,0,.3,0,g);g.visible=false;scene.add(g);return g;}
 player.headProp=makeHeadProp(0xb08a6a,0x3a2a1a);
@@ -2206,8 +2206,8 @@ function updateBot(b,dt){if(b.net){updateNetSurvivor(b,dt);return;}
  if(shouldZipFollow(b)){beginZip(b);placeBot(b);return;}
  if((b.pinnedBy&&!b.pinnedBy.dead)||(b.pulledBy&&!b.pulledBy.dead)){placeBot(b);return;}
  const m=b.mesh;b.phase+=dt*8*Math.min(1,b.moveSpd/3);
- if(b.down){m.b.rotation.x=lerp(m.b.rotation.x,-1.45,dt*5);m.g.position.set(b.x,bodyY(b.x,b.z)+.2,b.z);m.g.rotation.y=b.yaw;b.tag.material.color.setHex(0xff4444);b.hp=Math.max(0,b.hp-dt*0.8);b.revT=0;b.revVic=null;poseLimbs(b);return;}
- if(b.boatSeat!=null&&BOAT.show){seatEnt(b);b.moveSpd=0;b.yaw=lerpAng(b.yaw,BOAT.yaw-Math.PI/2,dt*3);placeBot(b);return;}
+ if(b.down){m.b.rotation.x=lerp(m.b.rotation.x,-1.45,dt*5);m.g.position.set(b.x,bodyY(b.x,b.z)+.2,b.z);m.g.rotation.y=bodyYaw(b);b.tag.material.color.setHex(0xff4444);b.hp=Math.max(0,b.hp-dt*0.8);b.revT=0;b.revVic=null;poseLimbs(b);return;}
+ if(b.boatSeat!=null&&BOAT.show){seatEnt(b);b.moveSpd=0;b.yaw=lerpAng(b.yaw,BOAT.yaw+Math.PI/2,dt*3);placeBot(b);return;}
  if(BOAT.show&&!BOAT.beached&&S.bridge==='swim'&&chAt(b)==='U'&&b.boatSeat==null){const d=Math.hypot(BOAT.x-b.x,BOAT.z-b.z);if(d<3.3){boardBoat(b);placeBot(b);return;}if(d>0.05){moveEnt(b,(BOAT.x-b.x)/d*2.1*dt,(BOAT.z-b.z)/d*2.1*dt,.3);b.yaw=Math.atan2(BOAT.x-b.x,BOAT.z-b.z);b.moveSpd=2.1;}placeBot(b);return;}
  if(S.bridge==='fall'&&chAt(b)==='U'){b.moveSpd=0;placeBot(b);return;}
  m.b.rotation.x=lerp(m.b.rotation.x,0,dt*5);b.tag.material.color.setHex(0xffffff);
@@ -2255,11 +2255,12 @@ function updateBot(b,dt){if(b.net){updateNetSurvivor(b,dt);return;}
    const adx=hx-muzzle.x,ady=hy-muzzle.y,adz=hz-muzzle.z,alen=Math.hypot(adx,ady,adz)||1;
    NET.ev({t:'shot',slot:bots.indexOf(b)+1,w:gw,beam:0,ax:nq(muzzle.x),ay:nq(muzzle.y),az:nq(muzzle.z),dx:nq(adx/alen),dy:nq(ady/alen),dz:nq(adz/alen)});}}
  else if(b.moveSpd>.5)b.yaw=lerpAng(b.yaw,Math.atan2(b.x-ox,b.z-oz),dt*8);
- else b.yaw=lerpAng(b.yaw,Math.atan2(player.x-b.x,player.z-b.z)+Math.PI*0.6*(b.slot-1),dt*2);
+ else b.yaw=lerpAng(b.yaw,player.yaw+Math.PI,dt*2);
  // catch-up teleport
  const pd=Math.hypot(player.x-b.x,player.z-b.z);if((pd>22&&!losClear(b.x,b.z,player.x,player.z))||(pd>9&&flow[tileOf(b)]>=INF)){const cr=player.crumbs[Math.max(0,player.crumbs.length-4-b.slot)];if(cr&&!losClear(player.x,player.z,cr[0],cr[1])||cr&&flow[tileOf(b)]>=INF){b.x=cr[0];b.z=cr[1];}}
  placeBot(b);}
-function placeBot(b){const m=b.mesh;if(b.zipU!=null){const p=zipPos(b.zipU);b.x=p.x;b.z=p.z;b.y=p.y;}else if(b.bike!=null)b.y=standY(b.x,b.z)+.55;else b.y=standY(b.x,b.z);m.g.position.set(b.x,b.y,b.z);m.g.rotation.y=b.yaw;const sw=Math.sin(b.phase)*Math.min(1,b.moveSpd/3);m.legL.rotation.x=sw*.7;m.legR.rotation.x=-sw*.7;m.b.position.y=Math.abs(sw)*.05;poseLimbs(b);}
+function bodyYaw(b){return b.net?b.yaw+Math.PI:b.yaw;}
+function placeBot(b){const m=b.mesh;if(b.zipU!=null){const p=zipPos(b.zipU);b.x=p.x;b.z=p.z;b.y=p.y;}else if(b.bike!=null)b.y=standY(b.x,b.z)+.55;else b.y=standY(b.x,b.z);m.g.position.set(b.x,b.y,b.z);m.g.rotation.y=bodyYaw(b);const sw=Math.sin(b.phase)*Math.min(1,b.moveSpd/3);m.legL.rotation.x=sw*.7;m.legR.rotation.x=-sw*.7;m.b.position.y=Math.abs(sw)*.05;poseLimbs(b);}
 
 /* A revived zombie follows the survivor who brought it back and fights other infected. Nothing on screen says so. */
 const ALLY_HOLD=1.15;
@@ -2827,7 +2828,7 @@ function setFF(on){if(NET.role==='client')return;NET.ff=!!on;try{localStorage.se
 function adoptFF(on){NET.ff=!!on;paintFF();}
 function toggleFF(){if(NET.role!=='host')return;setFF(!NET.ff);}
 function clearSpecials(){for(const s of specials){scene.remove(s.mesh.g);if(s.mesh.tongue)scene.remove(s.mesh.tongue);}specials.length=0;}
-function resetBotBody(b,i){freshBody(b);const sp=BOT_SPAWN[i];b.x=sp[0]*T;b.z=sp[1]*T;b.yaw=Math.PI;b.hp=100;b.down=false;b.lost=[];b.bite=null;b.revVic=null;b.kit=true;b.cd=rand(0,.5);b.reloadT=0;b.heal=0;b.phase=0;b.tgt=null;b.scanT=0;b.moveSpd=0;b.pitch=0;b.vx=0;b.vz=0;b.fireCd=0;b.pinnedBy=null;b.pulledBy=null;b.pinShoves=0;b.revT=0;b.biledT=0;b.trig=false;b.flash=false;b.tx=undefined;b.tz=undefined;b._seen=0;b.zipU=null;
+function resetBotBody(b,i){freshBody(b);const sp=BOT_SPAWN[i];b.x=sp[0]*T;b.z=sp[1]*T;b.yaw=Math.PI/2;b.hp=100;b.down=false;b.lost=[];b.bite=null;b.revVic=null;b.kit=true;b.cd=rand(0,.5);b.reloadT=0;b.heal=0;b.phase=0;b.tgt=null;b.scanT=0;b.moveSpd=0;b.pitch=0;b.vx=0;b.vz=0;b.fireCd=0;b.pinnedBy=null;b.pulledBy=null;b.pinShoves=0;b.revT=0;b.biledT=0;b.trig=false;b.flash=false;b.tx=undefined;b.tz=undefined;b._seen=0;b.zipU=null;
  if(b.net){b.inv={pistol:{type:'pistol',mag:15,res:Infinity},primary:b.botW?{type:b.botW,mag:WEAP[b.botW].mag,res:WEAP[b.botW].res}:null};b.wep=b.inv.primary?'primary':'pistol';setGun(b,b.wep==='primary'?b.botW:'pistol');}
  else{b.inv=null;b.wep='primary';b.w=b.botW;b.mag=b.w==='shotgun'?8:50;b.shownW=null;setGun(b,b.botW);if(b.botName&&b.name!==b.botName)retag(b,b.botName,b.botCol);}
  if(b.mesh){b.mesh.b.rotation.x=0;if(b.tag)b.tag.material.color.setHex(0xffffff);}placeBot(b);}
@@ -3106,7 +3107,7 @@ function updateNetSurvivor(b,dt){const inp=freshInp(b);
   if(e==='xgun')pressXGun(b);
  }inp.edges=null;if(b.inp)b.inp.edges=null;}
  if(b.zipU!=null){tickZip(b,dt);b.yaw=Math.atan2(ZIP_B.x-ZIP_A.x,ZIP_B.z-ZIP_A.z);b.moveSpd=6;placeBot(b);return;}
- if(b.bike!=null){const bk=bikes[b.bike];if(bk){b.x=bk.x;b.z=bk.z;b.moveSpd=Math.abs(bk.spd||0);}if(Number.isFinite(inp.y))b.yaw=inp.y;else if(bk)b.yaw=bk.yaw+Math.PI;b.pitch=Number.isFinite(inp.p)?inp.p:0;b.fireCd=Math.max(0,(b.fireCd||0)-dt);b.spinCd=Math.max(0,(b.spinCd||0)-dt);const wRide=entW(b);if(wRide&&inp.fire&&!b.down&&b.fireCd<=0&&!(b.reloadT>0)){const def=WEAP[wRide.type];if(def.auto||!b.trig){if(wRide.mag>0)fireEnt(b);else if(wRide.res>0)startReloadEnt(b);b.trig=true;}}if(!inp.fire)b.trig=false;placeBot(b);return;}
+ if(b.bike!=null){const bk=bikes[b.bike];if(bk){b.x=bk.x;b.z=bk.z;b.moveSpd=Math.abs(bk.spd||0);}if(Number.isFinite(inp.y))b.yaw=inp.y;else if(bk)b.yaw=bk.yaw;b.pitch=Number.isFinite(inp.p)?inp.p:0;b.fireCd=Math.max(0,(b.fireCd||0)-dt);b.spinCd=Math.max(0,(b.spinCd||0)-dt);const wRide=entW(b);if(wRide&&inp.fire&&!b.down&&b.fireCd<=0&&!(b.reloadT>0)){const def=WEAP[wRide.type];if(def.auto||!b.trig){if(wRide.mag>0)fireEnt(b);else if(wRide.res>0)startReloadEnt(b);b.trig=true;}}if(!inp.fire)b.trig=false;placeBot(b);return;}
  if(Number.isFinite(inp.y))b.yaw=inp.y;b.pitch=Number.isFinite(inp.p)?inp.p:0;
  b.shoveCd=Math.max(0,(b.shoveCd||0)-dt);b.kickCd=Math.max(0,(b.kickCd||0)-dt);b.spinCd=Math.max(0,(b.spinCd||0)-dt);b.fireCd=Math.max(0,(b.fireCd||0)-dt);tickReloadEnt(b,dt);
  if(b.down){b.mesh.b.rotation.x=lerp(b.mesh.b.rotation.x,-1.45,dt*5);if(b.tag)b.tag.material.color.setHex(0xff4444);b.revT=0;b.revVic=null;
