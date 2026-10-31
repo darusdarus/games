@@ -43,6 +43,7 @@ canvas{display:block}
 #burn{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 35%,rgba(255,120,0,.85));opacity:0}
 #lowhp{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.85));opacity:0}
 .screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,rgba(0,0,0,.35),rgba(0,0,0,.85));z-index:10;text-align:center}
+#title.screen{align-items:flex-start;overflow:auto;padding:18px 0 32px}
 .card{max-width:760px;padding:26px 34px}
 .kicker{letter-spacing:4px;font-size:12px;color:#d9a;opacity:.85}
 h1{font-size:72px;margin:6px 0 0;letter-spacing:8px;color:#f2efe8;text-shadow:0 0 25px rgba(255,80,40,.6),0 4px 0 #400}
@@ -50,6 +51,9 @@ h2{margin:2px 0 14px;font-size:20px;letter-spacing:6px;color:#e55}
 .sub{font-size:15px;opacity:.9;line-height:1.5}
 .controls{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 18px;margin:18px auto;font-size:13px;text-align:left;max-width:640px}
 .controls b{display:inline-block;min-width:54px;background:#eee;color:#111;border-radius:3px;padding:1px 5px;margin-right:6px;text-align:center;font-size:12px}
+.padbox{margin:4px auto 0;max-width:640px}
+.padbox .kicker{display:block;margin:0 0 4px;text-align:left}
+.padcontrols{margin-top:0}
 button.big{font:inherit;font-size:20px;letter-spacing:4px;padding:12px 40px;background:#b22;color:#fff;border:0;border-radius:3px;cursor:pointer;box-shadow:0 0 30px rgba(255,40,40,.4)}
 button.big:hover{background:#d33}
 button.alt{background:#2a2a2a;box-shadow:none;letter-spacing:2px;font-size:16px;padding:12px 18px}
@@ -186,8 +190,19 @@ body.touching #ffplay{left:8px;bottom:auto;top:calc(330px + env(safe-area-inset-
 <div id="title" class="screen"><div class="card">
  <div class="kicker">AN ORIGINAL LOW-POLY SIM · EUREKA, CALIFORNIA</div>
  <h1>EUREKA</h1><h2>PULP MILL</h2>
+ <div class="padbox" id="padbox">
+  <div class="kicker">XBOX CONTROLLER</div>
+  <div class="controls padcontrols">
+   <div><b>LS</b>Move</div><div><b>RS</b>Look</div><div><b>RT</b>Shoot</div>
+   <div><b>RB</b>Shove / spin sword</div><div><b>LT</b>Front kick</div><div><b>A</b>Use / revive</div>
+   <div><b>B</b>Reload</div><div><b>Y</b>Swap weapon</div><div><b>X</b>Flashlight</div>
+   <div><b>LB</b>Talk (hold)</div><div><b>L3</b>Sprint</div><div><b>MENU</b>Pause</div>
+   <div><b>VIEW</b>Mute</div><div><b>R3</b>SMG laser</div><div><b>UP / DOWN</b>Primary / pistol</div>
+   <div><b>LEFT</b>Choose limb</div><div><b>RIGHT</b>Heal</div>
+  </div>
+ </div>
  <div class="sub" id="blurb">Start on Trinity Street in Myrtletown. The road turns through Redwood Acres, up the Redwood Sky Walk, through Sequoia Park Zoo and the tree walk, into the Carson Mansion, then a zipline down to the slough bridge.<br>Safe rooms at the fair hall, the zoo, 3109 H Street, the mansion, and the Samoa Cookhouse. The channel span is long and high. Four nuns at the gate have four bikes that will not start. If the span goes, row the skiff. Swimmers climb the boat — you cannot row while you shoot.</div>
- <div class="controls">
+ <div class="controls" id="keycontrols">
   <div><b>WASD</b>Move</div><div><b>MOUSE</b>Look</div><div><b>L-CLICK</b>Shoot</div>
   <div><b>R-CLICK</b>Shove (hold)</div><div><b>R</b>Reload</div><div><b>1 / 2</b>Primary / Pistol</div>
   <div id="eline"><b>E</b>Use / cut the bitten limb</div><div id="sline"><b>W / A D</b>Row / turn the skiff</div><div><b>H</b>Heal (first aid)</div><div><b>F</b>Front kick / clear bodies</div>
@@ -2768,7 +2783,7 @@ function updateHud(dt){flashT=Math.max(0,flashT-dt*1.6);if(goreT>0){goreT-=dt;if
 
 /* ================= INPUT ================= */
 const canvas=renderer.domElement;
-function lock(){if(AUTOTEST||COOPTEST||wantTouch())return;try{const p=canvas.requestPointerLock();if(p&&p.catch)p.catch(()=>{});}catch(e){}}
+function lock(){if(AUTOTEST||COOPTEST||wantTouch()||PAD.on)return;try{const p=canvas.requestPointerLock();if(p&&p.catch)p.catch(()=>{});}catch(e){}}
 function coopPause(){$('pause').classList.remove('hidden');mouseDown=false;mouseRight=false;keys={};NET.paused=true;syncTouch();paintFF();paintRestart();}
 function toggleFly(){if(NET.role==='client'||S.phase!=='play')return;S.fly=!S.fly;if(S.fly){S.god=true;if(player.headless){player.headless=false;player.loose=false;clearCargoOf(player);}player.down=false;player.bite=null;player.pinnedBy=null;player.pulledBy=null;player.hp=100;poseOwnArms();poseCargo();feed('<b>God fly on.</b> WASD goes where you look. Space up, Ctrl down, Shift is faster. C lands.','#fd8');}else{if(!COOPTEST)S.god=false;player.y=groundAt(player.x,player.z)+1.62;feed('Landed.','#ccc');}}
 let introGen=0;
@@ -2846,7 +2861,7 @@ $('bgtoggle').onclick=$('bgtoggle2').onclick=toggleBg;
 $('bgtitle').addEventListener('input',()=>setBg(Number($('bgtitle').value)/100));
 $('bgplay').addEventListener('input',()=>setBg(Number($('bgplay').value)/100));
 applyBg();paintFF();paintRestart();
-document.addEventListener('pointerlockchange',()=>{if(!document.pointerLockElement&&S.phase==='play'&&!AUTOTEST&&!COOPTEST&&!document.body.classList.contains('touching')){if(NET.role!=='off'){coopPause();return;}S.phase='paused';$('pause').classList.remove('hidden');mouseDown=false;mouseRight=false;keys={};syncTouch();}});
+document.addEventListener('pointerlockchange',()=>{if(!document.pointerLockElement&&S.phase==='play'&&!AUTOTEST&&!COOPTEST&&!PAD.on&&!document.body.classList.contains('touching')){if(NET.role!=='off'){coopPause();return;}S.phase='paused';$('pause').classList.remove('hidden');mouseDown=false;mouseRight=false;keys={};syncTouch();}});
 document.addEventListener('mousemove',e=>{if(S.phase!=='play'||!document.pointerLockElement||NET.paused)return;const s=.0022;player.yaw-=e.movementX*s;player.pitch=clamp(player.pitch-e.movementY*s,-1.45,1.45);});
 canvas.addEventListener('mousedown',e=>{if(e.sourceCapabilities&&e.sourceCapabilities.firesTouchEvents)return;if(S.phase==='play'&&!document.pointerLockElement&&!AUTOTEST&&!COOPTEST){lock();}if(S.phase!=='play'||NET.paused)return;const code=e.button===0?'Mouse0':e.button===2?'Mouse2':e.button===1?'Mouse1':'';if(code===bindCode('fire'))mouseDown=true;if(e.button===1)mouseMid=true;if(code===bindCode('shove')&&!player.down){mouseRight=true;const pin=player.pinnedBy&&!player.pinnedBy.dead;if(!pin&&swordEquipped(player)){if(NET.role==='client'){if(swordStrike(player,true,true))NET.edges.push('spin');}else swordStrike(player,true,false);}else if(NET.role==='client'){player.lastShove=S.t;shoveFx();NET.edges.push('shove');}else shove();}});
 document.addEventListener('mouseup',e=>{const code=e.button===0?'Mouse0':e.button===2?'Mouse2':e.button===1?'Mouse1':'';if(code===bindCode('fire'))mouseDown=false;if(code===bindCode('shove'))mouseRight=false;if(e.button===1)mouseMid=false;if(code&&code===bindCode('talk'))setPtt(false);});
@@ -2861,10 +2876,11 @@ function bindCode(id){return KEYS[id]||KEY_DEFAULT[id];}
 function stickCode(id){const b=bindCode(id);return b.indexOf('Mouse')===0?KEY_DEFAULT[id]:b;}
 function otherTwin(code){if(code==='ShiftLeft')return 'ShiftRight';if(code==='ShiftRight')return 'ShiftLeft';if(code==='ControlLeft')return 'ControlRight';if(code==='ControlRight')return 'ControlLeft';return '';}
 function twinFree(code){const o=otherTwin(code);return !!o&&!KEY_ACTS.some(([id])=>KEYS[id]===o);}
-function actionDown(id){const b=bindCode(id);if(b==='Mouse0')return !!mouseDown;if(b==='Mouse2')return !!mouseRight;if(b==='Mouse1')return !!mouseMid;if(keys[b])return true;const o=otherTwin(b);if(o&&keys[o]&&twinFree(b))return true;return false;}
+const PAD={on:false,hold:{},prev:[],talk:false};
+function actionDown(id){if(PAD.hold[id])return true;const b=bindCode(id);if(b==='Mouse0')return !!mouseDown;if(b==='Mouse2')return !!mouseRight;if(b==='Mouse1')return !!mouseMid;if(keys[b])return true;const o=otherTwin(b);if(o&&keys[o]&&twinFree(b))return true;return false;}
 function hitKey(e,id){return !!e&&e.code===bindCode(id);}
 function keyLabel(code){const named={ShiftLeft:'SHIFT',ShiftRight:'R-SHIFT',ControlLeft:'CTRL',ControlRight:'R-CTRL',AltLeft:'ALT',AltRight:'R-ALT',Space:'SPACE',Tab:'TAB',Enter:'ENTER',Backspace:'BKSP',CapsLock:'CAPS',ArrowUp:'UP',ArrowDown:'DOWN',ArrowLeft:'LEFT',ArrowRight:'RIGHT',Backquote:'`',Minus:'-',Equal:'=',BracketLeft:'[',BracketRight:']',Backslash:'\\',Semicolon:';',Quote:"'",Comma:',',Period:'.',Slash:'/',Mouse0:'L-CLICK',Mouse1:'M-CLICK',Mouse2:'R-CLICK'};if(named[code])return named[code];if(code&&code.indexOf('Key')===0)return code.slice(3);if(code&&code.indexOf('Digit')===0)return code.slice(5);if(code&&code.indexOf('F')===0&&code.length<=3)return code;return code||'?';}
-function paintControls(){const el=document.querySelector('#title .controls');if(!el)return;const b=id=>keyLabel(bindCode(id));const cell=(k,t)=>'<div><b>'+k+'</b>'+t+'</div>';const move=b('forward')+' '+b('left')+' '+b('back')+' '+b('right');el.innerHTML=[cell(move,'Move'),cell(b('sprint'),'Sprint'),cell(b('fire'),'Shoot / sword slash'),cell(b('shove'),'Shove (hold) / hold to spin the sword'),cell(b('reload'),'Reload'),cell(b('primary')+' / '+b('pistol'),'Primary / Pistol'),cell(b('use'),LAYOUT==='linear'?'Use / Revive':'Use / fix a bike / cut the bitten limb'),LAYOUT==='linear'?'':cell(b('forward')+' / '+b('left')+' '+b('right'),'Drive a bike or row the skiff'),cell(b('heal'),'Heal (first aid)'),cell(b('kick'),'Front kick / clear bodies'),cell(b('limb'),'Choose limb or head'),cell(b('flash'),'Flashlight'),cell(b('xgun'),'SMG laser'),cell(b('swap'),'Swap weapon'),cell(b('pause')+' / ESC','Pause'),cell(b('mute'),'Mute'),cell(b('talk'),'Talk (hold)'),cell(b('fly'),'God fly')].join('');}
+function paintControls(){const el=$('keycontrols');if(!el)return;const b=id=>keyLabel(bindCode(id));const cell=(k,t)=>'<div><b>'+k+'</b>'+t+'</div>';const move=b('forward')+' '+b('left')+' '+b('back')+' '+b('right');el.innerHTML=[cell(move,'Move'),cell(b('sprint'),'Sprint'),cell(b('fire'),'Shoot / sword slash'),cell(b('shove'),'Shove (hold) / hold to spin the sword'),cell(b('reload'),'Reload'),cell(b('primary')+' / '+b('pistol'),'Primary / Pistol'),cell(b('use'),LAYOUT==='linear'?'Use / Revive':'Use / fix a bike / cut the bitten limb'),LAYOUT==='linear'?'':cell(b('forward')+' / '+b('left')+' '+b('right'),'Drive a bike or row the skiff'),cell(b('heal'),'Heal (first aid)'),cell(b('kick'),'Front kick / clear bodies'),cell(b('limb'),'Choose limb or head'),cell(b('flash'),'Flashlight'),cell(b('xgun'),'SMG laser'),cell(b('swap'),'Swap weapon'),cell(b('pause')+' / ESC','Pause'),cell(b('mute'),'Mute'),cell(b('talk'),'Talk (hold)'),cell(b('fly'),'God fly')].join('');}
 let keyCap=null;
 function paintKeyList(){const root=$('keylist');if(!root)return;root.innerHTML=KEY_ACTS.map(([id,label])=>'<button type="button" data-key="'+id+'"'+(keyCap===id?' class="on"':'')+'><span>'+label+'</span><b>'+keyLabel(bindCode(id))+'</b></button>').join('');}
 function assignKey(id,code){if(!KEY_DEFAULT[id]||!keyOk(code))return;const prev=bindCode(id);for(const [other] of KEY_ACTS){if(other!==id&&bindCode(other)===code)KEYS[other]=prev;}KEYS[id]=code;saveKeys();paintControls();paintKeyList();}
@@ -2959,12 +2975,86 @@ addEventListener('pointerup',e=>{if(e.pointerId===STICK.id)clearStick();if(e.poi
 addEventListener('pointercancel',e=>{if(e.pointerId===STICK.id)clearStick();if(e.pointerId===LOOK.id)LOOK.id=null;});
 syncTouch();
 
+/* ---- Xbox controller. Sticks and buttons feed the same actions as the keyboard. ---- */
+function padAxis(v){const d=0.18,a=Math.abs(v||0);if(a<d)return 0;return Math.sign(v)*(a-d)/(1-d);}
+function padBtn(pad,i){const b=pad.buttons&&pad.buttons[i];return !!(b&&(b.pressed||b.value>0.55));}
+function padPress(id){
+ if(id==='mute'){AU.muted=!AU.muted;if(AU.master)AU.master.gain.value=AU.muted?0:.75;return;}
+ if(id==='pause'){pressAction('pause');return;}
+ if(S.phase!=='play'||NET.paused||player.down)return;
+ if(NET.role==='client'){
+  if(id==='limb')cycleCut(1);
+  if(id==='reload'){startReload();NET.edges.push('reload');}
+  if(id==='primary'&&predictSlot('primary')){S.healT=0;NET.edges.push('f1');}
+  if(id==='pistol'&&predictSlot('pistol')){S.healT=0;NET.edges.push('f2');}
+  if(id==='swap'){const next=player.slot==='pistol'&&player.inv.primary?'primary':'pistol';predictSlot(next);player.reloadT=0;NET.reloadLatch=null;NET.edges.push(next==='primary'?'f1':'f2');}
+  if(id==='use')NET.edges.push('use');
+  if(id==='kick'&&kickFx())NET.edges.push('kick');
+  if(id==='flash'){predictFlash();NET.edges.push('flash');}
+  if(id==='heal'&&predictHeal())NET.edges.push('heal');
+  if(id==='xgun'){predictX();NET.edges.push('xgun');}
+  return;}
+ if(id==='reload')startReload();
+ if(id==='primary'&&player.inv.primary&&player.slot!=='primary'){player.slot='primary';player.reloadT=0;S.healT=0;}
+ if(id==='pistol'&&player.slot!=='pistol'){player.slot='pistol';player.reloadT=0;S.healT=0;}
+ if(id==='swap'){player.slot=player.slot==='pistol'&&player.inv.primary?'primary':'pistol';player.reloadT=0;}
+ if(id==='limb')cycleCut(1);
+ if(id==='use')useAction();
+ if(id==='kick')frontKick(player);
+ if(id==='flash')player.flash=!player.flash;
+ if(id==='xgun')pressXGun(player);
+ if(id==='heal'&&player.kit&&player.hp<100&&S.healT<=0&&!player.pinnedBy&&!player.pulledBy){S.healT=3;player.reloadT=0;}
+}
+function pollPad(dt){
+ PAD.hold={};
+ const pads=navigator.getGamepads?navigator.getGamepads():[];
+ let pad=null;
+ for(const p of pads){if(p&&p.connected){pad=p;break;}}
+ PAD.on=!!pad;
+ if(!pad){if(PAD.talk){PAD.talk=false;setPtt(false);}PAD.prev=[];return;}
+ const lx=padAxis(pad.axes[0]),ly=padAxis(pad.axes[1]),rx=padAxis(pad.axes[2]),ry=padAxis(pad.axes[3]);
+ const down=[];for(let i=0;i<16;i++)down[i]=padBtn(pad,i);
+ const edge=i=>down[i]&&!PAD.prev[i];
+ const keysOpen=!$('keyscreen').classList.contains('hidden');
+ const typing=document.activeElement&&(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='TEXTAREA');
+ if(!keysOpen&&!typing&&S.phase==='title'&&(edge(0)||edge(9))){$('playbtn').click();}
+ let resumed=false;
+ if(!keysOpen&&(S.phase==='paused'||NET.paused)&&edge(9)){$('resumebtn').click();resumed=true;}
+ if(!resumed&&S.phase==='play'&&!NET.paused&&!keysOpen){
+  player.yaw-=rx*2.5*dt;player.pitch=clamp(player.pitch-ry*1.8*dt,-1.45,1.45);
+  if(ly<0)PAD.hold.forward=true;if(ly>0)PAD.hold.back=true;if(lx>0)PAD.hold.right=true;if(lx<0)PAD.hold.left=true;
+  if(down[10])PAD.hold.sprint=true;
+  if(down[7])PAD.hold.fire=true;
+  if(down[5])PAD.hold.shove=true;
+  if(down[0])PAD.hold.use=true;
+  if(S.fly){if(down[12])PAD.hold.up=true;if(down[13])PAD.hold.down=true;}
+  if(edge(1))padPress('reload');
+  if(edge(2))padPress('flash');
+  if(edge(3))padPress('swap');
+  if(edge(0))padPress('use');
+  if(edge(6))padPress('kick');
+  if(edge(11))padPress('xgun');
+  if(edge(8))padPress('mute');
+  if(edge(9))padPress('pause');
+  if(!S.fly&&edge(12))padPress('primary');
+  if(!S.fly&&edge(13))padPress('pistol');
+  if(edge(14))padPress('limb');
+  if(edge(15))padPress('heal');
+  const talk=!!down[4]&&NET.role!=='off';
+  if(talk&&!PAD.talk){setPtt(true);ensureMic().catch(()=>{});}
+  if(!talk&&PAD.talk)setPtt(false);
+  PAD.talk=talk;
+ }else if(PAD.talk){PAD.talk=false;setPtt(false);}
+ PAD.prev=down;
+}
+
 /* ================= LOOP ================= */
 // infected already in town, on the bridge, and in the yard. The driveway stays clear.
 seedCommons();
 function render(){renderer.clear();renderer.render(scene,camera);renderer.clearDepth();if(S.phase!=='title')renderer.render(vmScene,vmCam);}
 const clock=new THREE.Clock();
 function frame(){requestAnimationFrame(frame);const dt=Math.min(.05,clock.getDelta());
+ pollPad(dt);
  if(S.phase==='play'&&!AUTOTEST){if(NET.role==='client')clientUpdate(dt);else update(dt);}
  if(NET.role==='host'&&(S.phase==='play'||S.phase==='done'||S.phase==='dead'))NET.flush();
  if(S.phase==='title'){const t=performance.now()/1000;camera.position.set(FIN.padX+14+Math.sin(t*.08)*2,26,FIN.padZ+16);camera.lookAt(FIN.padX,11,FIN.padZ);updateFx(dt,'roof');}
