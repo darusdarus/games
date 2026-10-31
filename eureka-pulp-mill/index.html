@@ -1329,7 +1329,7 @@ function resetNuns(){clearGrabSlots();S.nuns='wait';S.nunFate='';S.nunT=0;S.nunY
  const spots=bikeSpots();bikes.forEach((b,i)=>{b.x=spots[i].x;b.z=spots[i].z;b.yaw=-Math.PI/2;b.spd=0;b.fixed=false;b.sunk=false;b.sinking=false;b.sink=0;b.rider=-1;b.spin=0;poseBike(b);});
  hulkTold=false;nuns.forEach((n,i)=>{n.x=spots[i].x-1.15;n.z=spots[i].z;n.yaw=Math.PI/2;n.smashT=0;n.hold=0;n.g.visible=true;n.g.scale.set(1,1,1);clearHulk(n);});}
 function calmApproach(){const x=143*T,z=8.5*T;for(const c of commons){if(c.dead||c.shop)continue;if(Math.hypot(c.x-x,c.z-z)<58){c.calm=1;c.state='wander';c.target=null;c.wdx=0;c.wdz=0;}}}
-function beginNuns(){if(LAYOUT!=='linear'&&S.nuns==='wait'&&S.bridge==='up'&&NET.role!=='client'){let hit=false;const near=e=>{const tx=Math.floor(e.x/T),tz=Math.floor(e.z/T);return tx>=140&&tx<=146&&tz>=6&&tz<=15;};if(near(player))hit=true;if(!hit)for(const b of bots)if(b.net&&near(b))hit=true;if(!hit)return;S.nuns='meet';calmApproach();feed('<b style="color:#f4f4f4">Sister Agnes:</b> Hold on. These four will not turn over, and it has gone quiet behind you. Do not waste it.','#f4f4f4',10);nunObjective();}}
+function beginNuns(){if(LAYOUT!=='linear'&&S.nuns==='wait'&&S.bridge==='up'&&NET.role!=='client'){let hit=false;const near=e=>{const tx=Math.floor(e.x/T),tz=Math.floor(e.z/T);return tx>=140&&tx<=146&&tz>=6&&tz<=15;};if(near(player))hit=true;if(!hit)for(const b of bots)if(b.net&&near(b))hit=true;if(!hit)return;S.nuns='meet';calmApproach();armQuiet();feed('<b style="color:#f4f4f4">Sister Agnes:</b> Hold on. These four will not turn over, and it has gone quiet behind you. Do not waste it.','#f4f4f4',10);nunObjective();}}
 function fillShop(){if(S.shopUp||LAYOUT==='linear'||NET.role==='client')return;S.shopUp=true;const tiles=[];for(let x=146;x<=150;x++)for(let z=14;z<=17;z++)tiles.push([x,z]);
  const n=Math.max(16,Math.round(26*Math.max(.5,swarmMul())));let made=0;for(let k=0;k<n*4&&made<n;k++){const t=tiles[k%tiles.length];const c=spawnCommon((t[0]+rand(.22,.78))*T,(t[1]+rand(.22,.78))*T,true,player);if(!c)continue;c.shop=1;c.calm=0;made++;}
  feed('<b>The auto shop is full of them.</b> Kill them and take the parts in the back.','#f66',8);}
@@ -1367,7 +1367,7 @@ function tickBikes(dt){if(!bikes.length)return;const auth=NET.role!=='client';
 function startFlee(){if(S.nuns==='flee'||S.nuns==='ride')return;S.nuns='flee';openGate(true);const tiles=[];
  for(let x=138;x<=139;x++)for(let z=7;z<=9;z++)if(isWalk(x,z))tiles.push([x,z]);
  const n=Math.max(80,Math.round(250*Math.max(.55,swarmMul())));let made=0;for(let k=0;made<n&&k<n*8;k++){if(!tiles.length)break;const t=tiles[(Math.random()*tiles.length)|0];const c=spawnCommon((t[0]+rand(.18,.82))*T,(t[1]+rand(.18,.82))*T,true,player);if(c){c.calm=0;c.stag=.7;c.pvx=0;c.pvz=0;made++;}}
- if(SFX.horde)SFX.horde();DIR.peakT=S.t;feed('<b>The horde is behind you.</b> There are too many. Take the bikes and leave the nuns.','#f66',12);nunObjective();}
+ if(SFX.horde)SFX.horde();DIR.peakT=S.t;armQuiet();feed('<b>The horde is behind you.</b> There are too many. Take the bikes and leave the nuns.','#f66',12);nunObjective();}
 function swimAlive(){let n=0;for(const c of commons)if(c.swim&&!c.dead)n++;return n;}
 function swimFight(){return !!S.swimOn&&!BOAT.beached&&(swimAlive()>0||S.swimMade<SWIM_MAX);}
 function paddleLocked(){return swimFight()&&(firing()||player.trig||player.fireCd>0.02);}
@@ -1859,14 +1859,17 @@ function killSpecial(s,byPlayer){if(s.dead)return;s.dead=true;s.deathT=0;if(byPl
  else if(s.type==='smoker'){SFX.cough(s.x,s.z);for(let i=0;i<40;i++)PSmoke.emit(s.x+rand(-1,1),s.y+rand(.5,2),s.z+rand(-1,1),rand(-.5,.5),rand(0,.4),rand(-.5,.5),rand(3,5),1.5,4,.35,.45,.25,.6,0);if(who)bark(who,'Got the Smoker!','skill',8);}
  else{for(let i=0;i<14;i++)PBlood.emit(s.x,s.y+1,s.z,rand(-1.5,1.5),rand(0,2.5),rand(-1.5,1.5),rand(.4,.8),.25,.12,.45,.03,.02,.95,9);if(who)bark(who,'Hunter\'s dead!','hkill',8);}}
 function bilePlayer(){if(S.biledT<=0){feed('You got <b>BOOMED</b>! Bile attracts the horde — fight!','#cf6');bark(null,'Oh no, you got puked on! Here they come!','biled',10);}S.biledT=12;SFX.splat();
- spawnHorde(140,player);for(const c of commons)if(!c.dead){c.state='rush';c.target=player;}}
+ spawnHorde(140,player);for(const c of commons)if(!c.dead){c.state='rush';c.target=player;}armQuiet();}
 function bileSurvivor(vic){if(!vic||vic===player){bilePlayer();return;}vic.biledT=12;SFX.splat(vic.x,vic.z);feed('<b>'+vic.name+'</b> got BOOMED. The horde wants them.','#cf6');
- spawnHorde(140,vic);for(const c of commons)if(!c.dead){c.state='rush';c.target=vic;}}
+ spawnHorde(140,vic);for(const c of commons)if(!c.dead){c.state='rush';c.target=vic;}armQuiet();}
 function damageSpecial(s,dmg,head,byPlayer){if(s.dead)return;s.hp-=head?dmg*2:dmg;s.hitT=.08;for(let i=0;i<3;i++)PBlood.emit(s.x,s.y+1,s.z,rand(-1,1),rand(0,1.5),rand(-1,1),rand(.3,.6),.2,.1,.5,.04,.02,.9,8);
  if(s.hp<=0)killSpecial(s,byPlayer);}
 
 /* ---- AI Director ---- */
-const DIR={intensity:0,mode:'BUILD-UP',relaxUntil:0,nextSpecial:0,nextHorde:0,spawnT:0,pressT:0.4,waves:[],queue:['smoker','boomer','hunter'],peakT:0};
+const DIR={intensity:0,mode:'BUILD-UP',relaxUntil:0,nextSpecial:0,nextHorde:0,quietUntil:0,spawnT:0,pressT:0.4,waves:[],queue:['smoker','boomer','hunter'],peakT:0};
+function holdAmbient(until){if(until>DIR.quietUntil)DIR.quietUntil=until;if(DIR.nextHorde<DIR.quietUntil)DIR.nextHorde=DIR.quietUntil;if(DIR.nextSpecial<DIR.quietUntil)DIR.nextSpecial=DIR.quietUntil;}
+function armQuiet(from){holdAmbient((from==null?S.t:from)+rand(55,75));}
+function queueWaves(list){let last=0;for(const w of list){DIR.waves.push(w);if(!w.special&&w.t>last)last=w.t;}if(last)holdAmbient(last+rand(55,75));}
 function survivorEyes(){const eyes=[{x:player.x,y:player.y,z:player.z}];
  for(const b of bots){const feet=standY(b.x,b.z);eyes.push({x:b.x,y:feet+(b.down?0.32:1.55),z:b.z});}
  return eyes;}
@@ -1915,17 +1918,18 @@ function spawnHorde(n,target){n=Math.round(n*swarmMul());if(n<=0)return 0;retire
 function directorUpdate(dt){DIR.intensity=Math.max(0,DIR.intensity-dt*(S.t-DIR.peakT>6?5:1.5));
  if(DIR.intensity>220&&DIR.mode!=='RELAX'){DIR.mode='RELAX';DIR.relaxUntil=S.t+6;}
  if(DIR.mode==='RELAX'&&S.t>DIR.relaxUntil)DIR.mode='BUILD-UP';
- if(DIR.mode!=='RELAX')DIR.mode=(S.t-DIR.peakT<12||DIR.intensity>70)?'PEAK':'BUILD-UP';
- for(const w of DIR.waves)if(!w.done&&S.t>=w.t){w.done=true;if(w.special)spawnSpecial(w.special);else spawnHorde(w.n);}
+ if(DIR.mode!=='RELAX')DIR.mode=(S.t<DIR.quietUntil&&S.t-DIR.peakT>=12)?'QUIET':((S.t-DIR.peakT<12||DIR.intensity>70)?'PEAK':'BUILD-UP');
+ let swarmed=false;
+ for(const w of DIR.waves)if(!w.done&&S.t>=w.t){w.done=true;if(w.special)spawnSpecial(w.special);else{spawnHorde(w.n);swarmed=true;}}
+ if(swarmed)armQuiet();
  if(!S.dirOn||S.riding||S.nuns==='meet'||swimFight())return;
- const relax=DIR.mode==='RELAX';
- DIR.spawnT-=dt;const want=Math.round((S.inLobby?52:74)*swarmMul());
- if(!relax&&DIR.spawnT<=0){DIR.spawnT=0.16;let wand=0;for(const c of commons)if(!c.dead&&c.state==='wander')wand++;if(wand<want){const sp=pickSpawn(6,32,true)||pickSpawn(4,48,false);if(sp)spawnCommon(sp.x,sp.z,false);else{const ap=approachSpots(8,36);if(ap.length){const t=ap[(Math.random()*ap.length)|0];spawnCommon((t.x+rand(.25,.75))*T,(t.z+rand(.25,.75))*T,false);}}}}
- const alive=specials.filter(s=>!s.dead).length;
- if(!relax&&S.t>DIR.nextSpecial&&alive<4){const type=DIR.queue.length?DIR.queue.shift():pick(['boomer','hunter','smoker']);if(spawnSpecial(type))DIR.nextSpecial=S.t+rand(14,22);else DIR.queue.unshift(type);}
- DIR.pressT-=dt;if(DIR.pressT<=0){DIR.pressT=relax?5:2.8;let close=0;for(const c of commons)if(!c.dead&&!c.swim&&Math.hypot(c.x-player.x,c.z-player.z)<18)close++;const goal=Math.round((relax?14:28)*swarmMul());if(close<goal)streetPack(Math.min(relax?12:18,goal-close));}
  const eventOn=S.alarmT>0&&S.t-S.alarmT<25||S.elevT>0&&!S.elevArrived;
- if(!relax&&!eventOn&&S.t>DIR.nextHorde){let close=0;for(const c of commons)if(!c.dead&&!c.swim&&Math.hypot(c.x-player.x,c.z-player.z)<18)close++;if(close>40)DIR.nextHorde=S.t+10;else{spawnHorde(Math.floor(rand(160,240)));DIR.nextHorde=S.t+rand(18,26);feed('<i>You hear a horde coming...</i>','#e99');}}}
+ if(S.t<DIR.quietUntil||eventOn||S.t<DIR.nextHorde)return;
+ let close=0;for(const c of commons)if(!c.dead&&!c.swim&&Math.hypot(c.x-player.x,c.z-player.z)<18)close++;
+ if(close>40){armQuiet();return;}
+ spawnHorde(Math.floor(rand(160,240)));
+ if(specials.filter(s=>!s.dead).length<2){const type=DIR.queue.length?DIR.queue.shift():pick(['boomer','hunter','smoker']);if(!spawnSpecial(type))DIR.queue.unshift(type);}
+ armQuiet();feed('<i>You hear a horde coming...</i>','#e99');}
 
 /* ---- shooting ---- */
 const _o=new THREE.Vector3(),_d=new THREE.Vector3(),_e=new THREE.Vector3(),_r=new THREE.Vector3(),_u=new THREE.Vector3();
@@ -2149,7 +2153,7 @@ function useTargets(ent){const self=ent||player;const out=[];const yaw=self.yaw|
  if(self!==player)offerDown(player);for(const b of bots)offerDown(b);
  out.sort((a,b)=>a.d-b.d);return out[0]||null;}
 function useAction(){const u=useTargets();if(u&&u.act)u.act();}
-function tryOpen(id){if(doors[id])return;if(id==='shop'){doors.shop=true;flowDirty=true;SFX.door();feed('The auto shop door is up.','#fd8');if(S.nuns==='wait')beginNuns();if(!S.toldPart)explainParts();S.nuns='shop';fillShop();nunObjective();return;}if(id==='gate'){openGate();return;}if(!DOOR_LABEL[id])return;doors[id]=true;flowDirty=true;SFX.door();feed(DOOR_LABEL[id].replace('Open the ','The ')+' is open.','#fd8');S.dirOn=true;DIR.waves.push({t:S.t+1,n:80});}
+function tryOpen(id){if(doors[id])return;if(id==='shop'){doors.shop=true;flowDirty=true;SFX.door();feed('The auto shop door is up.','#fd8');if(S.nuns==='wait')beginNuns();if(!S.toldPart)explainParts();S.nuns='shop';fillShop();nunObjective();return;}if(id==='gate'){openGate();return;}if(!DOOR_LABEL[id])return;doors[id]=true;flowDirty=true;SFX.door();feed(DOOR_LABEL[id].replace('Open the ','The ')+' is open.','#fd8');S.dirOn=true;queueWaves([{t:S.t+1,n:80}]);}
 function inSafe(ent,s){const tx=Math.floor(ent.x/T),tz=Math.floor(ent.z/T);return tx>=s.x0&&tx<=s.x1&&tz>=s.z0&&tz<=s.z1&&charAt(tx,tz)==='K';}
 let checkpoint=null;
 function packInv(inv){const pistol={type:'pistol',mag:inv&&inv.pistol?inv.pistol.mag|0:15};
@@ -2182,7 +2186,7 @@ function applyCheckpoint(cp){if(!cp)return;const room=SAFES[(cp.index|0)-1];if(!
  else{S.nuns=cp.nuns||'wait';S.nunFate=cp.fate||'';S.nunT=+cp.nunT||0;if(S.nunFate==='grow'||S.nunFate==='chase')nuns.forEach(hulkTint);}
  const stands=roomStands(room),yaw=cp.yaw||0;standHuman(player,stands[0].x,stands[0].z,yaw);
  bots.forEach((b,i)=>{const s=stands[Math.min(i+1,stands.length-1)];standHuman(b,s.x,s.z,yaw);});
- S.dirOn=true;DIR.nextHorde=S.t+4;DIR.pressT=0.3;DIR.relaxUntil=S.t+3;DIR.mode='BUILD-UP';
+ S.dirOn=true;armQuiet();DIR.mode='QUIET';
  recomputeRoute();flowDirty=false;flowTile=tileOf(player);flow=dijkstra([flowTile]);introGen++;
  feedLines.length=0;feed('<b>SAFE ROOM</b> — '+cp.name,'#9f9');bark(null,room.line,'safe'+room.name,99);nunObjective();$('obj').textContent=OBJ[S.obj]||'';updateCamera(0);}
 function closeSafe(){const s=SAFES[safeIndex];if(!s)return;if(NET.role==='off'){if(!inSafe(player,s))return;}else{const living=livingHumans();if(!living.length||!living.every(h=>inSafe(h,s))){feed('The whole team has to be in the safe room.','#fd8');return;}}
@@ -2191,11 +2195,11 @@ function closeSafe(){const s=SAFES[safeIndex];if(!s)return;if(NET.role==='off'){
  for(const h of [player,...bots]){if(!h.down)continue;if(h.headless||!limbsLeft(h).length){h.x=spot.x;h.z=spot.z;if(h.mesh)h.mesh.g.position.set(h.x,groundAt(h.x,h.z),h.z);clearCargoOf(h);reviveOneLimb(h,null,'armR',h===player?100:40);stood.add(h);}
   else if(h!==player){h.down=false;h.hp=40;h.bite=null;poseLimbs(h);stood.add(h);}}
  doors[s.inn]=false;doors[s.out]=true;flowDirty=true;safeIndex++;recomputeRoute();player.hp=100;for(const b of bots){if(!b.down&&!stood.has(b))b.hp=Math.max(b.hp,80);}for(const c of commons)if(!c.dead&&inSafe(c,s))killCommon(c,false,false);
- DIR.relaxUntil=S.t+8;DIR.mode='RELAX';setObj(s.nextObj);rememberSafe();feed('<b>SAFE ROOM</b> — '+s.name,'#9f9');bark(null,s.line,'safe'+s.name,99);SFX.door();}
+ armQuiet();DIR.mode='QUIET';setObj(s.nextObj);rememberSafe();feed('<b>SAFE ROOM</b> — '+s.name,'#9f9');bark(null,s.line,'safe'+s.name,99);SFX.door();}
 function openGate(quiet){if(doors.gate)return;if(LAYOUT==='town'&&!quiet&&S.nuns!=='done'&&S.nuns!=='sunk'){if(S.nuns==='wait')beginNuns();feed('The nuns have the gate. The bikes have to move first.','#fd8');return;}doors.gate=true;flowDirty=true;SFX.door(FIN.gateX,FIN.gateZ);if(quiet)return;S.alarmT=S.t;SFX.alarm(14);setObj(7);feed('<b>The gate gives.</b> Everything on the bridge heard it.','#f66');bark(null,'So much for quiet. Cookhouse is on the other side.','gate',99);
- S.dirOn=true;DIR.waves.push({t:S.t+1,n:260},{t:S.t+7,n:340},{t:S.t+14,n:260},{t:S.t+6,special:'hunter'});DIR.relaxUntil=0;DIR.mode='PEAK';}
+ S.dirOn=true;queueWaves([{t:S.t+1,n:260},{t:S.t+7,n:340},{t:S.t+14,n:260},{t:S.t+6,special:'hunter'}]);DIR.relaxUntil=0;DIR.mode='PEAK';}
 function callHeli(){if(S.elevT>=0)return;S.elevT=S.t;setObj(10);doorMeshes.btn.material=mat(0x22ff44,{emissive:0x116622});SFX.ding(FIN.callX,FIN.callZ);feed('Mayday received. The chopper is <b>30 seconds</b> out. Hold the roof.','#fd8');bark(null,'I hear rotors! Keep them off the stairs!','heli',99);
- DIR.waves.push({t:S.t+0.4,n:280},{t:S.t+8,n:360},{t:S.t+16,n:320},{t:S.t+24,n:280},{t:S.t+6,special:'smoker'});}
+ queueWaves([{t:S.t+0.4,n:280},{t:S.t+8,n:360},{t:S.t+16,n:320},{t:S.t+24,n:280},{t:S.t+6,special:'smoker'}]);}
 function survivorsInside(){if(NET.role==='off')return chAt(player)==='R';const living=livingHumans();return living.length>0&&living.every(h=>chAt(h)==='R');}
 function boardHeli(){if(!S.elevArrived||chAt(player)!=='R')return;if(!survivorsInside()){feed('The whole team has to be on the pad.','#fd8');return;}completeChapter();}
 
@@ -2639,7 +2643,7 @@ function update(dt){S.t+=dt;
  // ----- triggers / objectives -----
  const reg=region();
  if(S.obj===1&&!S.dirOn&&player.x>16*T){player.flash=true;S.dirOn=true;DIR.nextSpecial=S.t+8;DIR.nextHorde=S.t+4;DIR.pressT=0.3;bark(null,'Trinity is behind us. First safe room is Redwood Acres.','town',99);}
- if(!S.dirOn&&S.t>40&&player.x>16*T)S.dirOn=true;
+ if(!S.dirOn&&S.t>40&&player.x>16*T){S.dirOn=true;if(DIR.nextHorde<=S.t)DIR.nextHorde=S.t+4;}
  if(reg==='sky')bark(null,'Redwood Sky Walk. A hundred feet up, and the deck keeps turning.','sky',99);
  else if(reg==='zoo')bark(null,'Sequoia Park Zoo. Otters, the bear, the aviary. Stay out of the pens.','zoo',99);
  else if(LAYOUT==='town'&&reg==='forest'&&player.x>108*T)bark(null,'Tree walk. The office at 3109 H is ahead.','tree',99);
@@ -2666,7 +2670,7 @@ function endRide(){S.riding=false;S.inLobby=true;S.shake=0;
  doors.g=true;flowDirty=true;flow=dijkstra([tileOf(player)]);flowTile=tileOf(player);setObj(9);SFX.ding(36*T,33*T);
  setTimeout(()=>$('fade').style.opacity=0,AUTOTEST?0:300);
  for(let i=0;i<9;i++){const sp=pickSpawn(6,40,false);if(sp)spawnCommon(sp.x,sp.z,false);}
- DIR.nextSpecial=S.t+8;DIR.queue=['boomer','hunter'];DIR.nextHorde=S.t+5;streetPack(120);}
+ DIR.queue=['boomer','hunter'];streetPack(120);armQuiet();}
 function completeChapter(){if(S.complete)return;S.complete=true;S.phase='done';
  const inside=bots.filter(b=>!b.down&&Math.hypot(b.x-player.x,b.z-player.z)<30);
  inside.forEach((b,i)=>{b.x=FIN.padX;b.z=FIN.padZ+(i-1)*1.2;b.y=10;placeBot(b);});
@@ -2837,7 +2841,7 @@ function resetChapter(remote,skipIntro){introGen++;restoreSpan();S.phase='play';
  for(const id of DOOR_IDS)doors[id]=false;if(doorMeshes.btn)doorMeshes.btn.material=mat(0xff3311,{emissive:0x661100});
  for(const it of items){it.taken=false;it.g.visible=true;}clearSpecials();commons.length=0;clearGrabSlots();
  if(remote){NET.cmap.clear();NET.smap.clear();NET.commonsReady=false;}else seedCommons();
- bots.forEach(resetBotBody);resetNuns();DIR.intensity=0;DIR.mode='BUILD-UP';DIR.relaxUntil=0;DIR.nextSpecial=0;DIR.nextHorde=0;DIR.spawnT=0;DIR.pressT=0.4;DIR.waves.length=0;DIR.queue=['smoker','boomer','hunter'];DIR.peakT=0;
+ bots.forEach(resetBotBody);resetNuns();DIR.intensity=0;DIR.mode='BUILD-UP';DIR.relaxUntil=0;DIR.nextSpecial=0;DIR.nextHorde=0;DIR.quietUntil=0;DIR.spawnT=0;DIR.pressT=0.4;DIR.waves.length=0;DIR.queue=['smoker','boomer','hunter'];DIR.peakT=0;
  safeIndex=0;recomputeRoute();flowDirty=true;flowTile=-1;feedLines.length=0;for(const k in barkCd)delete barkCd[k];renderFeed();
  $('dead').classList.add('hidden');$('done').classList.add('hidden');$('pause').classList.add('hidden');$('hud').classList.remove('hidden');$('title').classList.add('hidden');$('lobby').classList.add('hidden');$('fade').style.opacity='0';$('obj').textContent=OBJ[0];
  NET.paused=false;mouseDown=false;mouseRight=false;keys={};S.started=true;document.body.classList.remove('downed');
@@ -3444,7 +3448,7 @@ window.__game={autopilot,update,updateCamera,fire,AP,useTargets,moveEnt,collide,
  lookAt(x,y,z){const dx=x-player.x,dz=z-player.z;player.yaw=Math.atan2(-dx,-dz);player.pitch=Math.atan2(y-player.y,Math.hypot(dx,dz));updateCamera(1);},
  teleport(tx,tz){player.zipU=null;player.x=(tx+.5)*T;player.z=(tz+.5)*T;player.y=groundAt(player.x,player.z)+1.6;updateCamera(1);},
  ride(){beginZip(player);},
- spawnCommon,spawnSpecial,spawnHorde,DIR,render,routeAtStart:route[tileOf(player)]};
+ spawnCommon,spawnSpecial,spawnHorde,directorUpdate,DIR,render,routeAtStart:route[tileOf(player)]};
 
 </script>
 </body></html>
