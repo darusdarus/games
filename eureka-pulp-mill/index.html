@@ -1867,9 +1867,10 @@ function damageSpecial(s,dmg,head,byPlayer){if(s.dead)return;s.hp-=head?dmg*2:dm
 
 /* ---- AI Director ---- */
 const DIR={intensity:0,mode:'BUILD-UP',relaxUntil:0,nextSpecial:0,nextHorde:0,quietUntil:0,spawnT:0,pressT:0.4,waves:[],queue:['smoker','boomer','hunter'],peakT:0};
+const QUIET_FOR=27;
 function holdAmbient(until){if(until>DIR.quietUntil)DIR.quietUntil=until;if(DIR.nextHorde<DIR.quietUntil)DIR.nextHorde=DIR.quietUntil;if(DIR.nextSpecial<DIR.quietUntil)DIR.nextSpecial=DIR.quietUntil;}
-function armQuiet(from){holdAmbient((from==null?S.t:from)+rand(55,75));}
-function queueWaves(list){let last=0;for(const w of list){DIR.waves.push(w);if(!w.special&&w.t>last)last=w.t;}if(last)holdAmbient(last+rand(55,75));}
+function armQuiet(from){holdAmbient((from==null?S.t:from)+QUIET_FOR);}
+function queueWaves(list){let last=0;for(const w of list){DIR.waves.push(w);if(!w.special&&w.t>last)last=w.t;}if(last)holdAmbient(last+QUIET_FOR);}
 function survivorEyes(){const eyes=[{x:player.x,y:player.y,z:player.z}];
  for(const b of bots){const feet=standY(b.x,b.z);eyes.push({x:b.x,y:feet+(b.down?0.32:1.55),z:b.z});}
  return eyes;}
