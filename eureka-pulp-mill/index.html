@@ -2333,78 +2333,51 @@ function updateCommon(c,dt){c.hitT=Math.max(0,c.hitT-dt);
 function zBodyR(e){return e.type?SPEC[e.type].r:.36;}
 function zAnchored(e){return (e.type==='hunter'&&e.state==='pin')||(e.type==='smoker'&&e.state==='pull');}
 function kickPosed(e){return e.state==='sob'||e.state==='headwait'||e.state==='headwalk';}
-/* A heap of dead commons becomes one mound. The mound and the limbs on it stay the size of the bodies in it. */
-let pileScan=0,pileSeq=1,PILE_MOUND=null,PILE_PLUG=null,PILE_TEX=null;
-const BIT_MAX=900;
-const _bit=new THREE.Object3D(),_bitCol=new THREE.Color(),_blood=new THREE.Color(0x4a1010);
+/* A heap is the bodies stacked in that spot. One figure per body, no dirt mound, and the stack stays their size. */
+let pileScan=0,pileSeq=1;
+const BIT_MAX=2400;
+const _bit=new THREE.Object3D(),_bitCol=new THREE.Color(),_blood=new THREE.Color(0x6a1414),_bp=new THREE.Vector3();
 _bit.rotation.order='YXZ';
-const PILE_H=0.5/3;
+const PILE_PACK=0.35,PILE_SPREAD=1.15,PILE_SLOPE=0.48;
+const PILE_BODY=[{k:'torso',s:[.5,.62,.28],p:[0,0,0]},{k:'head',s:[.25,.28,.26],p:[0,.46,0]},{k:'arm',s:[.12,.58,.12],p:[-.36,-.02,.02]},{k:'arm',s:[.12,.58,.12],p:[.36,-.02,-.02]},{k:'leg',s:[.17,.8,.18],p:[-.12,-.7,0]},{k:'leg',s:[.17,.8,.18],p:[.12,-.7,0]}];
+function pileRadius(count){const n=Math.max(1,count);return Math.min(8,Math.pow(n*PILE_PACK,1/3)*PILE_SPREAD);}
+function pileRawH(count){return Math.max(0.32,pileRadius(count)*PILE_SLOPE);}
 function pileMetrics(count,x,z){const g=bodyY(x,z);const ceil=ceilAt(x,z);const room=ceil==null?120:Math.max(0.8,ceil-g);
- const raw=PILE_H*Math.pow(Math.max(1,count),0.7);const sealed=ceil!=null&&raw+1.75>=room;
- const h=sealed?room:Math.min(raw,120);const r=Math.min(14,0.75+Math.pow(Math.max(1,count),0.4)*0.62);
+ const raw=pileRawH(count);const sealed=ceil!=null&&raw+1.75>=room;
+ const h=Math.min(raw,120);const r=pileRadius(count);
  return {g,h,r,sealed,room,raw};}
-function pileTex(){if(PILE_TEX)return PILE_TEX;
- const blot=['#3a322c','#4a3c32','#2c2a32','#5a4038','#322826','#2a2a2a','#3a3030','#343c34','#4a342c','#5a3830','#2e3430'];
- PILE_TEX=canvasTex(128,128,(g,w,h)=>{g.fillStyle='#2c2624';g.fillRect(0,0,w,h);
-  for(let i=0;i<70;i++){g.fillStyle=blot[i%blot.length];const x=(i*37)%w,y=(i*19)%h;g.fillRect(x,y,7+(i%5)*3,5+(i%4)*2);}
-  g.fillStyle='rgba(110,18,14,0.55)';
-  for(let i=0;i<14;i++){g.beginPath();g.ellipse((i*29+8)%w,(i*23+6)%h,5+(i%3)*2,3+(i%2)*2,(i%5)*.4,0,6.3);g.fill();}});
- PILE_TEX.wrapS=PILE_TEX.wrapT=THREE.RepeatWrapping;PILE_TEX.anisotropy=renderer.capabilities.getMaxAnisotropy();return PILE_TEX;}
 function pileHash(n){n=Math.imul(n|0,0x7feb352d);n=Math.imul(n^(n>>>15),0x846ca68b);return ((n^(n>>>16))>>>0)/4294967296;}
-function pileBitsN(p){return Math.max(1,Math.min(300,p.count|0));}
-function pileRadAt(t,sealed){return sealed?1-.14*t:Math.sqrt(Math.max(0,1-t));}
 function putBit(mesh,i,x,y,z,rx,ry,rz,sx,sy,sz,hex,blood){_bit.position.set(x,y,z);_bit.rotation.set(rx,ry,rz);_bit.scale.set(sx,sy,sz);_bit.updateMatrix();mesh.setMatrixAt(i,_bit.matrix);
- _bitCol.setHex(hex);_bitCol.multiplyScalar(.74);if(blood>0)_bitCol.lerp(_blood,blood);mesh.setColorAt(i,_bitCol);}
-function posePileBits(p){const n=pileBitsN(p),mesh=p.bits,span=p.sealed?0.9:0.88,t0=Math.min(.35,Math.max(.04,.22/Math.max(p.h,.3)));let i=0;
- for(let s=0;s<n;s++){const h=pileHash(p.id*131+s*17+9);
-  const yaw=pileHash(p.id*3+1)*6.2831853+s*2.399963229728653+(h-.5)*.55;
-  let t=t0+(s+.5)/n*span+(pileHash(p.id*17+s*5)-.5)*.02;
-  t=Math.max(t0,Math.min(p.sealed?0.96:0.94,t));
-  const R=pileRadAt(t,p.sealed)*p.r,ox=Math.sin(yaw),oz=Math.cos(yaw),px=p.x+ox*R,py=p.g+t*p.h,pz=p.z+oz*R;
-  const shirt=SHIRTS[(pileHash(p.id*11+s*3)*SHIRTS.length)|0],skin=SKINS[(pileHash(p.id*19+s*7)*SKINS.length)|0],pants=PANTS[(pileHash(p.id*23+s*9)*PANTS.length)|0];
-  const blood=h<.22?.62:h<.48?.26:0,twist=(pileHash(p.id*29+s)-.5)*1.15,mode=s%3,hang=h*.25,poke=.02+pileHash(p.id*41+s*13)*.55;
-  if(mode===1)putBit(mesh,i++,px+ox*(.28+poke),py-.08,pz+oz*(.28+poke),-1.25-hang,yaw+twist,twist*.5,.17,.84,.18,pants,blood);
-  else putBit(mesh,i++,px+ox*(.06+poke*.35),py+.05,pz+oz*(.06+poke*.35),-.55-h*.25,yaw,twist*.22,.5,.4,.28,shirt,blood*.65);
-  putBit(mesh,i++,px+ox*(.34+poke),py+.16,pz+oz*(.34+poke),-.55,yaw+twist*.55,twist*.45,.25,.28,.26,skin,blood*.4);
-  if(mode===0)putBit(mesh,i++,px+ox*(.3+poke),py-.1,pz+oz*(.3+poke),-1.35,yaw-twist*.35,twist*.75,.17,.84,.18,pants,blood*.4);
-  else putBit(mesh,i++,px+ox*(.42+poke),py+.02,pz+oz*(.42+poke),-1.4,yaw+.6,twist,.12,.6,.12,skin,blood*.35);}
+ _bitCol.setHex(hex);if(blood>0)_bitCol.lerp(_blood,blood);mesh.setColorAt(i,_bitCol);}
+function putPileBody(mesh,i,x,y,z,yaw,roll,shirt,skin,pants,blood){_bit.rotation.set(-Math.PI/2,yaw,roll);_bit.updateMatrix();const q=_bit.quaternion;
+ const col={torso:shirt,head:skin,arm:skin,leg:pants};
+ for(let k=0;k<PILE_BODY.length;k++){const part=PILE_BODY[k];_bp.set(part.p[0],part.p[1],part.p[2]).applyQuaternion(q);
+  putBit(mesh,i+k,x+_bp.x,y+_bp.y+.18,z+_bp.z,-Math.PI/2,yaw,roll,part.s[0],part.s[1],part.s[2],col[part.k],blood);}}
+function pileLayers(count){const nLayers=Math.max(1,Math.round(pileRawH(count)/0.32));const weights=[];let wsum=0;
+ for(let L=0;L<nLayers;L++){const w=Math.max(.2,Math.pow(1-L/nLayers,1.15));weights.push(w);wsum+=w;}
+ const layers=[];let left=count;
+ for(let L=0;L<nLayers&&left>0;L++){const n=L===nLayers-1?left:Math.max(1,Math.min(left,Math.round(count*weights[L]/wsum)));layers.push(n);left-=n;}
+ if(left>0&&layers.length)layers[0]+=left;return layers;}
+function posePileBits(p){const count=Math.max(1,p.count|0),shown=Math.min(count,(BIT_MAX/PILE_BODY.length)|0),layers=pileLayers(shown),mesh=p.bits;
+ const yaw=pileHash(p.id*3)*6.2831853,rx=Math.cos(yaw),rz=Math.sin(yaw),ax=-Math.sin(yaw),az=Math.cos(yaw);
+ let i=0,s=0;
+ for(let L=0;L<layers.length;L++){const n=layers[L],cols=Math.min(n,Math.max(1,Math.round(Math.sqrt(n*1.3)))),rows=Math.ceil(n/cols),y=L*.3;
+  for(let k=0;k<n;k++,s++){const c=k%cols,row=(k/cols)|0,lx=(c-(cols-1)/2)*.6,lz=(row-(rows-1)/2)*1.05;
+   const jx=(pileHash(p.id*11+s)-.5)*.1,jz=(pileHash(p.id*13+s)-.5)*.12;
+   const px=p.x+rx*(lx+jx)+ax*(lz+jz),pz=p.z+rz*(lx+jx)+az*(lz+jz);
+   const shirt=SHIRTS[(pileHash(p.id*23+s*3)*SHIRTS.length)|0],skin=SKINS[(pileHash(p.id*29+s*7)*SKINS.length)|0],pants=PANTS[(pileHash(p.id*31+s*9)*PANTS.length)|0];
+   putPileBody(mesh,i,px,p.g+y,pz,yaw+(pileHash(p.id*17+s)-.5)*.4,(pileHash(p.id*19+s)-.5)*.22,shirt,skin,pants,pileHash(p.id*37+s)<.2?.35:0);i+=PILE_BODY.length;}}
  mesh.count=i;mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;}
-function pileGeo(kind){const segs=24,col=segs+1,positions=[],uvs=[],indices=[];
- if(kind==='mound'){const rings=6;
-  for(let k=0;k<=rings;k++){const y=1-k/rings,rad=Math.sqrt(k/rings);
-   for(let s=0;s<=segs;s++){const a=s/segs*Math.PI*2;positions.push(Math.cos(a)*rad,y,Math.sin(a)*rad);uvs.push(s/segs,y);}}
-  for(let k=0;k<rings;k++)for(let s=0;s<segs;s++){const a=k*col+s,b=(k+1)*col+s;indices.push(a,b,b+1,a,b+1,a+1);}
-  const bot=positions.length/3;positions.push(0,0,0);uvs.push(.5,0);const base=rings*col;
-  for(let s=0;s<segs;s++)indices.push(bot,base+s+1,base+s);}
- else{const stacks=4;
-  for(let k=0;k<=stacks;k++){const y=k/stacks,rad=1-.14*y;
-   for(let s=0;s<=segs;s++){const a=s/segs*Math.PI*2;positions.push(Math.cos(a)*rad,y,Math.sin(a)*rad);uvs.push(s/segs,y);}}
-  for(let k=0;k<stacks;k++)for(let s=0;s<segs;s++){const a=k*col+s,b=(k+1)*col+s;indices.push(a,b,b+1,a,b+1,a+1);}
-  const bc=positions.length/3;positions.push(0,0,0);uvs.push(.5,0);
-  for(let s=0;s<segs;s++)indices.push(bc,s+1,s);
-  const tc=positions.length/3;positions.push(0,1,0);uvs.push(.5,1);const top=stacks*col;
-  for(let s=0;s<segs;s++)indices.push(tc,top+s,top+s+1);}
- const geo=new THREE.BufferGeometry();
- geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
- geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
- geo.setIndex(indices);geo.computeVertexNormals();return geo;}
-function moundGeo(){return PILE_MOUND||(PILE_MOUND=pileGeo('mound'));}
-function plugGeo(){return PILE_PLUG||(PILE_PLUG=pileGeo('plug'));}
 function refreshPile(p){const m=pileMetrics(p.count,p.x,p.z);p.g=m.g;p.h=m.h;p.r=m.r;p.sealed=m.sealed;p.room=m.room;
- const geo=p.sealed?plugGeo():moundGeo();
- if(!p.mesh){const map=pileTex().clone();map.wrapS=map.wrapT=THREE.RepeatWrapping;map.anisotropy=PILE_TEX.anisotropy;map.colorSpace=THREE.SRGBColorSpace;map.needsUpdate=true;
-  p.mesh=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({map}));p.mesh.name='corpse-pile';p.mesh.frustumCulled=false;scene.add(p.mesh);}
- else if(p.mesh.geometry!==geo)p.mesh.geometry=geo;
- p.mesh.material.map.repeat.set(Math.max(1,Math.PI*2*p.r/2.4),Math.max(1,p.h/1.8));
- p.mesh.position.set(p.x,p.g,p.z);p.mesh.scale.set(p.r,Math.max(.15,p.h),p.r);
+ if(p.mesh){scene.remove(p.mesh);if(p.mesh.material){if(p.mesh.material.map)p.mesh.material.map.dispose();p.mesh.material.dispose();}p.mesh=null;}
  if(!p.bits){p.bits=new THREE.InstancedMesh(boxGeo,new THREE.MeshLambertMaterial({color:0xffffff}),BIT_MAX);p.bits.name='corpse-pile-bits';p.bits.frustumCulled=false;scene.add(p.bits);}
- const key=(p.sealed?1:0)+'|'+((p.x*4)|0)+'|'+((p.z*4)|0)+'|'+((p.g*4)|0)+'|'+((p.r*8)|0)+'|'+((p.h*8)|0);
+ const key=(p.count|0)+'|'+((p.x*4)|0)+'|'+((p.z*4)|0)+'|'+((p.g*4)|0)+'|'+((p.r*8)|0)+'|'+((p.h*8)|0);
  if(p.pose!==key){posePileBits(p);p.pose=key;}}
 function makePile(x,z,count,id){const p={id:id==null?pileSeq++:id|0,x,z,count:count|0,mesh:null,bits:null,g:0,h:1,r:1,sealed:false};if(id!=null)pileSeq=Math.max(pileSeq,(id|0)+1);refreshPile(p);piles.push(p);return p;}
 function destroyPile(p,idx){if(p.bits){scene.remove(p.bits);if(p.bits.material)p.bits.material.dispose();p.bits=null;}
  if(p.mesh){scene.remove(p.mesh);if(p.mesh.material){if(p.mesh.material.map)p.mesh.material.map.dispose();p.mesh.material.dispose();}}
  const i=idx!=null?idx:piles.indexOf(p);if(i>=0)piles.splice(i,1);}
-function pileTop(p,x,z){if(!p||p.sealed)return -1;const d=Math.hypot(x-p.x,z-p.z);if(d>=p.r)return -1;const u=d/p.r;return p.g+p.h*(1-u*u);}
+function pileTop(p,x,z){if(!p||p.sealed)return -1;const d=Math.hypot(x-p.x,z-p.z);if(d>=p.r)return -1;const u=d/p.r;return p.g+p.h*(1-u);}
 function drawPiles(){for(const p of piles)refreshPile(p);}
 function pileInKick(ent,p){const dx=p.x-ent.x,dz=p.z-ent.z,d=Math.hypot(dx,dz);if(d<0.35)return true;
  const rimX=p.x-dx/d*Math.min(p.r,d),rimZ=p.z-dz/d*Math.min(p.r,d);return inKickCone(ent,rimX,rimZ,3.2);}
@@ -2413,11 +2386,11 @@ function shedSpot(p,ux,uz){for(const dist of [p.r+.45,p.r*.55,.4]){const x=p.x+u
 function makeShedCorpse(x,z){const c={id:++ENTID,x,z,y:bodyY(x,z)+.45,yaw:rand(0,6.28),hp:0,dead:true,deathT:.5,fall:.15,state:'wander',target:null,atk:0,phase:rand(0,6),wt:0,wdx:0,wdz:0,stag:0,pvx:0,pvz:0,shirt:pick(SHIRTS),pants:pick(PANTS),skin:pick(SKINS),speed:0,swipe:0,chk:9,groanT:99,hitT:0,mv:0,looseT:2.8,slideT:.9,flying:false,fvx:0,fvz:0,fvy:2.2};
  commons.push(c);return c;}
 const PILE_BITE=10*0.3048;
-function countForPileHeight(h){if(h<=PILE_H*0.5)return 0;return Math.pow(h/PILE_H,1/0.7);}
+function countForPileHeight(h){if(h<=0.2)return 0;const r=h/PILE_SLOPE;return Math.pow(r/PILE_SPREAD,3)/PILE_PACK;}
 function pileAfterKick(p){const m=pileMetrics(p.count,p.x,p.z);if(m.h<=PILE_BITE+0.35)return 0;const next=Math.floor(countForPileHeight(m.h-PILE_BITE));if(!(next>=1)||next>=p.count)return 0;return next;}
 function shedPile(p,ent){const next=pileAfterKick(p),removed=p.count-next;const m=pileMetrics(p.count,p.x,p.z);
  const fx=-Math.sin(ent.yaw),fz=-Math.cos(ent.yaw);
- const burst=Math.min(80,Math.max(48,Math.min(removed,80)));let made=0;
+ const burst=Math.max(0,Math.min(removed,60));let made=0;
  for(let i=0;i<burst;i++){const fan=(burst<=1?0:(i/(burst-1)-0.5)*2.3)+(Math.random()-.5)*.4;
   let dx=fx*Math.cos(fan)-fz*Math.sin(fan),dz=fz*Math.cos(fan)+fx*Math.sin(fan),len=Math.hypot(dx,dz)||1;dx/=len;dz/=len;
   const spot=shedSpot(p,dx,dz)||{x:p.x+dx*(m.r+.6),z:p.z+dz*(m.r+.6)};const c=makeShedCorpse(spot.x,spot.z);const spd=16+Math.random()*12;
@@ -2426,23 +2399,23 @@ function shedPile(p,ent){const next=pileAfterKick(p),removed=p.count-next;const 
   made++;}
  const bx=p.x+fx*Math.min(m.r,.8),by=m.g+Math.min(m.h*.55,3),bz=p.z+fz*Math.min(m.r,.8);
  for(let k=0;k<18;k++)PBlood.emit(bx,by,bz,fx*rand(2,8)+rand(-3,3),rand(2,9),fz*rand(2,8)+rand(-3,3),rand(.5,1.1),.5,.2,.55,.08,.03,.95,10);
- p.count=next;if(p.count<=0)destroyPile(p);else refreshPile(p);return made;}
+ p.count=Math.max(0,p.count-burst);if(p.count<=0)destroyPile(p);else refreshPile(p);return made;}
 function settledLoose(c){return !!(c&&c.dead&&!c.swim&&!c.flying&&!c.type&&(c.fall||0)>.85&&(c.deathT||0)>.45&&(c.slideT||0)<=0&&(c.looseT||0)<=0);}
 function absorbSettled(){const eaten=new Set();
  for(const c of commons){if(!settledLoose(c))continue;let best=null,bd=1e9;
-  for(const p of piles){const d=Math.hypot(c.x-p.x,c.z-p.z);if(d<p.r+.8&&d<bd){bd=d;best=p;}}
+  for(const p of piles){const d=Math.hypot(c.x-p.x,c.z-p.z);if(d<p.r+.3&&d<bd){bd=d;best=p;}}
   if(!best)continue;const n=best.count,nx=(best.x*n+c.x)/(n+1),nz=(best.z*n+c.z)/(n+1);
   if(isWalk(Math.floor(nx/T),Math.floor(nz/T))){best.x=nx;best.z=nz;}best.count=n+1;refreshPile(best);eaten.add(c);}
  const loose=commons.filter(c=>settledLoose(c)&&!eaten.has(c));const used=new Set();
- for(let i=0;i<loose.length;i++){if(used.has(loose[i]))continue;const cluster=[loose[i]];used.add(loose[i]);let grew=true;
-  while(grew){grew=false;for(const o of loose){if(used.has(o))continue;for(const m of cluster){if(Math.hypot(o.x-m.x,o.z-m.z)<=1.15){cluster.push(o);used.add(o);grew=true;break;}}}}
+ for(let i=0;i<loose.length;i++){if(used.has(loose[i]))continue;const seed=loose[i];const cluster=[seed];used.add(seed);
+  for(const o of loose){if(used.has(o))continue;if(Math.hypot(o.x-seed.x,o.z-seed.z)<=1.05){cluster.push(o);used.add(o);}}
   if(cluster.length<2)continue;let sx=0,sz=0;for(const c of cluster){sx+=c.x;sz+=c.z;eaten.add(c);}
   const n=cluster.length;let x=sx/n,z=sz/n;if(!isWalk(Math.floor(x/T),Math.floor(z/T))){x=cluster[0].x;z=cluster[0].z;}makePile(x,z,n);}
  if(eaten.size){for(let i=commons.length-1;i>=0;i--)if(eaten.has(commons[i]))commons.splice(i,1);}}
 function gluePiles(){let changed=true;
  while(changed){changed=false;
   for(let i=0;i<piles.length&&!changed;i++)for(let j=i+1;j<piles.length;j++){const a=piles[i],b=piles[j];
-   if(Math.hypot(a.x-b.x,a.z-b.z)>=a.r+b.r-0.05)continue;
+   if(Math.hypot(a.x-b.x,a.z-b.z)>Math.min(a.r,b.r)*.75)continue;
    const n=a.count+b.count;let x=(a.x*a.count+b.x*b.count)/n,z=(a.z*a.count+b.z*b.count)/n;const bigger=a.count>=b.count?a:b;
    if(!isWalk(Math.floor(x/T),Math.floor(z/T))){x=bigger.x;z=bigger.z;}a.x=x;a.z=z;a.count=n;refreshPile(a);destroyPile(b,j);changed=true;break;}}}
 function tickPiles(dt){for(const p of piles)refreshPile(p);pileScan-=dt;if(pileScan>0)return;pileScan=.2;absorbSettled();gluePiles();}
